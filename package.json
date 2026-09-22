@@ -6,10 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "scrape:dowozy": "tsx scripts/scrape-dowozy.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
+    "cheerio": "^1.1.2",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.3.2",
     "lucide-react": "^1.47.0",
@@ -27,6 +29,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
     "tailwindcss": "^4",
+    "tsx": "^4.20.5",
     "typescript": "^5"
   }
 }

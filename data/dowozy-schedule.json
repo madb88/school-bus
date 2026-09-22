@@ -1,0 +1,565 @@
+{
+  "sourceUrl": "https://www.szkolaolimpijczykow.pl/dowozy/",
+  "fetchedAt": "2026-09-22T06:27:41.469Z",
+  "title": "Rozkład jazdy autobusów szkolnych wrzesień 2026 r.",
+  "periodLabel": "wrzesień 2026 r.",
+  "pickups": [
+    {
+      "name": "p. Bogdan Metrykowski",
+      "kind": "driver",
+      "courses": [
+        {
+          "label": "I kurs",
+          "stops": [
+            {
+              "time": "6:30",
+              "places": [
+                "Książ"
+              ]
+            },
+            {
+              "time": "6:35",
+              "places": [
+                "Barcikowice D."
+              ]
+            },
+            {
+              "time": "6:40",
+              "places": [
+                "Zatonie",
+                "Marzęcin"
+              ]
+            }
+          ]
+        },
+        {
+          "label": "II kurs",
+          "stops": [
+            {
+              "time": "7:05",
+              "places": [
+                "Barcikowice D."
+              ]
+            },
+            {
+              "time": "7:05",
+              "places": [
+                "Zatonie",
+                "Marzęcin"
+              ]
+            },
+            {
+              "time": "7:35",
+              "places": [
+                "Złote Piaski"
+              ]
+            },
+            {
+              "time": "7:40",
+              "places": [
+                "Ługowo"
+              ]
+            },
+            {
+              "time": "7:45",
+              "places": [
+                "Sucha"
+              ]
+            }
+          ]
+        },
+        {
+          "label": "III kurs",
+          "stops": [
+            {
+              "time": "12:00",
+              "places": [
+                "Ługowo"
+              ]
+            },
+            {
+              "time": "12:02",
+              "places": [
+                "Złote Piaski"
+              ]
+            },
+            {
+              "time": "12:05",
+              "places": [
+                "Sucha"
+              ]
+            },
+            {
+              "time": "12:20",
+              "places": [
+                "Barcikowice D."
+              ]
+            },
+            {
+              "time": "12:25",
+              "places": [
+                "Zatonie",
+                "Marzęcin"
+              ]
+            }
+          ]
+        },
+        {
+          "label": "IV kurs",
+          "note": "od poniedziałku do czwartku",
+          "stops": [
+            {
+              "time": "11:10",
+              "places": [
+                "Sucha",
+                "Złote Piaski"
+              ]
+            },
+            {
+              "time": "11:15",
+              "places": [
+                "Ługowo"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bus",
+      "kind": "vehicle",
+      "courses": [
+        {
+          "label": "kurs",
+          "stops": [
+            {
+              "time": "6:45",
+              "places": [
+                "Barcikowice M."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "p. Piotr Chełmicki",
+      "kind": "driver",
+      "courses": [
+        {
+          "label": "I kurs",
+          "stops": [
+            {
+              "time": "6:40",
+              "places": [
+                "Ługowo"
+              ]
+            },
+            {
+              "time": "6:45",
+              "places": [
+                "Złote Piaski",
+                "Sucha"
+              ]
+            }
+          ]
+        },
+        {
+          "label": "II kurs",
+          "stops": [
+            {
+              "time": "7:20",
+              "places": [
+                "Nowy Kisielin"
+              ]
+            },
+            {
+              "time": "7:25",
+              "places": [
+                "Stary Kisielin"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "dropoffsByDate": [
+    {
+      "dateLabel": "Poniedziałek, 7 września",
+      "driver": "p. Bogdan Metrykowski",
+      "runs": [
+        {
+          "time": "11:45",
+          "places": [
+            "Sucha",
+            "Złote Piaski",
+            "Ługowo",
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D."
+          ]
+        },
+        {
+          "time": "12:45",
+          "places": [
+            "Sucha",
+            "Złote Piaski",
+            "Ługowo",
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D."
+          ]
+        },
+        {
+          "time": "13:45",
+          "places": [
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D.",
+            "Książ"
+          ]
+        },
+        {
+          "time": "14:45",
+          "places": [
+            "Sucha",
+            "Złote Piaski",
+            "Ługowo",
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D."
+          ]
+        },
+        {
+          "time": "15:30",
+          "places": [
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D."
+          ]
+        },
+        {
+          "time": "16:20",
+          "places": [
+            "Sucha",
+            "Złote Piaski",
+            "Ługowo",
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D.",
+            "Książ",
+            "Barcikowice M."
+          ]
+        }
+      ]
+    },
+    {
+      "dateLabel": "Wtorek, 8 września",
+      "driver": "p. Bogdan Metrykowski",
+      "runs": [
+        {
+          "time": "11:45",
+          "places": [
+            "Sucha",
+            "Złote Piaski",
+            "Ługowo",
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D."
+          ]
+        },
+        {
+          "time": "12:45",
+          "places": [
+            "Sucha",
+            "Złote Piaski",
+            "Ługowo",
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D."
+          ]
+        },
+        {
+          "time": "13:45",
+          "places": [
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D.",
+            "Książ"
+          ]
+        },
+        {
+          "time": "14:45",
+          "places": [
+            "Sucha",
+            "Złote Piaski",
+            "Ługowo",
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D."
+          ]
+        },
+        {
+          "time": "15:30",
+          "places": [
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D."
+          ]
+        },
+        {
+          "time": "16:20",
+          "places": [
+            "Sucha",
+            "Złote Piaski",
+            "Ługowo",
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D.",
+            "Książ",
+            "Barcikowice M."
+          ]
+        }
+      ]
+    },
+    {
+      "dateLabel": "Środa, 9 września",
+      "driver": "p. Bogdan Metrykowski",
+      "runs": [
+        {
+          "time": "11:45",
+          "places": [
+            "Sucha",
+            "Złote Piaski",
+            "Ługowo",
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D."
+          ]
+        },
+        {
+          "time": "12:45",
+          "places": [
+            "Sucha",
+            "Złote Piaski",
+            "Ługowo",
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D."
+          ]
+        },
+        {
+          "time": "13:45",
+          "places": [
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D.",
+            "Książ"
+          ]
+        },
+        {
+          "time": "14:45",
+          "places": [
+            "Sucha",
+            "Złote Piaski",
+            "Ługowo",
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D."
+          ]
+        },
+        {
+          "time": "15:30",
+          "places": [
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D.",
+            "Barcikowice M."
+          ]
+        },
+        {
+          "time": "16:20",
+          "places": [
+            "Sucha",
+            "Złote Piaski",
+            "Ługowo",
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D.",
+            "Książ"
+          ]
+        }
+      ]
+    },
+    {
+      "dateLabel": "Czwartek, 10 września",
+      "driver": "p. Bogdan Metrykowski",
+      "runs": [
+        {
+          "time": "11:45",
+          "places": [
+            "Sucha",
+            "Złote Piaski",
+            "Ługowo",
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D."
+          ]
+        },
+        {
+          "time": "12:45",
+          "places": [
+            "Sucha",
+            "Złote Piaski",
+            "Ługowo",
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D."
+          ]
+        },
+        {
+          "time": "13:45",
+          "places": [
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D.",
+            "Książ"
+          ]
+        },
+        {
+          "time": "14:45",
+          "places": [
+            "Sucha",
+            "Złote Piaski",
+            "Ługowo",
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D."
+          ]
+        },
+        {
+          "time": "15:30",
+          "places": [
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D."
+          ]
+        },
+        {
+          "time": "16:20",
+          "places": [
+            "Sucha",
+            "Złote Piaski",
+            "Ługowo",
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D.",
+            "Książ",
+            "Barcikowice M."
+          ]
+        }
+      ]
+    },
+    {
+      "dateLabel": "Piątek, 11 września",
+      "driver": "p. Bogdan Metrykowski",
+      "runs": [
+        {
+          "time": "11:45",
+          "places": [
+            "Sucha",
+            "Złote Piaski",
+            "Ługowo",
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D."
+          ]
+        },
+        {
+          "time": "12:45",
+          "places": [
+            "Sucha",
+            "Złote Piaski",
+            "Ługowo",
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D."
+          ]
+        },
+        {
+          "time": "13:45",
+          "places": [
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D.",
+            "Książ"
+          ]
+        },
+        {
+          "time": "14:45",
+          "places": [
+            "Sucha",
+            "Złote Piaski",
+            "Ługowo",
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D."
+          ]
+        },
+        {
+          "time": "15:30",
+          "places": [
+            "Zatonie",
+            "Marzęcin",
+            "Barcikowice D.",
+            "Książ",
+            "Barcikowice M."
+          ]
+        }
+      ]
+    }
+  ],
+  "dropoffsWeekday": [
+    {
+      "title": "Odwozy – poniedziałek–piątek",
+      "driver": "p. Piotr Chełmicki",
+      "runs": [
+        {
+          "time": "12:40",
+          "places": [
+            "Stary Kisielin",
+            "Nowy Kisielin"
+          ]
+        },
+        {
+          "time": "13:45",
+          "places": [
+            "Sucha",
+            "Złote Piaski",
+            "Ługowo",
+            "Stary Kisielin",
+            "Nowy Kisielin"
+          ]
+        },
+        {
+          "time": "14:45",
+          "places": [
+            "Stary Kisielin",
+            "Nowy Kisielin"
+          ]
+        },
+        {
+          "time": "15:40",
+          "places": [
+            "Sucha",
+            "Złote Piaski",
+            "Ługowo",
+            "Stary Kisielin",
+            "Nowy Kisielin"
+          ]
+        }
+      ]
+    }
+  ]
+}
