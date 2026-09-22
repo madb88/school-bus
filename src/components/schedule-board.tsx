@@ -1,12 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { startTransition, useDeferredValue, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  startTransition,
+  useDeferredValue,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { getDayTimes } from "@/lib/child-schedule/match";
-import { hasConfiguredLessons } from "@/lib/child-schedule/storage";
+import {
+  loadPreferredPlace,
+  savePreferredPlace,
+} from "@/lib/child-schedule/preferred-place";
+import {
+  hasConfiguredLessons,
+  loadLessonPlan,
+} from "@/lib/child-schedule/storage";
 import { useLessonPlan } from "@/lib/child-schedule/use-lesson-plan";
+import { usePreferredPlace } from "@/lib/child-schedule/use-preferred-place";
 import {
   collectPlaces,
   countVisibleTrips,
@@ -14,13 +29,20 @@ import {
   type ScheduleDateFilter,
   type ScheduleDirection,
 } from "@/lib/dowozy/filter-schedule";
+import {
+  filtersHref,
+  parseFilterParams,
+  serializeFilterParams,
+  type ParsedFilterParams,
+} from "@/lib/dowozy/filter-url";
+import { findNextTrip, stopDomId } from "@/lib/dowozy/next-trip";
 import { resolveTargetDay } from "@/lib/dowozy/schedule-dates";
 import type { Schedule, Stop } from "@/lib/dowozy/types";
 import { cn } from "cn";
 
 type ScheduleBoardProps = {
   schedule: Schedule;
-  initialMatchLessonPlan?: boolean;
+  initialFilters: ParsedFilterParams;
 };
 
 function formatFetchedAt(iso: string): string {
@@ -38,11 +60,22 @@ function formatFetchedAt(iso: string): string {
     const get = (type: Intl.DateTimeFormatPartTypes) =>
       parts.find((part) => part.type === type)?.value ?? "";
 
-    // Fixed shape avoids Node vs browser locale quirks ("o" vs ",").
     return `${get("day")}.${get("month")}.${get("year")}, ${get("hour")}:${get("minute")}`;
   } catch {
     return iso;
   }
+}
+
+function dateLabel(value: ScheduleDateFilter): string {
+  if (value === "today") return "Dzisiaj";
+  if (value === "tomorrow") return "Jutro";
+  return "Wszystkie dni";
+}
+
+function directionLabel(value: ScheduleDirection): string {
+  if (value === "pickups") return "Dowozy";
+  if (value === "dropoffs") return "Odwozy";
+  return "Wszystkie";
 }
 
 function PlaceChip({
@@ -82,16 +115,39 @@ function StopRow({
   stop,
   activePlace,
   onSelectPlace,
+  isNext,
+  stopId,
 }: {
   stop: Stop;
   activePlace: string | null;
   onSelectPlace: (place: string) => void;
+  isNext?: boolean;
+  stopId?: string;
 }) {
   return (
-    <li className="grid grid-cols-[4.5rem_1fr] gap-3 border-t border-border/50 py-3 first:border-t-0 sm:grid-cols-[5.5rem_1fr] sm:gap-4">
-      <time className="font-display text-lg font-bold tabular-nums tracking-tight text-asphalt sm:text-xl">
-        {stop.time}
-      </time>
+    <li
+      id={stopId}
+      className={cn(
+        "grid grid-cols-[4.5rem_1fr] gap-3 border-t border-border/50 py-3 first:border-t-0 sm:grid-cols-[5.5rem_1fr] sm:gap-4",
+        isNext &&
+          "-mx-2 rounded-lg border-t-transparent bg-bus/10 px-2 ring-1 ring-bus/35 sm:-mx-3 sm:px-3",
+      )}
+    >
+      <div className="flex flex-col gap-1">
+        <time
+          className={cn(
+            "font-display text-lg font-bold tabular-nums tracking-tight text-asphalt sm:text-xl",
+            isNext && "text-bus-deep",
+          )}
+        >
+          {stop.time}
+        </time>
+        {isNext ? (
+          <span className="text-[0.65rem] font-semibold tracking-[0.12em] text-bus-deep uppercase">
+            Najbliższy
+          </span>
+        ) : null}
+      </div>
       <div className="flex flex-wrap items-center gap-1.5 self-center">
         {stop.places.map((item) => (
           <PlaceChip
@@ -132,30 +188,135 @@ function SectionHeading({
 
 export function ScheduleBoard({
   schedule,
-  initialMatchLessonPlan = false,
+  initialFilters,
 }: ScheduleBoardProps) {
   const places = collectPlaces(schedule);
   const lessonPlan = useLessonPlan();
+  const preferredPlace = usePreferredPlace();
   const planReady = hasConfiguredLessons(lessonPlan);
+  const defaultPlace = preferredPlace ?? lessonPlan.place;
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const urlPlaceValid =
+    typeof initialFilters.place === "string" &&
+    places.includes(initialFilters.place)
+      ? initialFilters.place
+      : initialFilters.place === null
+        ? null
+        : undefined;
 
   const [matchLessonPlan, setMatchLessonPlan] = useState(
-    initialMatchLessonPlan,
+    initialFilters.matchLessonPlan,
   );
   const [placeOverride, setPlaceOverride] = useState<string | null | undefined>(
-    undefined,
+    urlPlaceValid,
   );
-  const [direction, setDirection] = useState<ScheduleDirection>("all");
+  const [direction, setDirection] = useState<ScheduleDirection>(
+    initialFilters.direction ?? "all",
+  );
   const [dateFilter, setDateFilter] = useState<ScheduleDateFilter>(
-    initialMatchLessonPlan ? "today" : "all",
+    initialFilters.dateFilter ??
+      (initialFilters.matchLessonPlan ? "today" : "all"),
   );
+  const [now, setNow] = useState(() => new Date());
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [copiedFlash, setCopiedFlash] = useState(false);
+  const [urlReady, setUrlReady] = useState(false);
+  const skipUrlWrite = useRef(false);
 
   const matchActive = matchLessonPlan && planReady;
   const place =
     placeOverride === undefined
       ? matchActive
         ? lessonPlan.place
-        : null
+        : defaultPlace
       : placeOverride;
+
+  // Seed preferred stop/day only when the URL has no explicit filters.
+  useEffect(() => {
+    if (!initialFilters.hasExplicit) {
+      const storedPlace =
+        loadPreferredPlace() ?? loadLessonPlan().place ?? null;
+      if (storedPlace && places.includes(storedPlace)) {
+        setPlaceOverride(storedPlace);
+        setDateFilter("today");
+      }
+    }
+    setUrlReady(true);
+    // Seed once after mount; places is stable for a given schedule snapshot.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const tick = () => setNow(new Date());
+    const id = window.setInterval(tick, 60_000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") tick();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
+
+  // Keep address bar in sync so filters are shareable.
+  useEffect(() => {
+    if (!urlReady) return;
+    if (skipUrlWrite.current) {
+      skipUrlWrite.current = false;
+      return;
+    }
+
+    const qs = serializeFilterParams({
+      place,
+      dateFilter,
+      direction,
+      matchLessonPlan,
+    });
+    const next = qs ? `${pathname}?${qs}` : pathname;
+    const current = `${window.location.pathname}${window.location.search}`;
+    if (next === current) return;
+
+    router.replace(next, { scroll: false });
+  }, [
+    place,
+    dateFilter,
+    direction,
+    matchLessonPlan,
+    pathname,
+    router,
+    urlReady,
+  ]);
+
+  // Browser back/forward.
+  useEffect(() => {
+    function onPopState() {
+      const parsed = parseFilterParams(
+        new URLSearchParams(window.location.search),
+      );
+      skipUrlWrite.current = true;
+      startTransition(() => {
+        setMatchLessonPlan(parsed.matchLessonPlan);
+        setDirection(parsed.direction ?? "all");
+        setDateFilter(
+          parsed.dateFilter ?? (parsed.matchLessonPlan ? "today" : "all"),
+        );
+        if (parsed.place === undefined) {
+          setPlaceOverride(undefined);
+        } else if (
+          parsed.place === null ||
+          places.includes(parsed.place)
+        ) {
+          setPlaceOverride(parsed.place);
+        }
+      });
+    }
+
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [places]);
 
   const deferredPlace = useDeferredValue(place);
   const deferredDirection = useDeferredValue(direction);
@@ -168,15 +329,31 @@ export function ScheduleBoard({
     dateFilter: deferredDateFilter,
     lessonPlan,
     matchLessonPlan: deferredMatch,
+    now,
   });
   const tripCount = countVisibleTrips(filtered);
   const isEmpty = tripCount === 0;
 
-  const target = resolveTargetDay(deferredDateFilter);
+  const target = resolveTargetDay(deferredDateFilter, now);
   const dayTimes =
     deferredMatch && target
       ? getDayTimes(lessonPlan, target.weekday)
       : undefined;
+
+  const nextTrip =
+    deferredDateFilter === "today" && !isEmpty
+      ? findNextTrip(filtered, now)
+      : null;
+
+  const hasActiveFilters =
+    Boolean(place) ||
+    dateFilter !== "all" ||
+    direction !== "all" ||
+    matchActive;
+
+  function persistPlace(next: string | null) {
+    savePreferredPlace(next);
+  }
 
   function enableMatchPlan() {
     startTransition(() => {
@@ -188,9 +365,170 @@ export function ScheduleBoard({
 
   function selectPlace(nextPlace: string) {
     startTransition(() => {
-      setPlaceOverride(place === nextPlace ? null : nextPlace);
+      if (place === nextPlace) {
+        setPlaceOverride(null);
+        persistPlace(null);
+      } else {
+        setPlaceOverride(nextPlace);
+        persistPlace(nextPlace);
+      }
     });
   }
+
+  function clearFilters() {
+    startTransition(() => {
+      setPlaceOverride(null);
+      setDateFilter("all");
+      setDirection("all");
+      setMatchLessonPlan(false);
+    });
+  }
+
+  async function copyShareLink() {
+    const href = filtersHref({
+      place,
+      dateFilter,
+      direction,
+      matchLessonPlan,
+    });
+    const absolute = new URL(href, window.location.origin).toString();
+    try {
+      await navigator.clipboard.writeText(absolute);
+      setCopiedFlash(true);
+      window.setTimeout(() => setCopiedFlash(false), 2000);
+    } catch {
+      window.prompt("Skopiuj link:", absolute);
+    }
+  }
+
+  const filterControls = (
+    <>
+      <div className="flex flex-wrap items-center gap-2">
+        {planReady ? (
+          <Button
+            type="button"
+            size="lg"
+            variant={matchActive ? "secondary" : "outline"}
+            aria-pressed={matchActive}
+            onClick={() => {
+              if (matchActive) {
+                startTransition(() => setMatchLessonPlan(false));
+              } else {
+                enableMatchPlan();
+              }
+            }}
+          >
+            Dopasuj do planu
+          </Button>
+        ) : (
+          <Link
+            href="/lekcje"
+            className="inline-flex h-9 items-center rounded-lg border border-border bg-background px-2.5 text-sm font-medium hover:bg-muted"
+          >
+            Ustaw plan lekcji
+          </Link>
+        )}
+        {matchActive && dayTimes ? (
+          <p className="text-sm text-muted-foreground">
+            Lekcje{dayTimes.start ? ` od ${dayTimes.start}` : ""}
+            {dayTimes.end ? ` do ${dayTimes.end}` : ""}
+          </p>
+        ) : null}
+        {matchActive && target && !dayTimes ? (
+          <p className="text-sm text-muted-foreground">
+            Brak godzin w planie na ten dzień —{" "}
+            <Link
+              href="/lekcje"
+              className="underline underline-offset-2 hover:text-foreground"
+            >
+              uzupełnij
+            </Link>
+          </p>
+        ) : null}
+      </div>
+
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Dzień">
+        {(
+          [
+            ["all", "Wszystkie dni"],
+            ["today", "Dzisiaj"],
+            ["tomorrow", "Jutro"],
+          ] as const
+        ).map(([value, label]) => (
+          <Button
+            key={value}
+            type="button"
+            size="lg"
+            variant={dateFilter === value ? "secondary" : "outline"}
+            aria-pressed={dateFilter === value}
+            onClick={() => {
+              startTransition(() => setDateFilter(value));
+            }}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <label className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            Miejsce
+          </span>
+          <select
+            value={place ?? ""}
+            onChange={(event) => {
+              const value = event.target.value;
+              startTransition(() => {
+                if (value === "") {
+                  setPlaceOverride(null);
+                  persistPlace(null);
+                } else {
+                  setPlaceOverride(value);
+                  persistPlace(value);
+                }
+              });
+            }}
+            className="h-11 w-full rounded-lg border border-border bg-card px-3 text-base text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            <option value="">Wszystkie miejsca</option>
+            {places.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div
+          className="flex flex-wrap gap-1.5"
+          role="group"
+          aria-label="Kierunek"
+        >
+          {(
+            [
+              ["all", "Wszystkie"],
+              ["pickups", "Dowozy"],
+              ["dropoffs", "Odwozy"],
+            ] as const
+          ).map(([value, label]) => (
+            <Button
+              key={value}
+              type="button"
+              size="lg"
+              variant={direction === value ? "secondary" : "outline"}
+              aria-pressed={direction === value}
+              onClick={() => {
+                startTransition(() => setDirection(value));
+              }}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+      </div>
+    </>
+  );
 
   return (
     <div className="space-y-10">
@@ -220,169 +558,171 @@ export function ScheduleBoard({
         </p>
       </header>
 
-      <div className="sticky top-0 z-10 ml-[calc(50%-50vw)] w-screen space-y-4 border-y border-border/50 bg-[color-mix(in_srgb,var(--background)_88%,transparent)] py-4 shadow-[0_8px_30px_-18px_color-mix(in_srgb,var(--foreground)_35%,transparent)] backdrop-blur-md">
+      <div className="sticky top-0 z-10 ml-[calc(50%-50vw)] w-screen space-y-3 border-y border-border/50 bg-[color-mix(in_srgb,var(--background)_88%,transparent)] py-3 shadow-[0_8px_30px_-18px_color-mix(in_srgb,var(--foreground)_35%,transparent)] backdrop-blur-md md:space-y-4 md:py-4">
         <div className="mx-auto flex max-w-4xl flex-col gap-3 px-6 sm:px-10">
-          <div className="flex flex-wrap items-center gap-2">
-            {planReady ? (
+          {/* Mobile: compact bar + shortcuts */}
+          <div className="flex flex-col gap-2 md:hidden">
+            <div className="flex items-center gap-2">
               <Button
                 type="button"
                 size="lg"
-                variant={matchActive ? "secondary" : "outline"}
-                aria-pressed={matchActive}
-                onClick={() => {
-                  if (matchActive) {
-                    startTransition(() => setMatchLessonPlan(false));
-                  } else {
-                    enableMatchPlan();
-                  }
-                }}
+                variant={filtersOpen ? "secondary" : "outline"}
+                aria-expanded={filtersOpen}
+                aria-controls="schedule-filters-panel"
+                onClick={() => setFiltersOpen((open) => !open)}
               >
-                Dopasuj do planu
+                Filtry
+                <span aria-hidden className="text-muted-foreground">
+                  {filtersOpen ? "▴" : "▾"}
+                </span>
               </Button>
-            ) : (
-              <Link
-                href="/lekcje"
-                className="inline-flex h-9 items-center rounded-lg border border-border bg-background px-2.5 text-sm font-medium hover:bg-muted"
-              >
-                Ustaw plan lekcji
-              </Link>
-            )}
-            {matchActive && dayTimes ? (
-              <p className="text-sm text-muted-foreground">
-                Lekcje{dayTimes.start ? ` od ${dayTimes.start}` : ""}
-                {dayTimes.end ? ` do ${dayTimes.end}` : ""}
-              </p>
-            ) : null}
-            {matchActive && target && !dayTimes ? (
-              <p className="text-sm text-muted-foreground">
-                Brak godzin w planie na ten dzień —{" "}
-                <Link
-                  href="/lekcje"
-                  className="underline underline-offset-2 hover:text-foreground"
+              <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={dateFilter === "today" ? "secondary" : "outline"}
+                  aria-pressed={dateFilter === "today"}
+                  onClick={() => {
+                    startTransition(() =>
+                      setDateFilter((current) =>
+                        current === "today" ? "all" : "today",
+                      ),
+                    );
+                  }}
                 >
-                  uzupełnij
-                </Link>
-              </p>
-            ) : null}
+                  Dzisiaj
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={
+                    direction === "pickups" ? "secondary" : "outline"
+                  }
+                  aria-pressed={direction === "pickups"}
+                  onClick={() => {
+                    startTransition(() =>
+                      setDirection((current) =>
+                        current === "pickups" ? "all" : "pickups",
+                      ),
+                    );
+                  }}
+                >
+                  Dowozy
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={
+                    direction === "dropoffs" ? "secondary" : "outline"
+                  }
+                  aria-pressed={direction === "dropoffs"}
+                  onClick={() => {
+                    startTransition(() =>
+                      setDirection((current) =>
+                        current === "dropoffs" ? "all" : "dropoffs",
+                      ),
+                    );
+                  }}
+                >
+                  Odwozy
+                </Button>
+              </div>
+            </div>
           </div>
 
           <div
-            className="flex flex-wrap gap-1.5"
-            role="group"
-            aria-label="Dzień"
+            id="schedule-filters-panel"
+            className={cn(
+              "flex-col gap-3",
+              filtersOpen ? "flex" : "hidden",
+              "md:flex",
+            )}
           >
-            {(
-              [
-                ["all", "Wszystkie dni"],
-                ["today", "Dzisiaj"],
-                ["tomorrow", "Jutro"],
-              ] as const
-            ).map(([value, label]) => (
-              <Button
-                key={value}
-                type="button"
-                size="lg"
-                variant={dateFilter === value ? "secondary" : "outline"}
-                aria-pressed={dateFilter === value}
-                onClick={() => {
-                  startTransition(() => setDateFilter(value));
-                }}
-              >
-                {label}
-              </Button>
-            ))}
-          </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <label className="flex min-w-0 flex-1 flex-col gap-1.5">
-              <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                Miejsce
-              </span>
-              <select
-                value={place ?? ""}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  startTransition(() => {
-                    setPlaceOverride(value === "" ? null : value);
-                  });
-                }}
-                className="h-11 w-full rounded-lg border border-border bg-card px-3 text-base text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                <option value="">Wszystkie miejsca</option>
-                {places.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <div
-              className="flex flex-wrap gap-1.5"
-              role="group"
-              aria-label="Kierunek"
-            >
-              {(
-                [
-                  ["all", "Wszystkie"],
-                  ["pickups", "Dowozy"],
-                  ["dropoffs", "Odwozy"],
-                ] as const
-              ).map(([value, label]) => (
-                <Button
-                  key={value}
-                  type="button"
-                  size="lg"
-                  variant={direction === value ? "secondary" : "outline"}
-                  aria-pressed={direction === value}
-                  onClick={() => {
-                    startTransition(() => setDirection(value));
-                  }}
-                >
-                  {label}
-                </Button>
-              ))}
-            </div>
+            {filterControls}
           </div>
         </div>
 
-        {place || dateFilter !== "all" || matchActive ? (
-          <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-6 sm:px-10">
-            <p className="text-sm text-muted-foreground">
-              {matchActive ? "Plan · " : null}
-              {dateFilter === "today"
-                ? "Dzisiaj"
-                : dateFilter === "tomorrow"
-                  ? "Jutro"
-                  : "Wszystkie dni"}
-              {place ? (
-                <>
-                  {" · "}
-                  <span className="font-medium text-foreground">{place}</span>
-                </>
-              ) : null}
-              {" · "}
-              {tripCount}{" "}
-              {tripCount === 1
-                ? "pozycja"
-                : tripCount < 5
-                  ? "pozycje"
-                  : "pozycji"}
-            </p>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                startTransition(() => {
-                  setPlaceOverride(null);
-                  setDateFilter("all");
-                  setMatchLessonPlan(false);
-                });
-              }}
-            >
-              Wyczyść
-            </Button>
+        {hasActiveFilters || nextTrip ? (
+          <div className="mx-auto flex max-w-4xl flex-col gap-2 px-6 sm:px-10">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm text-muted-foreground">
+                {matchActive ? "Plan · " : null}
+                {dateLabel(dateFilter)}
+                {place ? (
+                  <>
+                    {" · "}
+                    <span className="font-medium text-foreground">{place}</span>
+                  </>
+                ) : null}
+                {direction !== "all" ? (
+                  <>
+                    {" · "}
+                    {directionLabel(direction)}
+                  </>
+                ) : null}
+                {" · "}
+                {tripCount}{" "}
+                {tripCount === 1
+                  ? "pozycja"
+                  : tripCount < 5
+                    ? "pozycje"
+                    : "pozycji"}
+              </p>
+              <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    void copyShareLink();
+                  }}
+                >
+                  {copiedFlash ? "Skopiowano" : "Kopiuj link"}
+                </Button>
+                {hasActiveFilters ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                  >
+                    Wyczyść
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+            {nextTrip ? (
+              <p className="text-sm text-foreground">
+                <span className="font-semibold text-bus-deep">
+                  Najbliższy kurs
+                </span>
+                {": "}
+                <a
+                  href={`#${nextTrip.id}`}
+                  className="font-display font-bold tabular-nums underline-offset-2 hover:underline"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    document
+                      .getElementById(nextTrip.id)
+                      ?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                      });
+                  }}
+                >
+                  {nextTrip.time}
+                </a>
+                {" · "}
+                {nextTrip.places.join(", ")}
+                {" · "}
+                {nextTrip.kind === "pickup" ? "dowóz" : "odwóz"}
+                {nextTrip.context ? ` (${nextTrip.context})` : null}
+              </p>
+            ) : dateFilter === "today" && !isEmpty ? (
+              <p className="text-sm text-muted-foreground">
+                Brak kolejnych kursów na dziś w tym filtrze.
+              </p>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -444,14 +784,24 @@ export function ScheduleBoard({
                             ) : null}
                           </div>
                           <ul>
-                            {course.stops.map((stop, index) => (
-                              <StopRow
-                                key={`${stop.time}-${stop.places.join("-")}-${index}`}
-                                stop={stop}
-                                activePlace={deferredPlace}
-                                onSelectPlace={selectPlace}
-                              />
-                            ))}
+                            {course.stops.map((stop, index) => {
+                              const stopId = stopDomId("pickup", [
+                                block.name,
+                                course.label,
+                                String(index),
+                                stop.time,
+                              ]);
+                              return (
+                                <StopRow
+                                  key={stopId}
+                                  stopId={stopId}
+                                  stop={stop}
+                                  activePlace={deferredPlace}
+                                  onSelectPlace={selectPlace}
+                                  isNext={nextTrip?.id === stopId}
+                                />
+                              );
+                            })}
                           </ul>
                         </div>
                       ))}
@@ -482,14 +832,23 @@ export function ScheduleBoard({
                       </p>
                     </div>
                     <ul className="rounded-xl border border-border/70 bg-card/90 px-4 py-1 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-5">
-                      {day.runs.map((run, index) => (
-                        <StopRow
-                          key={`${day.dateLabel}-${run.time}-${index}`}
-                          stop={run}
-                          activePlace={deferredPlace}
-                          onSelectPlace={selectPlace}
-                        />
-                      ))}
+                      {day.runs.map((run, index) => {
+                        const stopId = stopDomId("dropoff-date", [
+                          day.dateLabel,
+                          String(index),
+                          run.time,
+                        ]);
+                        return (
+                          <StopRow
+                            key={stopId}
+                            stopId={stopId}
+                            stop={run}
+                            activePlace={deferredPlace}
+                            onSelectPlace={selectPlace}
+                            isNext={nextTrip?.id === stopId}
+                          />
+                        );
+                      })}
                     </ul>
                   </article>
                 ))}
@@ -508,14 +867,23 @@ export function ScheduleBoard({
                       </p>
                     </div>
                     <ul className="rounded-xl border border-border/70 bg-card/90 px-4 py-1 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-5">
-                      {block.runs.map((run, index) => (
-                        <StopRow
-                          key={`${block.driver}-${run.time}-${index}`}
-                          stop={run}
-                          activePlace={deferredPlace}
-                          onSelectPlace={selectPlace}
-                        />
-                      ))}
+                      {block.runs.map((run, index) => {
+                        const stopId = stopDomId("dropoff-weekday", [
+                          block.driver,
+                          String(index),
+                          run.time,
+                        ]);
+                        return (
+                          <StopRow
+                            key={stopId}
+                            stopId={stopId}
+                            stop={run}
+                            activePlace={deferredPlace}
+                            onSelectPlace={selectPlace}
+                            isNext={nextTrip?.id === stopId}
+                          />
+                        );
+                      })}
                     </ul>
                   </article>
                 ))}

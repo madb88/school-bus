@@ -1,24 +1,25 @@
 import { PageShell } from "@/components/page-shell";
 import { ScheduleBoard } from "@/components/schedule-board";
 import { SiteHeader } from "@/components/site-header";
+import { parseFilterParams } from "@/lib/dowozy/filter-url";
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { DOWOZY_SOURCE_URL } from "@/lib/dowozy/types";
 
 type HomeProps = {
-  searchParams: Promise<{ dopasuj?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
   const schedule = await loadScheduleSnapshot();
-  const initialMatchLessonPlan = params.dopasuj === "1";
+  const initialFilters = parseFilterParams(params);
 
   return (
     <PageShell>
       {schedule ? (
         <ScheduleBoard
           schedule={schedule}
-          initialMatchLessonPlan={initialMatchLessonPlan}
+          initialFilters={initialFilters}
         />
       ) : (
         <div className="space-y-8">

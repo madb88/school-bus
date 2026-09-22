@@ -9,12 +9,14 @@ import {
   saveLessonPlan,
 } from "@/lib/child-schedule/storage";
 import { formatTimeInput } from "@/lib/child-schedule/match";
+import { savePreferredPlace } from "@/lib/child-schedule/preferred-place";
 import {
   EMPTY_LESSON_PLAN,
   WEEKDAY_OPTIONS,
   type ChildLessonPlan,
   type WeekdayKey,
 } from "@/lib/child-schedule/types";
+import { filtersHref } from "@/lib/dowozy/filter-url";
 import { useLessonPlan } from "@/lib/child-schedule/use-lesson-plan";
 
 type LessonPlanFormProps = {
@@ -77,6 +79,9 @@ export function LessonPlanForm({ places }: LessonPlanFormProps) {
       }
 
       saveLessonPlan(normalized);
+      if (normalized.place) {
+        savePreferredPlace(normalized.place);
+      }
       setDraft(null);
       setSavedFlash(true);
       window.setTimeout(() => setSavedFlash(false), 2000);
@@ -193,7 +198,12 @@ export function LessonPlanForm({ places }: LessonPlanFormProps) {
         ) : null}
         {hasConfiguredLessons(plan) ? (
           <Link
-            href="/?dopasuj=1"
+            href={filtersHref({
+              place: plan.place,
+              dateFilter: "today",
+              direction: "all",
+              matchLessonPlan: true,
+            })}
             className="text-sm font-medium text-asphalt underline underline-offset-2 hover:text-foreground"
           >
             Zobacz dopasowany rozkład
