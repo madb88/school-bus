@@ -9,9 +9,13 @@ import {
   useRef,
   useState,
 } from "react";
-import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
-import { getDayTimes } from "@/lib/child-schedule/match";
+import {
+  dropoffFitsLessonEnd,
+  getDayTimes,
+  pickupFitsLessonStart,
+  timeToMinutes,
+} from "@/lib/child-schedule/match";
 import {
   loadPreferredPlace,
   savePreferredPlace,
@@ -34,37 +38,33 @@ import {
   parseFilterParams,
   serializeFilterParams,
   type ParsedFilterParams,
+  type ScheduleSourceMode,
 } from "@/lib/dowozy/filter-url";
 import { findNextTrip, stopDomId } from "@/lib/dowozy/next-trip";
-import { resolveTargetDay } from "@/lib/dowozy/schedule-dates";
+import {
+  isSchoolDay,
+  resolveTargetDay,
+} from "@/lib/dowozy/schedule-dates";
 import type { Schedule, Stop } from "@/lib/dowozy/types";
+import { findOdDepartures, formatTravelDuration } from "@/lib/mzk/filter-departures";
+import {
+  buildMergedTimeline,
+  findNextMergedEntry,
+  type TimelineEntry,
+} from "@/lib/mzk/merge-timeline";
+import {
+  hasConfiguredMzkRoute,
+  loadMzkRoutePreference,
+} from "@/lib/mzk/route-storage";
+import type { MzkOdDeparture, MzkSchedule } from "@/lib/mzk/types";
+import { useMzkRoutePreference } from "@/lib/mzk/use-mzk-route";
 import { cn } from "cn";
 
 type ScheduleBoardProps = {
   schedule: Schedule;
+  mzkSchedule?: MzkSchedule | null;
   initialFilters: ParsedFilterParams;
 };
-
-function formatFetchedAt(iso: string): string {
-  try {
-    const parts = new Intl.DateTimeFormat("pl-PL", {
-      timeZone: "Europe/Warsaw",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).formatToParts(new Date(iso));
-
-    const get = (type: Intl.DateTimeFormatPartTypes) =>
-      parts.find((part) => part.type === type)?.value ?? "";
-
-    return `${get("day")}.${get("month")}.${get("year")}, ${get("hour")}:${get("minute")}`;
-  } catch {
-    return iso;
-  }
-}
 
 function dateLabel(value: ScheduleDateFilter): string {
   if (value === "today") return "Dzisiaj";
@@ -76,6 +76,11 @@ function directionLabel(value: ScheduleDirection): string {
   if (value === "pickups") return "Dowozy";
   if (value === "dropoffs") return "Odwozy";
   return "Wszystkie";
+}
+
+function sourceModeLabel(value: ScheduleSourceMode): string {
+  if (value === "school-mzk") return "Szkolny + MZK";
+  return "Autobus szkolny";
 }
 
 function PlaceChip({
@@ -162,6 +167,162 @@ function StopRow({
   );
 }
 
+function MzkDepartureRow({
+  departure,
+  stopId,
+  isNext,
+}: {
+  departure: MzkOdDeparture;
+  stopId?: string;
+  isNext?: boolean;
+}) {
+  const duration = formatTravelDuration(
+    departure.departTime,
+    departure.arriveTime,
+  );
+
+  return (
+    <li
+      id={stopId}
+      className={cn(
+        "grid grid-cols-[4.5rem_1fr] gap-3 border-t border-border/50 py-3 first:border-t-0 sm:grid-cols-[5.5rem_1fr] sm:gap-4",
+        isNext &&
+          "-mx-2 rounded-lg border-t-transparent bg-mzk/10 px-2 ring-1 ring-mzk/35 sm:-mx-3 sm:px-3",
+      )}
+    >
+      <div className="flex flex-col gap-0.5">
+        <time
+          className={cn(
+            "font-display text-lg font-bold tabular-nums tracking-tight text-asphalt sm:text-xl",
+            isNext && "text-mzk-deep",
+          )}
+        >
+          {departure.departTime}
+        </time>
+        <span className="text-xs tabular-nums text-muted-foreground">
+          → {departure.arriveTime}
+          {duration ? ` · ${duration}` : null}
+        </span>
+        {isNext ? (
+          <span className="text-[0.65rem] font-semibold tracking-[0.12em] text-mzk-deep uppercase">
+            Najbliższy
+          </span>
+        ) : null}
+      </div>
+      <div className="flex flex-col gap-1 self-center">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="inline-flex items-center rounded-md bg-mzk/15 px-2 py-0.5 text-xs font-semibold tracking-wide text-mzk-deep uppercase">
+            MZK {departure.route}
+          </span>
+          <span className="text-sm text-foreground">
+            {departure.headsign ||
+              `${departure.boardStopName} → ${departure.alightStopName}`}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {departure.boardStopName} → {departure.alightStopName}
+        </p>
+      </div>
+    </li>
+  );
+}
+
+function SchoolTimelineRow({
+  entry,
+  activePlace,
+  onSelectPlace,
+  isNext,
+}: {
+  entry: Extract<TimelineEntry, { kind: "school" }>;
+  activePlace: string | null;
+  onSelectPlace: (place: string) => void;
+  isNext?: boolean;
+}) {
+  return (
+    <li
+      id={entry.stopId}
+      className={cn(
+        "grid grid-cols-[4.5rem_1fr] gap-3 border-t border-border/50 py-3 first:border-t-0 sm:grid-cols-[5.5rem_1fr] sm:gap-4",
+        isNext &&
+          "-mx-2 rounded-lg border-t-transparent bg-bus/10 px-2 ring-1 ring-bus/35 sm:-mx-3 sm:px-3",
+      )}
+    >
+      <div className="flex flex-col gap-1">
+        <time
+          className={cn(
+            "font-display text-lg font-bold tabular-nums tracking-tight text-asphalt sm:text-xl",
+            isNext && "text-bus-deep",
+          )}
+        >
+          {entry.time}
+        </time>
+        {isNext ? (
+          <span className="text-[0.65rem] font-semibold tracking-[0.12em] text-bus-deep uppercase">
+            Najbliższy
+          </span>
+        ) : null}
+      </div>
+      <div className="flex flex-col gap-1.5 self-center">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="inline-flex items-center rounded-md bg-bus/15 px-2 py-0.5 text-xs font-semibold tracking-wide text-bus-deep uppercase">
+            Szkolny
+          </span>
+          <span className="text-xs text-muted-foreground">{entry.context}</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {entry.places.map((item) => (
+            <PlaceChip
+              key={item}
+              place={item}
+              highlight={activePlace !== null && item === activePlace}
+              onSelect={onSelectPlace}
+            />
+          ))}
+        </div>
+      </div>
+    </li>
+  );
+}
+
+function TimelineList({
+  entries,
+  activePlace,
+  onSelectPlace,
+  nextTripId,
+}: {
+  entries: TimelineEntry[];
+  activePlace: string | null;
+  onSelectPlace: (place: string) => void;
+  nextTripId?: string | null;
+}) {
+  return (
+    <ul className="rounded-xl border border-border/70 bg-card/90 px-4 py-1 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-5">
+      {entries.map((entry, index) => {
+        if (entry.kind === "mzk") {
+          const id = `mzk-${entry.departure.departTime}-${entry.departure.route}-${index}`;
+          return (
+            <MzkDepartureRow
+              key={id}
+              stopId={id}
+              departure={entry.departure}
+              isNext={nextTripId === id}
+            />
+          );
+        }
+        return (
+          <SchoolTimelineRow
+            key={entry.stopId}
+            entry={entry}
+            activePlace={activePlace}
+            onSelectPlace={onSelectPlace}
+            isNext={nextTripId === entry.stopId}
+          />
+        );
+      })}
+    </ul>
+  );
+}
+
 function SectionHeading({
   id,
   eyebrow,
@@ -188,12 +349,15 @@ function SectionHeading({
 
 export function ScheduleBoard({
   schedule,
+  mzkSchedule = null,
   initialFilters,
 }: ScheduleBoardProps) {
   const places = collectPlaces(schedule);
   const lessonPlan = useLessonPlan();
   const preferredPlace = usePreferredPlace();
+  const mzkRoute = useMzkRoutePreference();
   const planReady = hasConfiguredLessons(lessonPlan);
+  const mzkRouteReady = hasConfiguredMzkRoute(mzkRoute);
   const defaultPlace = preferredPlace ?? lessonPlan.place;
   const router = useRouter();
   const pathname = usePathname();
@@ -207,7 +371,7 @@ export function ScheduleBoard({
         : undefined;
 
   const [matchLessonPlan, setMatchLessonPlan] = useState(
-    initialFilters.matchLessonPlan,
+    initialFilters.matchLessonPlan ?? false,
   );
   const [placeOverride, setPlaceOverride] = useState<string | null | undefined>(
     urlPlaceValid,
@@ -215,6 +379,10 @@ export function ScheduleBoard({
   const [direction, setDirection] = useState<ScheduleDirection>(
     initialFilters.direction ?? "all",
   );
+  const [sourceMode, setSourceMode] = useState<ScheduleSourceMode>(
+    initialFilters.sourceMode ?? "school",
+  );
+  const [showAllMzkConnections, setShowAllMzkConnections] = useState(false);
   const [dateFilter, setDateFilter] = useState<ScheduleDateFilter>(
     initialFilters.dateFilter ??
       (initialFilters.matchLessonPlan ? "today" : "all"),
@@ -233,11 +401,26 @@ export function ScheduleBoard({
         : defaultPlace
       : placeOverride;
 
-  // Seed preferred stop/day only when the URL has no explicit filters.
+  // Seed preferred stop/day, lesson-plan match, and Szkolny+MZK by default.
   useEffect(() => {
+    const storedPlan = loadLessonPlan();
+    const hasPlan = hasConfiguredLessons(storedPlan);
+    const hasMzkRoute = hasConfiguredMzkRoute(loadMzkRoutePreference());
+
+    if (initialFilters.matchLessonPlan === undefined && hasPlan) {
+      setMatchLessonPlan(true);
+      if (initialFilters.dateFilter === undefined) {
+        setDateFilter("today");
+      }
+    }
+
+    if (initialFilters.sourceMode === undefined && hasMzkRoute) {
+      setSourceMode("school-mzk");
+    }
+
     if (!initialFilters.hasExplicit) {
       const storedPlace =
-        loadPreferredPlace() ?? loadLessonPlan().place ?? null;
+        loadPreferredPlace() ?? storedPlan.place ?? null;
       if (storedPlace && places.includes(storedPlace)) {
         setPlaceOverride(storedPlace);
         setDateFilter("today");
@@ -274,6 +457,9 @@ export function ScheduleBoard({
       dateFilter,
       direction,
       matchLessonPlan,
+      sourceMode,
+      persistMatchOff: planReady && !matchLessonPlan,
+      persistSourceSchool: mzkRouteReady && sourceMode === "school",
     });
     const next = qs ? `${pathname}?${qs}` : pathname;
     const current = `${window.location.pathname}${window.location.search}`;
@@ -285,6 +471,9 @@ export function ScheduleBoard({
     dateFilter,
     direction,
     matchLessonPlan,
+    sourceMode,
+    planReady,
+    mzkRouteReady,
     pathname,
     router,
     urlReady,
@@ -298,10 +487,19 @@ export function ScheduleBoard({
       );
       skipUrlWrite.current = true;
       startTransition(() => {
-        setMatchLessonPlan(parsed.matchLessonPlan);
+        const nextMatch =
+          parsed.matchLessonPlan ??
+          hasConfiguredLessons(loadLessonPlan());
+        const nextSource =
+          parsed.sourceMode ??
+          (hasConfiguredMzkRoute(loadMzkRoutePreference())
+            ? "school-mzk"
+            : "school");
+        setMatchLessonPlan(nextMatch);
         setDirection(parsed.direction ?? "all");
+        setSourceMode(nextSource);
         setDateFilter(
-          parsed.dateFilter ?? (parsed.matchLessonPlan ? "today" : "all"),
+          parsed.dateFilter ?? (nextMatch ? "today" : "all"),
         );
         if (parsed.place === undefined) {
           setPlaceOverride(undefined);
@@ -322,6 +520,7 @@ export function ScheduleBoard({
   const deferredDirection = useDeferredValue(direction);
   const deferredDateFilter = useDeferredValue(dateFilter);
   const deferredMatch = useDeferredValue(matchActive);
+  const deferredSourceMode = useDeferredValue(sourceMode);
 
   const filtered = filterSchedule(schedule, {
     place: deferredPlace,
@@ -331,25 +530,110 @@ export function ScheduleBoard({
     matchLessonPlan: deferredMatch,
     now,
   });
-  const tripCount = countVisibleTrips(filtered);
-  const isEmpty = tripCount === 0;
 
   const target = resolveTargetDay(deferredDateFilter, now);
   const dayTimes =
     deferredMatch && target
       ? getDayTimes(lessonPlan, target.weekday)
       : undefined;
+  const planBlocksDay =
+    deferredMatch &&
+    target !== null &&
+    isSchoolDay(target.weekday) &&
+    !dayTimes;
+
+  const rawMzkPickups =
+    deferredSourceMode === "school-mzk" &&
+    mzkRouteReady &&
+    !planBlocksDay &&
+    (deferredDirection === "all" || deferredDirection === "pickups")
+      ? findOdDepartures(
+          mzkSchedule,
+          mzkRoute.boardStopId,
+          mzkRoute.alightStopId,
+          deferredDateFilter,
+          now,
+          mzkRoute.route,
+        )
+      : [];
+  const rawMzkDropoffs =
+    deferredSourceMode === "school-mzk" &&
+    mzkRouteReady &&
+    !planBlocksDay &&
+    (deferredDirection === "all" || deferredDirection === "dropoffs")
+      ? findOdDepartures(
+          mzkSchedule,
+          mzkRoute.alightStopId,
+          mzkRoute.boardStopId,
+          deferredDateFilter,
+          now,
+          mzkRoute.route,
+        ).filter((d) => {
+          // Powroty po 18:00 nie są potrzebne przy dowozach szkolnych.
+          const minutes = timeToMinutes(d.departTime);
+          return minutes !== null && minutes <= 18 * 60;
+        })
+      : [];
+
+  const applyLessonFilter =
+    deferredMatch && !showAllMzkConnections && Boolean(dayTimes);
+
+  const lessonStart = dayTimes?.start;
+  const lessonEnd = dayTimes?.end;
+
+  const mzkPickups =
+    applyLessonFilter && lessonStart
+      ? rawMzkPickups.filter((d) =>
+          // Przyjazd do szkoły ma zmieścić się w oknie przed startem lekcji.
+          pickupFitsLessonStart(d.arriveTime, lessonStart),
+        )
+      : rawMzkPickups;
+  const mzkDropoffs =
+    applyLessonFilter && lessonEnd
+      ? rawMzkDropoffs.filter((d) =>
+          // Odjazd ze szkoły w oknie po zakończeniu lekcji.
+          dropoffFitsLessonEnd(d.departTime, lessonEnd),
+        )
+      : rawMzkDropoffs;
+
+  const hiddenMzkCount =
+    rawMzkPickups.length -
+    mzkPickups.length +
+    (rawMzkDropoffs.length - mzkDropoffs.length);
+
+  const mzkDeparturesCount = mzkPickups.length + mzkDropoffs.length;
+  const mergedTimeline =
+    deferredSourceMode === "school-mzk"
+      ? buildMergedTimeline({
+          schedule: filtered,
+          mzkPickups,
+          mzkDropoffs,
+          direction: deferredDirection,
+        })
+      : null;
+  const schoolTripCount = countVisibleTrips(filtered);
+  const tripCount = schoolTripCount + mzkDeparturesCount;
+  const schoolEmpty = schoolTripCount === 0;
+  const isEmpty = schoolEmpty && mzkDeparturesCount === 0;
 
   const nextTrip =
-    deferredDateFilter === "today" && !isEmpty
+    deferredDateFilter === "today" &&
+    deferredSourceMode === "school" &&
+    !schoolEmpty
       ? findNextTrip(filtered, now)
+      : null;
+
+  const nextMerged =
+    deferredDateFilter === "today" && mergedTimeline
+      ? findNextMergedEntry(mergedTimeline, now)
       : null;
 
   const hasActiveFilters =
     Boolean(place) ||
     dateFilter !== "all" ||
     direction !== "all" ||
-    matchActive;
+    matchActive ||
+    sourceMode !== "school";
 
   function persistPlace(next: string | null) {
     savePreferredPlace(next);
@@ -358,6 +642,7 @@ export function ScheduleBoard({
   function enableMatchPlan() {
     startTransition(() => {
       setMatchLessonPlan(true);
+      setShowAllMzkConnections(false);
       setPlaceOverride(undefined);
       setDateFilter((current) => (current === "all" ? "today" : current));
     });
@@ -381,6 +666,8 @@ export function ScheduleBoard({
       setDateFilter("all");
       setDirection("all");
       setMatchLessonPlan(false);
+      setShowAllMzkConnections(false);
+      setSourceMode("school");
     });
   }
 
@@ -390,6 +677,7 @@ export function ScheduleBoard({
       dateFilter,
       direction,
       matchLessonPlan,
+      sourceMode,
     });
     const absolute = new URL(href, window.location.origin).toString();
     try {
@@ -402,63 +690,118 @@ export function ScheduleBoard({
   }
 
   const filterControls = (
-    <>
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-2 md:gap-x-3">
+      <div
+        className="flex flex-wrap gap-1"
+        role="group"
+        aria-label="Źródło kursów"
+      >
+        {(
+          [
+            ["school", "Szkolny"],
+            ["school-mzk", "Szkolny + MZK"],
+          ] as const
+        ).map(([value, label]) => (
+          <Button
+            key={value}
+            type="button"
+            size="sm"
+            variant={sourceMode === value ? "secondary" : "outline"}
+            aria-pressed={sourceMode === value}
+            onClick={() => {
+              startTransition(() => setSourceMode(value));
+            }}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+
+      <div className="hidden h-5 w-px shrink-0 bg-border md:block" aria-hidden />
+
+      <div className="flex flex-wrap items-center gap-1.5">
         {planReady ? (
           <Button
             type="button"
-            size="lg"
+            size="sm"
             variant={matchActive ? "secondary" : "outline"}
             aria-pressed={matchActive}
             onClick={() => {
               if (matchActive) {
-                startTransition(() => setMatchLessonPlan(false));
+                startTransition(() => {
+                  setMatchLessonPlan(false);
+                  setShowAllMzkConnections(false);
+                });
               } else {
                 enableMatchPlan();
               }
             }}
           >
-            Dopasuj do planu
+            Do planu lekcji
           </Button>
         ) : (
           <Link
             href="/lekcje"
-            className="inline-flex h-9 items-center rounded-lg border border-border bg-background px-2.5 text-sm font-medium hover:bg-muted"
+            className="inline-flex h-7 items-center rounded-[min(var(--radius-md),12px)] border border-border bg-background px-2.5 text-[0.8rem] font-medium hover:bg-muted"
           >
-            Ustaw plan lekcji
+            Ustaw plan
           </Link>
         )}
+        {matchActive &&
+        sourceMode === "school-mzk" &&
+        (hiddenMzkCount > 0 || showAllMzkConnections) ? (
+          <Button
+            type="button"
+            size="sm"
+            variant={showAllMzkConnections ? "secondary" : "outline"}
+            aria-pressed={showAllMzkConnections}
+            onClick={() => {
+              startTransition(() =>
+                setShowAllMzkConnections((current) => !current),
+              );
+            }}
+          >
+            {showAllMzkConnections
+              ? "Tylko do planu"
+              : `Wszystkie MZK${hiddenMzkCount > 0 ? ` (+${hiddenMzkCount})` : ""}`}
+          </Button>
+        ) : null}
         {matchActive && dayTimes ? (
-          <p className="text-sm text-muted-foreground">
-            Lekcje{dayTimes.start ? ` od ${dayTimes.start}` : ""}
-            {dayTimes.end ? ` do ${dayTimes.end}` : ""}
-          </p>
+          <span className="text-xs text-muted-foreground">
+            {dayTimes.start ? `od ${dayTimes.start}` : null}
+            {dayTimes.start && dayTimes.end ? " " : null}
+            {dayTimes.end ? `do ${dayTimes.end}` : null}
+            {" · "}
+            okno ±90 min
+          </span>
         ) : null}
         {matchActive && target && !dayTimes ? (
-          <p className="text-sm text-muted-foreground">
-            Brak godzin w planie na ten dzień —{" "}
+          <span className="text-xs text-muted-foreground">
+            Brak godzin —{" "}
             <Link
               href="/lekcje"
               className="underline underline-offset-2 hover:text-foreground"
             >
               uzupełnij
             </Link>
-          </p>
+          </span>
         ) : null}
       </div>
 
-      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Dzień">
+      <div className="hidden h-5 w-px shrink-0 bg-border md:block" aria-hidden />
+
+      <div className="flex flex-wrap gap-1" role="group" aria-label="Dzień">
         {(
           [
-            ["all", "Wszystkie dni"],
-            ["today", "Dzisiaj"],
+            ["all", "Wszystkie"],
+            ["today", "Dziś"],
             ["tomorrow", "Jutro"],
           ] as const
         ).map(([value, label]) => (
           <Button
             key={value}
             type="button"
-            size="lg"
+            size="sm"
             variant={dateFilter === value ? "secondary" : "outline"}
             aria-pressed={dateFilter === value}
             onClick={() => {
@@ -470,102 +813,74 @@ export function ScheduleBoard({
         ))}
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <label className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            Miejsce
-          </span>
-          <select
-            value={place ?? ""}
-            onChange={(event) => {
-              const value = event.target.value;
-              startTransition(() => {
-                if (value === "") {
-                  setPlaceOverride(null);
-                  persistPlace(null);
-                } else {
-                  setPlaceOverride(value);
-                  persistPlace(value);
-                }
-              });
-            }}
-            className="h-11 w-full rounded-lg border border-border bg-card px-3 text-base text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            <option value="">Wszystkie miejsca</option>
-            {places.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-        </label>
+      <div className="hidden h-5 w-px shrink-0 bg-border md:block" aria-hidden />
 
-        <div
-          className="flex flex-wrap gap-1.5"
-          role="group"
-          aria-label="Kierunek"
+      <label className="min-w-0 flex-1 basis-[10rem] md:max-w-[14rem]">
+        <span className="sr-only">Miejsce</span>
+        <select
+          value={place ?? ""}
+          onChange={(event) => {
+            const value = event.target.value;
+            startTransition(() => {
+              if (value === "") {
+                setPlaceOverride(null);
+                persistPlace(null);
+              } else {
+                setPlaceOverride(value);
+                persistPlace(value);
+              }
+            });
+          }}
+          className="h-7 w-full rounded-[min(var(--radius-md),12px)] border border-border bg-card px-2 text-[0.8rem] text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         >
-          {(
-            [
-              ["all", "Wszystkie"],
-              ["pickups", "Dowozy"],
-              ["dropoffs", "Odwozy"],
-            ] as const
-          ).map(([value, label]) => (
-            <Button
-              key={value}
-              type="button"
-              size="lg"
-              variant={direction === value ? "secondary" : "outline"}
-              aria-pressed={direction === value}
-              onClick={() => {
-                startTransition(() => setDirection(value));
-              }}
-            >
-              {label}
-            </Button>
+          <option value="">Wszystkie miejsca</option>
+          {places.map((item) => (
+            <option key={item} value={item}>
+              {item}
+            </option>
           ))}
-        </div>
+        </select>
+      </label>
+
+      <div
+        className="flex flex-wrap gap-1"
+        role="group"
+        aria-label="Kierunek"
+      >
+        {(
+          [
+            ["all", "Wszystkie"],
+            ["pickups", "Dowozy"],
+            ["dropoffs", "Odwozy"],
+          ] as const
+        ).map(([value, label]) => (
+          <Button
+            key={value}
+            type="button"
+            size="sm"
+            variant={direction === value ? "secondary" : "outline"}
+            aria-pressed={direction === value}
+            onClick={() => {
+              startTransition(() => setDirection(value));
+            }}
+          >
+            {label}
+          </Button>
+        ))}
       </div>
-    </>
+    </div>
   );
 
   return (
     <div className="space-y-10">
-      <SiteHeader current="rozklad" />
-
-      <header className="animate-rise-delay space-y-3">
-        <h1 className="max-w-2xl font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">
-          Rozkład dowozów
-        </h1>
-        <p className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-          {schedule.periodLabel
-            ? `Obowiązuje: ${schedule.periodLabel}`
-            : schedule.title}
-          . Filtruj po dniu, miejscu albo dopasuj kursy do planu lekcji dziecka.
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Zaktualizowano {formatFetchedAt(schedule.fetchedAt)}
-          {" · "}
-          <a
-            href={schedule.sourceUrl}
-            className="underline underline-offset-2 hover:text-foreground"
-            target="_blank"
-            rel="noreferrer"
-          >
-            źródło: szkolaolimpijczykow.pl
-          </a>
-        </p>
-      </header>
-
-      <div className="sticky top-0 z-10 ml-[calc(50%-50vw)] w-screen space-y-3 border-y border-border/50 bg-[color-mix(in_srgb,var(--background)_88%,transparent)] py-3 shadow-[0_8px_30px_-18px_color-mix(in_srgb,var(--foreground)_35%,transparent)] backdrop-blur-md md:space-y-4 md:py-4">
-        <div className="mx-auto flex max-w-4xl flex-col gap-3 px-6 sm:px-10">
+      <div className="sticky top-0 z-10 ml-[calc(50%-50vw)] w-screen space-y-2 border-y border-border/50 bg-[color-mix(in_srgb,var(--background)_88%,transparent)] py-2 shadow-[0_8px_30px_-18px_color-mix(in_srgb,var(--foreground)_35%,transparent)] backdrop-blur-md md:py-2.5">
+        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 sm:px-6 lg:px-8">
           {/* Mobile: compact bar + shortcuts */}
           <div className="flex flex-col gap-2 md:hidden">
             <div className="flex items-center gap-2">
               <Button
                 type="button"
-                size="lg"
+                size="sm"
                 variant={filtersOpen ? "secondary" : "outline"}
                 aria-expanded={filtersOpen}
                 aria-controls="schedule-filters-panel"
@@ -576,7 +891,7 @@ export function ScheduleBoard({
                   {filtersOpen ? "▴" : "▾"}
                 </span>
               </Button>
-              <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+              <div className="flex min-w-0 flex-1 flex-wrap gap-1">
                 <Button
                   type="button"
                   size="sm"
@@ -590,7 +905,7 @@ export function ScheduleBoard({
                     );
                   }}
                 >
-                  Dzisiaj
+                  Dziś
                 </Button>
                 <Button
                   type="button"
@@ -633,7 +948,7 @@ export function ScheduleBoard({
           <div
             id="schedule-filters-panel"
             className={cn(
-              "flex-col gap-3",
+              "flex-col",
               filtersOpen ? "flex" : "hidden",
               "md:flex",
             )}
@@ -642,11 +957,17 @@ export function ScheduleBoard({
           </div>
         </div>
 
-        {hasActiveFilters || nextTrip ? (
-          <div className="mx-auto flex max-w-4xl flex-col gap-2 px-6 sm:px-10">
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-sm text-muted-foreground">
+        {hasActiveFilters || nextTrip || nextMerged ? (
+          <div className="mx-auto flex max-w-6xl flex-col gap-1.5 px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between gap-3">
+              <p className="min-w-0 truncate text-xs text-muted-foreground sm:text-sm">
                 {matchActive ? "Plan · " : null}
+                {sourceMode !== "school" ? (
+                  <>
+                    {sourceModeLabel(sourceMode)}
+                    {" · "}
+                  </>
+                ) : null}
                 {dateLabel(dateFilter)}
                 {place ? (
                   <>
@@ -691,8 +1012,34 @@ export function ScheduleBoard({
                 ) : null}
               </div>
             </div>
-            {nextTrip ? (
-              <p className="text-sm text-foreground">
+            {nextMerged ? (
+              <p className="text-xs text-foreground sm:text-sm">
+                <span className="font-semibold text-bus-deep">
+                  Najbliższy kurs
+                </span>
+                {": "}
+                <a
+                  href={`#${nextMerged.id}`}
+                  className="font-display font-bold tabular-nums underline-offset-2 hover:underline"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    document
+                      .getElementById(nextMerged.id)
+                      ?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                      });
+                  }}
+                >
+                  {nextMerged.time}
+                </a>
+                {" · "}
+                {nextMerged.label}
+                {" · "}
+                {nextMerged.kind === "pickup" ? "dowóz" : "odwóz"}
+              </p>
+            ) : nextTrip ? (
+              <p className="text-xs text-foreground sm:text-sm">
                 <span className="font-semibold text-bus-deep">
                   Najbliższy kurs
                 </span>
@@ -719,7 +1066,7 @@ export function ScheduleBoard({
                 {nextTrip.context ? ` (${nextTrip.context})` : null}
               </p>
             ) : dateFilter === "today" && !isEmpty ? (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground sm:text-sm">
                 Brak kolejnych kursów na dziś w tym filtrze.
               </p>
             ) : null}
@@ -729,21 +1076,154 @@ export function ScheduleBoard({
 
       {isEmpty ? (
         <p className="rounded-xl border border-dashed border-border bg-card/60 px-6 py-12 text-center text-muted-foreground">
-          Brak kursów dla wybranego filtra.
-          {matchActive && !dayTimes && target ? (
+          {sourceMode === "school-mzk" && !mzkRouteReady ? (
             <>
-              {" "}
-              Uzupełnij godziny na{" "}
+              Ustaw trasę MZK (wsiadanie → wysiadanie) w{" "}
               <Link
-                href="/lekcje"
+                href="/mzk"
                 className="underline underline-offset-2 hover:text-foreground"
               >
-                planie lekcji
+                ustawieniach MZK
               </Link>
               .
             </>
-          ) : null}
+          ) : sourceMode === "school-mzk" &&
+            applyLessonFilter &&
+            hiddenMzkCount > 0 &&
+            !showAllMzkConnections ? (
+            <>
+              Brak kursów pasujących do planu lekcji. Jest {hiddenMzkCount}{" "}
+              {hiddenMzkCount === 1
+                ? "kurs MZK"
+                : hiddenMzkCount < 5
+                  ? "kursy MZK"
+                  : "kursów MZK"}{" "}
+              poza oknem (±90 min).{" "}
+              <button
+                type="button"
+                className="font-medium text-foreground underline underline-offset-2 hover:text-mzk-deep"
+                onClick={() => {
+                  startTransition(() => setShowAllMzkConnections(true));
+                }}
+              >
+                Pokaż wszystkie połączenia MZK
+              </button>
+            </>
+          ) : (
+            <>
+              Brak kursów dla wybranego filtra.
+              {matchActive && !dayTimes && target ? (
+                <>
+                  {" "}
+                  Uzupełnij godziny na{" "}
+                  <Link
+                    href="/lekcje"
+                    className="underline underline-offset-2 hover:text-foreground"
+                  >
+                    planie lekcji
+                  </Link>
+                  .
+                </>
+              ) : null}
+            </>
+          )}
         </p>
+      ) : sourceMode === "school-mzk" && mergedTimeline ? (
+        <div className="animate-rise-delay-2 space-y-14 animate-in fade-in duration-300">
+          {!mzkRouteReady ? (
+            <p className="rounded-xl border border-dashed border-border bg-card/60 px-5 py-4 text-sm text-muted-foreground">
+              Ustaw przystanek wsiadania i wysiadania w{" "}
+              <Link
+                href="/mzk"
+                className="underline underline-offset-2 hover:text-foreground"
+              >
+                MZK
+              </Link>
+              , żeby zobaczyć kursy miejskie w jednej liście ze szkolnymi.
+            </p>
+          ) : null}
+
+          {mzkRouteReady &&
+          mzkDeparturesCount === 0 &&
+          applyLessonFilter &&
+          hiddenMzkCount > 0 &&
+          !showAllMzkConnections ? (
+            <p className="rounded-xl border border-dashed border-border bg-card/60 px-5 py-4 text-sm text-muted-foreground">
+              Brak kursów MZK pasujących do planu lekcji (+{hiddenMzkCount} poza
+              oknem).{" "}
+              <button
+                type="button"
+                className="font-medium text-foreground underline underline-offset-2 hover:text-mzk-deep"
+                onClick={() => {
+                  startTransition(() => setShowAllMzkConnections(true));
+                }}
+              >
+                Pokaż wszystkie połączenia MZK
+              </button>
+            </p>
+          ) : null}
+
+          {mzkRouteReady &&
+          mzkDeparturesCount === 0 &&
+          !(applyLessonFilter && hiddenMzkCount > 0 && !showAllMzkConnections) ? (
+            <p className="rounded-xl border border-dashed border-border bg-card/60 px-5 py-4 text-sm text-muted-foreground">
+              Brak bezpośrednich kursów MZK na tej trasie w wybranym dniu — poniżej
+              tylko kursy szkolne.{" "}
+              <Link
+                href="/mzk"
+                className="underline underline-offset-2 hover:text-foreground"
+              >
+                Zmień trasę
+              </Link>
+              .
+            </p>
+          ) : null}
+
+          {mergedTimeline.pickups.length > 0 ? (
+            <section aria-labelledby="pickups-heading">
+              <SectionHeading
+                id="pickups-heading"
+                eyebrow="Rano / do szkoły"
+                title="Dowozy"
+              />
+              <TimelineList
+                entries={mergedTimeline.pickups}
+                activePlace={deferredPlace}
+                onSelectPlace={selectPlace}
+                nextTripId={nextMerged?.id}
+              />
+            </section>
+          ) : null}
+
+          {mergedTimeline.dropoffs.length > 0 ? (
+            <section aria-labelledby="dropoffs-heading">
+              <SectionHeading
+                id="dropoffs-heading"
+                eyebrow="Po lekcjach / do domu"
+                title="Odwozy"
+              />
+              <TimelineList
+                entries={mergedTimeline.dropoffs}
+                activePlace={deferredPlace}
+                onSelectPlace={selectPlace}
+                nextTripId={nextMerged?.id}
+              />
+            </section>
+          ) : null}
+
+          {mzkRouteReady ? (
+            <p className="text-xs text-muted-foreground">
+              Kursy MZK (pon–pt, dni nauki) i szkolne są w jednej liście wg
+              godziny.{" "}
+              <Link
+                href="/mzk"
+                className="underline underline-offset-2 hover:text-foreground"
+              >
+                Zmień trasę MZK
+              </Link>
+            </p>
+          ) : null}
+        </div>
       ) : (
         <div className="animate-rise-delay-2 space-y-14 animate-in fade-in duration-300">
           {filtered.pickups.length > 0 ? (

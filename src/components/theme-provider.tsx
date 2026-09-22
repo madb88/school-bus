@@ -8,6 +8,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { THEME_STORAGE_KEY } from "@/components/theme-init";
+import { ThemeScript } from "@/components/theme-script";
 
 export type Theme = "light" | "dark";
 
@@ -16,8 +18,6 @@ type ThemeContextValue = {
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
 };
-
-const STORAGE_KEY = "school-bus-theme";
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
@@ -35,7 +35,7 @@ function readDomTheme(): Theme {
 
 function readStoredTheme(): Theme | null {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
     if (stored === "light" || stored === "dark") return stored;
   } catch {
     /* ignore */
@@ -45,7 +45,7 @@ function readStoredTheme(): Theme | null {
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   // Always start as light so SSR HTML matches the first client render.
-  // The inline script already set the real class on <html> before paint.
+  // ThemeScript already set the real class on <html> before paint.
   const [theme, setThemeState] = useState<Theme>("light");
 
   useEffect(() => {
@@ -56,7 +56,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setThemeState(next);
     applyTheme(next);
     try {
-      localStorage.setItem(STORAGE_KEY, next);
+      localStorage.setItem(THEME_STORAGE_KEY, next);
     } catch {
       /* ignore */
     }
@@ -80,6 +80,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
+      <ThemeScript />
       {children}
     </ThemeContext.Provider>
   );
@@ -92,6 +93,3 @@ export function useTheme() {
   }
   return ctx;
 }
-
-/** Inline before paint — keeps FOUC away without next-themes. */
-export const themeInitScript = `(function(){try{var k=${JSON.stringify(STORAGE_KEY)};var t=localStorage.getItem(k);var d=t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);var r=document.documentElement;r.classList.toggle("dark",d);r.style.colorScheme=d?"dark":"light";}catch(e){}})();`;

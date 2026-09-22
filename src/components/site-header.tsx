@@ -3,7 +3,7 @@ import { SiteNav } from "@/components/site-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 type SiteHeaderProps = {
-  current: "rozklad" | "lekcje";
+  current: "rozklad" | "lekcje" | "mzk";
 };
 
 export function SiteHeader({ current }: SiteHeaderProps) {
@@ -31,7 +31,7 @@ export function SiteHeader({ current }: SiteHeaderProps) {
           </svg>
         </span>
         <span className="text-xs font-semibold tracking-[0.2em] text-bus-deep uppercase transition-colors group-hover:text-foreground">
-          Autobus szkolny
+          Dojazdy do szkoły
         </span>
       </Link>
 

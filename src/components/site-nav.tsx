@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cn } from "cn";
 
 type SiteNavProps = {
-  current: "rozklad" | "lekcje";
+  current: "rozklad" | "lekcje" | "mzk";
 };
 
 export function SiteNav({ current }: SiteNavProps) {
@@ -21,6 +21,9 @@ export function SiteNav({ current }: SiteNavProps) {
       </Link>
       <Link href="/lekcje" className={linkClass(current === "lekcje")}>
         Plan lekcji
+      </Link>
+      <Link href="/mzk" className={linkClass(current === "mzk")}>
+        MZK
       </Link>
     </nav>
   );

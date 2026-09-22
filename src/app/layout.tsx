@@ -1,9 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Manrope } from "next/font/google";
-import {
-  ThemeProvider,
-  themeInitScript,
-} from "@/components/theme-provider";
+import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 const display = Bricolage_Grotesque({
@@ -17,9 +14,9 @@ const sans = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Autobus szkolny",
+  title: "Dojazdy do szkoły",
   description:
-    "Autobus szkolny — bezpieczny dojazd dzieci do szkoły. Śledź trasy, postoje i przyjazdy w czasie rzeczywistym.",
+    "Dojazdy do szkoły — rozkład dowozów szkolnych i kursów MZK. Filtruj po dniu, miejscu i planie lekcji.",
 };
 
 export const viewport: Viewport = {
@@ -37,9 +34,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${display.variable} ${sans.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-      </head>
       <body className="min-h-full flex flex-col font-sans">
         <ThemeProvider>{children}</ThemeProvider>
       </body>

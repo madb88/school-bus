@@ -3,19 +3,24 @@ import type {
   ScheduleDirection,
 } from "./filter-schedule";
 
+export type ScheduleSourceMode = "school" | "school-mzk";
+
 export type ScheduleFilterParams = {
   /** undefined = not in URL (may fall back to preferred place) */
   place: string | null | undefined;
   dateFilter: ScheduleDateFilter;
   direction: ScheduleDirection;
   matchLessonPlan: boolean;
+  sourceMode: ScheduleSourceMode;
 };
 
 export type ParsedFilterParams = {
   place: string | null | undefined;
   dateFilter: ScheduleDateFilter | undefined;
   direction: ScheduleDirection | undefined;
-  matchLessonPlan: boolean;
+  /** undefined = not in URL (default: on when lesson plan exists) */
+  matchLessonPlan: boolean | undefined;
+  sourceMode: ScheduleSourceMode | undefined;
   /** True when at least one filter query key is present */
   hasExplicit: boolean;
 };
@@ -43,6 +48,18 @@ const PARAM_TO_DIR: Record<string, ScheduleDirection> = {
   pickups: "pickups",
   odwozy: "dropoffs",
   dropoffs: "dropoffs",
+};
+
+const SOURCE_TO_PARAM: Record<Exclude<ScheduleSourceMode, "school">, string> = {
+  "school-mzk": "szkolny-mzk",
+};
+
+const PARAM_TO_SOURCE: Record<string, ScheduleSourceMode> = {
+  szkolny: "school",
+  school: "school",
+  "szkolny-mzk": "school-mzk",
+  "school-mzk": "school-mzk",
+  mzk: "school-mzk",
 };
 
 function readParam(
@@ -76,10 +93,32 @@ export function parseFilterParams(
     hasKey(source, "miejsce") ||
     hasKey(source, "place") ||
     hasKey(source, "kierunek") ||
-    hasKey(source, "dir");
+    hasKey(source, "dir") ||
+    hasKey(source, "zrodlo") ||
+    hasKey(source, "source");
 
   const dopasuj = readParam(source, "dopasuj");
-  const matchLessonPlan = dopasuj === "1" || dopasuj === "true";
+  let matchLessonPlan: boolean | undefined;
+  if (dopasuj === null) {
+    matchLessonPlan = undefined;
+  } else {
+    const normalized = dopasuj.trim().toLowerCase();
+    if (
+      normalized === "0" ||
+      normalized === "false" ||
+      normalized === "nie"
+    ) {
+      matchLessonPlan = false;
+    } else if (
+      normalized === "1" ||
+      normalized === "true" ||
+      normalized === "tak"
+    ) {
+      matchLessonPlan = true;
+    } else {
+      matchLessonPlan = undefined;
+    }
+  }
 
   let dateFilter: ScheduleDateFilter | undefined;
   const dzien = readParam(source, "dzien") ?? readParam(source, "day");
@@ -112,7 +151,21 @@ export function parseFilterParams(
     }
   }
 
-  return { place, dateFilter, direction, matchLessonPlan, hasExplicit };
+  let sourceMode: ScheduleSourceMode | undefined;
+  const zrodlo = readParam(source, "zrodlo") ?? readParam(source, "source");
+  if (zrodlo !== null) {
+    const normalized = zrodlo.trim().toLowerCase();
+    sourceMode = PARAM_TO_SOURCE[normalized] ?? "school";
+  }
+
+  return {
+    place,
+    dateFilter,
+    direction,
+    matchLessonPlan,
+    sourceMode,
+    hasExplicit,
+  };
 }
 
 /** Build query string without leading `?`. Omits default "all" values. */
@@ -121,11 +174,18 @@ export function serializeFilterParams(filters: {
   dateFilter: ScheduleDateFilter;
   direction: ScheduleDirection;
   matchLessonPlan: boolean;
+  sourceMode?: ScheduleSourceMode;
+  /** Persist dopasuj=0 when match is off (needed when plan exists and default is on). */
+  persistMatchOff?: boolean;
+  /** Persist zrodlo=szkolny when school-only is chosen but MZK route exists (default would be school-mzk). */
+  persistSourceSchool?: boolean;
 }): string {
   const params = new URLSearchParams();
 
   if (filters.matchLessonPlan) {
     params.set("dopasuj", "1");
+  } else if (filters.persistMatchOff) {
+    params.set("dopasuj", "0");
   }
 
   if (filters.dateFilter !== "all") {
@@ -140,6 +200,12 @@ export function serializeFilterParams(filters: {
     params.set("kierunek", DIR_TO_PARAM[filters.direction]);
   }
 
+  if (filters.sourceMode === "school-mzk") {
+    params.set("zrodlo", SOURCE_TO_PARAM["school-mzk"]);
+  } else if (filters.persistSourceSchool) {
+    params.set("zrodlo", "szkolny");
+  }
+
   return params.toString();
 }
 
@@ -147,8 +213,17 @@ export function filtersHref(filters: {
   place: string | null;
   dateFilter: ScheduleDateFilter;
   direction: ScheduleDirection;
-  matchLessonPlan: boolean;
+  matchLessonPlan?: boolean;
+  sourceMode?: ScheduleSourceMode;
 }): string {
-  const qs = serializeFilterParams(filters);
+  const qs = serializeFilterParams({
+    place: filters.place,
+    dateFilter: filters.dateFilter,
+    direction: filters.direction,
+    matchLessonPlan: filters.matchLessonPlan ?? false,
+    sourceMode: filters.sourceMode,
+    persistMatchOff: filters.matchLessonPlan === false,
+    persistSourceSchool: filters.sourceMode === "school",
+  });
   return qs ? `/?${qs}` : "/";
 }

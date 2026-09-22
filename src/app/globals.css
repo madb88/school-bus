@@ -42,6 +42,8 @@
   --color-bus: var(--bus);
   --color-bus-deep: var(--bus-deep);
   --color-bus-foreground: var(--bus-foreground);
+  --color-mzk: var(--mzk);
+  --color-mzk-deep: var(--mzk-deep);
   --color-asphalt: var(--asphalt);
   --color-sky-mist: var(--sky-mist);
   --radius-sm: calc(var(--radius) * 0.6);
@@ -75,6 +77,8 @@
   --bus: #3d8fc9;
   --bus-deep: #1f6fa8;
   --bus-foreground: #ffffff;
+  --mzk: #0f8a7a;
+  --mzk-deep: #0a6b5e;
   --asphalt: #1a2433;
   --sky-mist: #d7e7f7;
   --page-glow: #7eb6e866;
@@ -119,6 +123,8 @@
   --bus: #5aa8dc;
   --bus-deep: #8ec8ef;
   --bus-foreground: #061525;
+  --mzk: #2bb8a6;
+  --mzk-deep: #7dd9cc;
   --asphalt: #f0f5fb;
   --sky-mist: #1a2a3f;
   --page-glow: #3d8fc933;

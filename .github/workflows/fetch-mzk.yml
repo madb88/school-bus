@@ -1,0 +1,58 @@
+name: Fetch MZK GTFS schedule
+
+on:
+  schedule:
+    # Hourly; job no-ops unless Europe/Warsaw hour is 5 or 22.
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Decide whether to fetch
+        id: gate
+        run: |
+          HOUR=$(TZ=Europe/Warsaw date +%H)
+          echo "warsaw_hour=$HOUR"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "$HOUR" = "05" ] || [ "$HOUR" = "22" ]; then
+            echo "should_fetch=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_fetch=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping fetch (Warsaw hour=$HOUR, want 05 or 22)."
+          fi
+
+      - name: Checkout
+        if: steps.gate.outputs.should_fetch == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        if: steps.gate.outputs.should_fetch == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.gate.outputs.should_fetch == 'true'
+        run: npm ci
+
+      - name: Fetch MZK GTFS
+        if: steps.gate.outputs.should_fetch == 'true'
+        run: npm run fetch:mzk
+
+      - name: Commit snapshot if changed
+        if: steps.gate.outputs.should_fetch == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/mzk-schedule.json
+          if git diff --staged --quiet; then
+            echo "No MZK schedule changes."
+            exit 0
+          fi
+          git commit -m "chore: update MZK schedule snapshot"
+          git push

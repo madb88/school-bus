@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 import { parseFilterParams } from "@/lib/dowozy/filter-url";
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { DOWOZY_SOURCE_URL } from "@/lib/dowozy/types";
+import { loadMzkScheduleSnapshot } from "@/lib/mzk/load-schedule";
 
 type HomeProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -11,19 +12,25 @@ type HomeProps = {
 
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
-  const schedule = await loadScheduleSnapshot();
+  const [schedule, mzkSchedule] = await Promise.all([
+    loadScheduleSnapshot(),
+    loadMzkScheduleSnapshot(),
+  ]);
   const initialFilters = parseFilterParams(params);
 
   return (
     <PageShell>
+      <div className="mb-8">
+        <SiteHeader current="rozklad" />
+      </div>
       {schedule ? (
         <ScheduleBoard
           schedule={schedule}
+          mzkSchedule={mzkSchedule}
           initialFilters={initialFilters}
         />
       ) : (
         <div className="space-y-8">
-          <SiteHeader current="rozklad" />
           <div className="animate-rise-delay space-y-3">
             <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-4xl">
               Rozkład dowozów
