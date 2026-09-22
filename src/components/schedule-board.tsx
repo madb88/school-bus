@@ -857,7 +857,7 @@ export function ScheduleBoard({
 
       <div className="hidden h-5 w-px shrink-0 bg-border md:block" aria-hidden />
 
-      <div className="min-w-0 flex-1 basis-[10rem] md:max-w-[14rem]">
+      <div className="min-w-0 flex-1 basis-40 md:max-w-56">
         <Select
           items={placeItems}
           value={place}

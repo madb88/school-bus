@@ -119,7 +119,7 @@ export function LessonPlanForm({ places }: LessonPlanFormProps) {
       </label>
 
       <div className="overflow-x-auto rounded-xl border border-border/70 bg-card/90 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]">
-        <table className="w-full min-w-[28rem] text-left text-sm">
+        <table className="w-full min-w-md text-left text-sm">
           <thead>
             <tr className="border-b border-border/60 text-xs tracking-wide text-muted-foreground uppercase">
               <th className="px-4 py-3 font-medium">Dzień</th>
