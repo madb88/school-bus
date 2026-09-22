@@ -4,6 +4,7 @@ import {
   getDayTimes,
   pickupFitsLessonStart,
 } from "@/lib/child-schedule/match";
+import { DEFAULT_LESSON_MATCH_WINDOW_MIN } from "@/lib/child-schedule/match-window";
 import type {
   Course,
   DayDropoff,
@@ -62,6 +63,7 @@ function filterPickupBlock(
   place: string | null,
   weekday: number | null,
   lessonStart: string | null,
+  windowMin: number,
 ): DriverBlock | null {
   let courses = block.courses;
 
@@ -77,7 +79,10 @@ function filterPickupBlock(
         const stops = course.stops
           .filter((stop) => {
             if (place && !stopIncludesPlace(stop, place)) return false;
-            if (lessonStart && !pickupFitsLessonStart(stop.time, lessonStart)) {
+            if (
+              lessonStart &&
+              !pickupFitsLessonStart(stop.time, lessonStart, windowMin)
+            ) {
               return false;
             }
             return true;
@@ -97,11 +102,17 @@ function filterRunsByPlaceAndEnd(
   runs: Stop[],
   place: string | null,
   lessonEnd: string | null,
+  windowMin: number,
 ): Stop[] {
   return runs
     .filter((run) => {
       if (place && !stopIncludesPlace(run, place)) return false;
-      if (lessonEnd && !dropoffFitsLessonEnd(run.time, lessonEnd)) return false;
+      if (
+        lessonEnd &&
+        !dropoffFitsLessonEnd(run.time, lessonEnd, windowMin)
+      ) {
+        return false;
+      }
       return true;
     })
     .map((run) => (place ? narrowStopToPlace(run, place) : run));
@@ -111,8 +122,9 @@ function filterDayDropoff(
   day: DayDropoff,
   place: string | null,
   lessonEnd: string | null,
+  windowMin: number,
 ): DayDropoff | null {
-  const runs = filterRunsByPlaceAndEnd(day.runs, place, lessonEnd);
+  const runs = filterRunsByPlaceAndEnd(day.runs, place, lessonEnd, windowMin);
   if (!runs.length) return null;
   return { ...day, runs };
 }
@@ -121,8 +133,9 @@ function filterWeekdayDropoff(
   block: WeekdayDropoff,
   place: string | null,
   lessonEnd: string | null,
+  windowMin: number,
 ): WeekdayDropoff | null {
-  const runs = filterRunsByPlaceAndEnd(block.runs, place, lessonEnd);
+  const runs = filterRunsByPlaceAndEnd(block.runs, place, lessonEnd, windowMin);
   if (!runs.length) return null;
   return { ...block, runs };
 }
@@ -138,6 +151,7 @@ export function filterSchedule(
     now?: Date;
     lessonPlan?: ChildLessonPlan | null;
     matchLessonPlan?: boolean;
+    lessonMatchWindowMin?: number;
   },
 ): Schedule {
   const {
@@ -147,6 +161,7 @@ export function filterSchedule(
     now = new Date(),
     lessonPlan = null,
     matchLessonPlan = false,
+    lessonMatchWindowMin = DEFAULT_LESSON_MATCH_WINDOW_MIN,
   } = options;
   const showPickups = direction === "all" || direction === "pickups";
   const showDropoffs = direction === "all" || direction === "dropoffs";
@@ -177,7 +192,13 @@ export function filterSchedule(
     (target === null || isSchoolDay(target.weekday))
       ? schedule.pickups
           .map((block) =>
-            filterPickupBlock(block, place, weekday, lessonStart),
+            filterPickupBlock(
+              block,
+              place,
+              weekday,
+              lessonStart,
+              lessonMatchWindowMin,
+            ),
           )
           .filter((block): block is DriverBlock => block !== null)
       : [];
@@ -190,7 +211,9 @@ export function filterSchedule(
     );
   }
   dropoffsByDate = dropoffsByDate
-    .map((day) => filterDayDropoff(day, place, lessonEnd))
+    .map((day) =>
+      filterDayDropoff(day, place, lessonEnd, lessonMatchWindowMin),
+    )
     .filter((day): day is DayDropoff => day !== null);
 
   let dropoffsWeekday =
@@ -199,7 +222,9 @@ export function filterSchedule(
     dropoffsWeekday = [];
   }
   dropoffsWeekday = dropoffsWeekday
-    .map((block) => filterWeekdayDropoff(block, place, lessonEnd))
+    .map((block) =>
+      filterWeekdayDropoff(block, place, lessonEnd, lessonMatchWindowMin),
+    )
     .filter((block): block is WeekdayDropoff => block !== null);
 
   return {

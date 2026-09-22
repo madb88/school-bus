@@ -24,6 +24,14 @@ import {
   timeToMinutes,
 } from "@/lib/child-schedule/match";
 import {
+  clampLessonMatchWindow,
+  DEFAULT_LESSON_MATCH_WINDOW_MIN,
+  loadLessonMatchWindow,
+  MAX_LESSON_MATCH_WINDOW_MIN,
+  MIN_LESSON_MATCH_WINDOW_MIN,
+  saveLessonMatchWindow,
+} from "@/lib/child-schedule/match-window";
+import {
   loadPreferredPlace,
   savePreferredPlace,
 } from "@/lib/child-schedule/preferred-place";
@@ -390,6 +398,12 @@ export function ScheduleBoard({
     initialFilters.sourceMode ?? "school",
   );
   const [showAllMzkConnections, setShowAllMzkConnections] = useState(false);
+  const [lessonMatchWindowMin, setLessonMatchWindowMin] = useState(
+    DEFAULT_LESSON_MATCH_WINDOW_MIN,
+  );
+  const [windowDraft, setWindowDraft] = useState(
+    String(DEFAULT_LESSON_MATCH_WINDOW_MIN),
+  );
   const [dateFilter, setDateFilter] = useState<ScheduleDateFilter>(
     initialFilters.dateFilter ??
       (initialFilters.matchLessonPlan ? "today" : "all"),
@@ -433,6 +447,11 @@ export function ScheduleBoard({
         setDateFilter("today");
       }
     }
+
+    const storedWindow = loadLessonMatchWindow();
+    setLessonMatchWindowMin(storedWindow);
+    setWindowDraft(String(storedWindow));
+
     setUrlReady(true);
     // Seed once after mount; places is stable for a given schedule snapshot.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -528,6 +547,7 @@ export function ScheduleBoard({
   const deferredDateFilter = useDeferredValue(dateFilter);
   const deferredMatch = useDeferredValue(matchActive);
   const deferredSourceMode = useDeferredValue(sourceMode);
+  const deferredWindowMin = useDeferredValue(lessonMatchWindowMin);
 
   const filtered = filterSchedule(schedule, {
     place: deferredPlace,
@@ -535,6 +555,7 @@ export function ScheduleBoard({
     dateFilter: deferredDateFilter,
     lessonPlan,
     matchLessonPlan: deferredMatch,
+    lessonMatchWindowMin: deferredWindowMin,
     now,
   });
 
@@ -592,14 +613,14 @@ export function ScheduleBoard({
     applyLessonFilter && lessonStart
       ? rawMzkPickups.filter((d) =>
           // Przyjazd do szkoły ma zmieścić się w oknie przed startem lekcji.
-          pickupFitsLessonStart(d.arriveTime, lessonStart),
+          pickupFitsLessonStart(d.arriveTime, lessonStart, deferredWindowMin),
         )
       : rawMzkPickups;
   const mzkDropoffs =
     applyLessonFilter && lessonEnd
       ? rawMzkDropoffs.filter((d) =>
           // Odjazd ze szkoły w oknie po zakończeniu lekcji.
-          dropoffFitsLessonEnd(d.departTime, lessonEnd),
+          dropoffFitsLessonEnd(d.departTime, lessonEnd, deferredWindowMin),
         )
       : rawMzkDropoffs;
 
@@ -649,6 +670,16 @@ export function ScheduleBoard({
 
   function persistPlace(next: string | null) {
     savePreferredPlace(next);
+  }
+
+  function commitLessonMatchWindow(raw: string) {
+    const parsed = Number(raw);
+    const next = clampLessonMatchWindow(
+      Number.isFinite(parsed) ? parsed : lessonMatchWindowMin,
+    );
+    setLessonMatchWindowMin(next);
+    setWindowDraft(String(next));
+    saveLessonMatchWindow(next);
   }
 
   function enableMatchPlan() {
@@ -779,12 +810,32 @@ export function ScheduleBoard({
           </Button>
         ) : null}
         {matchActive && dayTimes ? (
-          <span className="text-xs text-muted-foreground">
-            {dayTimes.start ? `od ${dayTimes.start}` : null}
-            {dayTimes.start && dayTimes.end ? " " : null}
-            {dayTimes.end ? `do ${dayTimes.end}` : null}
-            {" · "}
-            okno ±90 min
+          <span className="inline-flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs text-muted-foreground">
+            {dayTimes.start ? <span>od {dayTimes.start}</span> : null}
+            {dayTimes.start && dayTimes.end ? <span> </span> : null}
+            {dayTimes.end ? <span>do {dayTimes.end}</span> : null}
+            <span aria-hidden>·</span>
+            <label className="inline-flex items-center gap-1">
+              <span>okno ±</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={MIN_LESSON_MATCH_WINDOW_MIN}
+                max={MAX_LESSON_MATCH_WINDOW_MIN}
+                step={5}
+                value={windowDraft}
+                aria-label="Okno dopasowania do planu w minutach"
+                onChange={(event) => setWindowDraft(event.target.value)}
+                onBlur={() => commitLessonMatchWindow(windowDraft)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.currentTarget.blur();
+                  }
+                }}
+                className="h-6 w-12 rounded-md border border-border bg-card px-1.5 text-center tabular-nums text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+              />
+              <span>min</span>
+            </label>
           </span>
         ) : null}
         {matchActive && target && !dayTimes ? (
@@ -1111,7 +1162,7 @@ export function ScheduleBoard({
                 : hiddenMzkCount < 5
                   ? "kursy MZK"
                   : "kursów MZK"}{" "}
-              poza oknem (±90 min).{" "}
+              poza oknem (±{lessonMatchWindowMin} min).{" "}
               <button
                 type="button"
                 className="font-medium text-foreground underline underline-offset-2 hover:text-mzk-deep"
