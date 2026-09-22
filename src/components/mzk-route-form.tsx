@@ -8,6 +8,7 @@ import { useLessonPlan } from "@/lib/child-schedule/use-lesson-plan";
 import { usePreferredPlace } from "@/lib/child-schedule/use-preferred-place";
 import { filtersHref } from "@/lib/dowozy/filter-url";
 import {
+  canonicalUniqueStopId,
   findOdDepartures,
   routesForOd,
   uniqueStopsByName,
@@ -35,7 +36,12 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
   const lessonPlan = useLessonPlan();
   const preferredPlace = usePreferredPlace();
   const [draft, setDraft] = useState<MzkRoutePreference | null>(null);
-  const pref = draft ?? stored;
+  const rawPref = draft ?? stored;
+  const pref: MzkRoutePreference = {
+    ...rawPref,
+    boardStopId: canonicalUniqueStopId(schedule, rawPref.boardStopId),
+    alightStopId: canonicalUniqueStopId(schedule, rawPref.alightStopId),
+  };
   const [savedFlash, setSavedFlash] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -73,14 +79,16 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
       : null;
 
   function applySuggestion(boardStopId: string, alightStopId: string) {
+    const board = canonicalUniqueStopId(schedule, boardStopId);
+    const alight = canonicalUniqueStopId(schedule, alightStopId);
     setDraft((prev) => {
       const base = prev ?? stored;
       const next: MzkRoutePreference = {
         ...base,
-        boardStopId,
-        alightStopId,
+        boardStopId: board,
+        alightStopId: alight,
       };
-      const routes = routesForOd(schedule, boardStopId, alightStopId);
+      const routes = routesForOd(schedule, board, alight);
       next.route = routes.length === 1 ? routes[0] : null;
       return next;
     });
@@ -94,7 +102,8 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
       const base = prev ?? stored;
       const next: MzkRoutePreference = {
         ...base,
-        [field]: value === "" ? null : value,
+        [field]:
+          value === "" ? null : canonicalUniqueStopId(schedule, value),
       };
       const routes = routesForOd(schedule, next.boardStopId, next.alightStopId);
       if (routes.length === 1) {
@@ -116,11 +125,9 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
   function handleSave() {
     startTransition(() => {
       const source = draft ?? stored;
-      const routes = routesForOd(
-        schedule,
-        source.boardStopId,
-        source.alightStopId,
-      );
+      const boardStopId = canonicalUniqueStopId(schedule, source.boardStopId);
+      const alightStopId = canonicalUniqueStopId(schedule, source.alightStopId);
+      const routes = routesForOd(schedule, boardStopId, alightStopId);
       const route =
         source.route && routes.includes(source.route)
           ? source.route
@@ -129,8 +136,8 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
             : null;
 
       const normalized: MzkRoutePreference = {
-        boardStopId: source.boardStopId,
-        alightStopId: source.alightStopId,
+        boardStopId,
+        alightStopId,
         route,
       };
       saveMzkRoutePreference(normalized);

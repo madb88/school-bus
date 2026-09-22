@@ -90,6 +90,23 @@ export function uniqueStopsByName(stops: MzkStop[]): MzkStop[] {
   return unique;
 }
 
+/**
+ * Map any stop_id to the representative kept by `uniqueStopsByName`
+ * (opposite road sides share a name but have different ids).
+ */
+export function canonicalUniqueStopId(
+  schedule: MzkSchedule,
+  stopId: string | null,
+): string | null {
+  if (!stopId) return null;
+  const unique = uniqueStopsByName(schedule.stops);
+  if (unique.some((s) => s.id === stopId)) return stopId;
+  const name = schedule.stops.find((s) => s.id === stopId)?.name;
+  if (!name) return stopId;
+  const key = name.toLocaleLowerCase("pl");
+  return unique.find((s) => s.name.toLocaleLowerCase("pl") === key)?.id ?? stopId;
+}
+
 function timeToMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
   return h * 60 + (m || 0);

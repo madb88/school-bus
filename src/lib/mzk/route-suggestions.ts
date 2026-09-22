@@ -1,4 +1,5 @@
 import {
+  canonicalUniqueStopId,
   routesForOd,
   uniqueStopsByName,
 } from "./filter-departures";
@@ -98,9 +99,13 @@ export function suggestMzkRoutes(
       if (seen.has(key)) continue;
       seen.add(key);
 
+      const boardStopId = canonicalUniqueStopId(schedule, board.id) ?? board.id;
+      const alightStopId =
+        canonicalUniqueStopId(schedule, alight.id) ?? alight.id;
+
       suggestions.push({
-        boardStopId: board.id,
-        alightStopId: alight.id,
+        boardStopId,
+        alightStopId,
         boardName: board.name,
         alightName: alight.name,
         label: `${board.name} → ${alight.name}`,
