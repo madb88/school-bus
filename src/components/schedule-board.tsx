@@ -11,6 +11,13 @@ import {
 } from "react";
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   dropoffFitsLessonEnd,
   getDayTimes,
   pickupFitsLessonStart,
@@ -635,6 +642,11 @@ export function ScheduleBoard({
     matchActive ||
     sourceMode !== "school";
 
+  const placeItems = [
+    { label: "Wszystkie miejsca", value: null as string | null },
+    ...places.map((item) => ({ label: item, value: item })),
+  ];
+
   function persistPlace(next: string | null) {
     savePreferredPlace(next);
   }
@@ -815,32 +827,33 @@ export function ScheduleBoard({
 
       <div className="hidden h-5 w-px shrink-0 bg-border md:block" aria-hidden />
 
-      <label className="min-w-0 flex-1 basis-[10rem] md:max-w-[14rem]">
-        <span className="sr-only">Miejsce</span>
-        <select
-          value={place ?? ""}
-          onChange={(event) => {
-            const value = event.target.value;
+      <div className="min-w-0 flex-1 basis-[10rem] md:max-w-[14rem]">
+        <Select
+          items={placeItems}
+          value={place}
+          onValueChange={(next) => {
             startTransition(() => {
-              if (value === "") {
-                setPlaceOverride(null);
-                persistPlace(null);
-              } else {
-                setPlaceOverride(value);
-                persistPlace(value);
-              }
+              setPlaceOverride(next);
+              persistPlace(next);
             });
           }}
-          className="h-7 w-full rounded-[min(var(--radius-md),12px)] border border-border bg-card px-2 text-[0.8rem] text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         >
-          <option value="">Wszystkie miejsca</option>
-          {places.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </select>
-      </label>
+          <SelectTrigger
+            size="sm"
+            aria-label="Miejsce"
+            className="w-full max-w-full border-border bg-card text-[0.8rem]"
+          >
+            <SelectValue placeholder="Wszystkie miejsca" />
+          </SelectTrigger>
+          <SelectContent alignItemWithTrigger={false}>
+            {placeItems.map((item) => (
+              <SelectItem key={item.value ?? "__all"} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       <div
         className="flex flex-wrap gap-1"
