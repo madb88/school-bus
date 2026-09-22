@@ -10,6 +10,10 @@
     "scrape:dowozy": "tsx scripts/scrape-dowozy.ts",
     "fetch:mzk": "tsx scripts/fetch-mzk-gtfs.ts"
   },
+  "allowScripts": {
+    "esbuild": true,
+    "unrs-resolver": true
+  },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
     "@marsidev/react-turnstile": "^1.6.1",

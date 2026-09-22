@@ -8,6 +8,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -26,15 +27,13 @@ import {
 import {
   clampLessonMatchWindow,
   DEFAULT_LESSON_MATCH_WINDOW_MIN,
-  loadLessonMatchWindow,
+  getLessonMatchWindowSnapshot,
   MAX_LESSON_MATCH_WINDOW_MIN,
   MIN_LESSON_MATCH_WINDOW_MIN,
   saveLessonMatchWindow,
+  subscribeLessonMatchWindow,
 } from "@/lib/child-schedule/match-window";
-import {
-  loadPreferredPlace,
-  savePreferredPlace,
-} from "@/lib/child-schedule/preferred-place";
+import { savePreferredPlace } from "@/lib/child-schedule/preferred-place";
 import {
   hasConfiguredLessons,
   loadLessonPlan,
@@ -73,7 +72,8 @@ import {
 } from "@/lib/mzk/route-storage";
 import type { MzkOdDeparture, MzkSchedule } from "@/lib/mzk/types";
 import { useMzkRoutePreference } from "@/lib/mzk/use-mzk-route";
-import { dismissHint, isHintDismissed } from "@/lib/onboarding-hints";
+import { dismissHint } from "@/lib/onboarding-hints";
+import { useHintDismissed } from "@/lib/use-hint-dismissed";
 import { cn } from "cn";
 
 type ScheduleBoardProps = {
@@ -119,7 +119,7 @@ function PlaceChip({
           : `Filtruj po miejscu: ${place}`
       }
       className={cn(
-        "inline-flex !cursor-pointer items-center rounded-md px-2 py-0.5 text-sm transition-colors",
+        "inline-flex cursor-pointer! items-center rounded-md px-2 py-0.5 text-sm transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
         highlight
           ? "bg-bus text-bus-foreground font-semibold hover:bg-bus/90"
@@ -386,42 +386,40 @@ export function ScheduleBoard({
         ? null
         : undefined;
 
-  const [matchLessonPlan, setMatchLessonPlan] = useState(
-    initialFilters.matchLessonPlan ?? false,
-  );
+  // `undefined` override = follow local defaults from synced stores / URL absence.
+  const [matchLessonPlanOverride, setMatchLessonPlan] = useState<
+    boolean | undefined
+  >(initialFilters.matchLessonPlan);
   const [placeOverride, setPlaceOverride] = useState<string | null | undefined>(
     urlPlaceValid,
   );
   const [direction, setDirection] = useState<ScheduleDirection>(
     initialFilters.direction ?? "all",
   );
-  const [sourceMode, setSourceMode] = useState<ScheduleSourceMode>(
-    initialFilters.sourceMode ?? "school",
-  );
+  const [sourceModeOverride, setSourceMode] = useState<
+    ScheduleSourceMode | undefined
+  >(initialFilters.sourceMode);
   const [showAllMzkConnections, setShowAllMzkConnections] = useState(false);
-  const [lessonMatchWindowMin, setLessonMatchWindowMin] = useState(
-    DEFAULT_LESSON_MATCH_WINDOW_MIN,
+  const storedWindowRaw = useSyncExternalStore(
+    subscribeLessonMatchWindow,
+    getLessonMatchWindowSnapshot,
+    () => String(DEFAULT_LESSON_MATCH_WINDOW_MIN),
   );
-  const [windowDraft, setWindowDraft] = useState(
-    String(DEFAULT_LESSON_MATCH_WINDOW_MIN),
-  );
-  const [dateFilter, setDateFilter] = useState<ScheduleDateFilter>(
-    initialFilters.dateFilter ??
-      (initialFilters.matchLessonPlan ? "today" : "all"),
-  );
+  const lessonMatchWindowMin = clampLessonMatchWindow(Number(storedWindowRaw));
+  const [windowDraft, setWindowDraft] = useState<string | null>(null);
+  const [dateFilterOverride, setDateFilter] = useState<
+    ScheduleDateFilter | undefined
+  >(initialFilters.dateFilter);
   const [now, setNow] = useState(() => new Date());
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [copiedFlash, setCopiedFlash] = useState(false);
-  const [urlReady, setUrlReady] = useState(false);
-  const [planHintDismissed, setPlanHintDismissed] = useState(false);
-  const [mzkHintDismissed, setMzkHintDismissed] = useState(false);
+  const planHintDismissed = useHintDismissed("plan");
+  const mzkHintDismissed = useHintDismissed("mzk");
   const skipUrlWrite = useRef(false);
 
-  useEffect(() => {
-    setPlanHintDismissed(isHintDismissed("plan"));
-    setMzkHintDismissed(isHintDismissed("mzk"));
-  }, []);
-
+  const matchLessonPlan = matchLessonPlanOverride ?? planReady;
+  const sourceMode =
+    sourceModeOverride ?? (mzkRouteReady ? "school-mzk" : "school");
   const matchActive = matchLessonPlan && planReady;
   const place =
     placeOverride === undefined
@@ -429,41 +427,13 @@ export function ScheduleBoard({
         ? lessonPlan.place
         : defaultPlace
       : placeOverride;
-
-  // Seed preferred stop/day, lesson-plan match, and Szkolny+MZK by default.
-  useEffect(() => {
-    const storedPlan = loadLessonPlan();
-    const hasPlan = hasConfiguredLessons(storedPlan);
-    const hasMzkRoute = hasConfiguredMzkRoute(loadMzkRoutePreference());
-
-    if (initialFilters.matchLessonPlan === undefined && hasPlan) {
-      setMatchLessonPlan(true);
-      if (initialFilters.dateFilter === undefined) {
-        setDateFilter("today");
-      }
-    }
-
-    if (initialFilters.sourceMode === undefined && hasMzkRoute) {
-      setSourceMode("school-mzk");
-    }
-
-    if (!initialFilters.hasExplicit) {
-      const storedPlace =
-        loadPreferredPlace() ?? storedPlan.place ?? null;
-      if (storedPlace && places.includes(storedPlace)) {
-        setPlaceOverride(storedPlace);
-        setDateFilter("today");
-      }
-    }
-
-    const storedWindow = loadLessonMatchWindow();
-    setLessonMatchWindowMin(storedWindow);
-    setWindowDraft(String(storedWindow));
-
-    setUrlReady(true);
-    // Seed once after mount; places is stable for a given schedule snapshot.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const dateFilter =
+    dateFilterOverride ??
+    (matchLessonPlan ||
+    (!initialFilters.hasExplicit && Boolean(defaultPlace))
+      ? "today"
+      : "all");
+  const windowDraftValue = windowDraft ?? String(lessonMatchWindowMin);
 
   useEffect(() => {
     const tick = () => setNow(new Date());
@@ -480,7 +450,6 @@ export function ScheduleBoard({
 
   // Keep address bar in sync so filters are shareable.
   useEffect(() => {
-    if (!urlReady) return;
     if (skipUrlWrite.current) {
       skipUrlWrite.current = false;
       return;
@@ -510,7 +479,6 @@ export function ScheduleBoard({
     mzkRouteReady,
     pathname,
     router,
-    urlReady,
   ]);
 
   // Browser back/forward.
@@ -689,8 +657,7 @@ export function ScheduleBoard({
     const next = clampLessonMatchWindow(
       Number.isFinite(parsed) ? parsed : lessonMatchWindowMin,
     );
-    setLessonMatchWindowMin(next);
-    setWindowDraft(String(next));
+    setWindowDraft(null);
     saveLessonMatchWindow(next);
   }
 
@@ -699,7 +666,7 @@ export function ScheduleBoard({
       setMatchLessonPlan(true);
       setShowAllMzkConnections(false);
       setPlaceOverride(undefined);
-      setDateFilter((current) => (current === "all" ? "today" : current));
+      if (dateFilter === "all") setDateFilter("today");
     });
   }
 
@@ -835,10 +802,10 @@ export function ScheduleBoard({
                 min={MIN_LESSON_MATCH_WINDOW_MIN}
                 max={MAX_LESSON_MATCH_WINDOW_MIN}
                 step={5}
-                value={windowDraft}
+                value={windowDraftValue}
                 aria-label="Okno dopasowania do planu w minutach"
                 onChange={(event) => setWindowDraft(event.target.value)}
-                onBlur={() => commitLessonMatchWindow(windowDraft)}
+                onBlur={() => commitLessonMatchWindow(windowDraftValue)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {
                     event.currentTarget.blur();
@@ -975,9 +942,7 @@ export function ScheduleBoard({
                   aria-pressed={dateFilter === "today"}
                   onClick={() => {
                     startTransition(() =>
-                      setDateFilter((current) =>
-                        current === "today" ? "all" : "today",
-                      ),
+                      setDateFilter(dateFilter === "today" ? "all" : "today"),
                     );
                   }}
                 >
@@ -1173,7 +1138,6 @@ export function ScheduleBoard({
                   variant="outline"
                   onClick={() => {
                     dismissHint("plan");
-                    setPlanHintDismissed(true);
                   }}
                 >
                   Nie teraz
@@ -1204,7 +1168,6 @@ export function ScheduleBoard({
                   variant="outline"
                   onClick={() => {
                     dismissHint("mzk");
-                    setMzkHintDismissed(true);
                   }}
                 >
                   Nie teraz

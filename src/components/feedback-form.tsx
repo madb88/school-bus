@@ -3,10 +3,7 @@
 import { Turnstile } from "@marsidev/react-turnstile";
 import { useActionState, useState } from "react";
 import { toast } from "sonner";
-import {
-  sendFeedback,
-  type FeedbackState,
-} from "@/app/actions/feedback";
+import { sendFeedback, type FeedbackState } from "@/app/actions/feedback";
 import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +22,10 @@ export function FeedbackForm({
 } = {}) {
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
   const { theme } = useTheme();
-  const [state, formAction, pending] = useActionState(sendFeedback, initialState);
+  const [state, formAction, pending] = useActionState(
+    sendFeedback,
+    initialState,
+  );
   const [turnstileToken, setTurnstileToken] = useState("");
   const [turnstileKey, setTurnstileKey] = useState(0);
   const [seenState, setSeenState] = useState(state);
@@ -41,10 +41,13 @@ export function FeedbackForm({
   }
 
   return (
-    <form action={formAction} className="relative flex flex-col gap-4 px-4 pb-2">
+    <form
+      action={formAction}
+      className="relative flex flex-col gap-4 px-4 pb-2"
+    >
       <div
         aria-hidden
-        className="pointer-events-none absolute -left-[9999px] h-0 w-0 overflow-hidden opacity-0"
+        className="pointer-events-none absolute left-[-9999px] h-0 w-0 overflow-hidden opacity-0"
       >
         <label htmlFor="feedback-website">Strona</label>
         <input
@@ -73,7 +76,9 @@ export function FeedbackForm({
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="feedback-email">
           E-mail zwrotny{" "}
-          <span className="font-normal text-muted-foreground">(opcjonalnie)</span>
+          <span className="font-normal text-muted-foreground">
+            (opcjonalnie)
+          </span>
         </Label>
         <Input
           id="feedback-email"
