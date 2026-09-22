@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Ensure the scraped schedule JSON is available to serverless functions on Vercel.
+  // Ensure schedule JSON snapshots are available to serverless functions on Vercel.
   outputFileTracingIncludes: {
-    "/*": ["./data/dowozy-schedule.json"],
+    "/*": ["./data/dowozy-schedule.json", "./data/mzk-schedule.json"],
   },
 };
 
