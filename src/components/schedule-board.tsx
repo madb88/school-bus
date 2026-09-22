@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { startTransition, useDeferredValue, useState } from "react";
-import { SiteNav } from "@/components/site-nav";
+import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { getDayTimes } from "@/lib/child-schedule/match";
 import { hasConfiguredLessons } from "@/lib/child-schedule/storage";
@@ -68,7 +68,7 @@ function PlaceChip({
         "inline-flex !cursor-pointer items-center rounded-md px-2 py-0.5 text-sm transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
         highlight
-          ? "bg-bus text-asphalt font-semibold hover:bg-bus/90"
+          ? "bg-bus text-bus-foreground font-semibold hover:bg-bus/90"
           : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground",
       )}
       style={{ cursor: "pointer" }}
@@ -194,14 +194,9 @@ export function ScheduleBoard({
 
   return (
     <div className="space-y-10">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <p className="text-xs font-semibold tracking-[0.2em] text-bus-deep uppercase">
-          School Bus
-        </p>
-        <SiteNav current="rozklad" />
-      </div>
+      <SiteHeader current="rozklad" />
 
-      <header className="space-y-3">
+      <header className="animate-rise-delay space-y-3">
         <h1 className="max-w-2xl font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">
           Rozkład dowozów
         </h1>
@@ -225,8 +220,8 @@ export function ScheduleBoard({
         </p>
       </header>
 
-      <div className="sticky top-0 z-10 -mx-6 space-y-4 border-y border-border/60 bg-[color-mix(in_srgb,var(--background)_92%,transparent)] px-6 py-4 backdrop-blur-md sm:-mx-10 sm:px-10">
-        <div className="mx-auto flex max-w-4xl flex-col gap-3">
+      <div className="sticky top-0 z-10 ml-[calc(50%-50vw)] w-screen space-y-4 border-y border-border/50 bg-[color-mix(in_srgb,var(--background)_88%,transparent)] py-4 shadow-[0_8px_30px_-18px_color-mix(in_srgb,var(--foreground)_35%,transparent)] backdrop-blur-md">
+        <div className="mx-auto flex max-w-4xl flex-col gap-3 px-6 sm:px-10">
           <div className="flex flex-wrap items-center gap-2">
             {planReady ? (
               <Button
@@ -352,7 +347,7 @@ export function ScheduleBoard({
         </div>
 
         {place || dateFilter !== "all" || matchActive ? (
-          <div className="mx-auto flex max-w-4xl items-center justify-between gap-3">
+          <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-6 sm:px-10">
             <p className="text-sm text-muted-foreground">
               {matchActive ? "Plan · " : null}
               {dateFilter === "today"
@@ -410,7 +405,7 @@ export function ScheduleBoard({
           ) : null}
         </p>
       ) : (
-        <div className="space-y-14 animate-in fade-in duration-300">
+        <div className="animate-rise-delay-2 space-y-14 animate-in fade-in duration-300">
           {filtered.pickups.length > 0 ? (
             <section aria-labelledby="pickups-heading">
               <SectionHeading
@@ -436,7 +431,7 @@ export function ScheduleBoard({
                       {block.courses.map((course) => (
                         <div
                           key={`${block.name}-${course.label}-${course.note ?? ""}`}
-                          className="rounded-xl border border-border/70 bg-card/80 px-4 py-3 sm:px-5"
+                          className="rounded-xl border border-border/70 bg-card/90 px-4 py-3 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-5"
                         >
                           <div className="mb-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
                             <p className="font-medium text-foreground">
@@ -486,7 +481,7 @@ export function ScheduleBoard({
                         {day.driver}
                       </p>
                     </div>
-                    <ul className="rounded-xl border border-border/70 bg-card/80 px-4 py-1 sm:px-5">
+                    <ul className="rounded-xl border border-border/70 bg-card/90 px-4 py-1 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-5">
                       {day.runs.map((run, index) => (
                         <StopRow
                           key={`${day.dateLabel}-${run.time}-${index}`}
@@ -512,7 +507,7 @@ export function ScheduleBoard({
                         {block.driver}
                       </p>
                     </div>
-                    <ul className="rounded-xl border border-border/70 bg-card/80 px-4 py-1 sm:px-5">
+                    <ul className="rounded-xl border border-border/70 bg-card/90 px-4 py-1 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-5">
                       {block.runs.map((run, index) => (
                         <StopRow
                           key={`${block.driver}-${run.time}-${index}`}

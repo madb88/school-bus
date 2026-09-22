@@ -70,7 +70,7 @@ export function SchoolBusHero() {
       <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-6xl flex-col px-6 pb-10 pt-8 sm:px-10">
         <header className="animate-rise flex items-center justify-between gap-4">
           <p className="font-display text-xl font-extrabold tracking-tight text-asphalt sm:text-2xl">
-            School Bus
+            Autobus szkolny
           </p>
           <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground sm:flex">
             <a href="#jak-dziala" className="transition-colors hover:text-foreground">
@@ -85,7 +85,7 @@ export function SchoolBusHero() {
         <div className="mt-10 flex flex-1 flex-col justify-center gap-10 lg:mt-0 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-end lg:gap-8">
           <div className="max-w-xl">
             <p className="animate-rise font-display text-5xl font-extrabold leading-[0.95] tracking-tight text-asphalt sm:text-6xl lg:text-7xl">
-              School Bus
+              Autobus szkolny
             </p>
             <h1 className="animate-rise-delay mt-5 font-display text-2xl font-semibold leading-snug tracking-tight text-foreground sm:text-3xl">
               Bezpieczny dojazd do szkoły, zawsze na widoku.

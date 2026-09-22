@@ -1,6 +1,6 @@
-# School Bus
+# Autobus szkolny
 
-Aplikacja **School Bus** — śledzenie bezpiecznego dojazdu dzieci do szkoły (Next.js).
+Aplikacja **Autobus szkolny** — śledzenie bezpiecznego dojazdu dzieci do szkoły (Next.js).
 
 ## Stack
 
