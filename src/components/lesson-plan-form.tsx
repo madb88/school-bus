@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   clearLessonPlan,
@@ -27,7 +28,6 @@ export function LessonPlanForm({ places }: LessonPlanFormProps) {
   const stored = useLessonPlan();
   const [draft, setDraft] = useState<ChildLessonPlan | null>(null);
   const plan = draft ?? stored;
-  const [savedFlash, setSavedFlash] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function updateDay(
@@ -83,15 +83,13 @@ export function LessonPlanForm({ places }: LessonPlanFormProps) {
         savePreferredPlace(normalized.place);
       }
       setDraft(null);
-      setSavedFlash(true);
-      window.setTimeout(() => setSavedFlash(false), 2000);
+      toast.success("Plan lekcji zapisany");
     });
   }
 
   function handleClear() {
     clearLessonPlan();
     setDraft({ ...EMPTY_LESSON_PLAN, days: {} });
-    setSavedFlash(false);
   }
 
   return (
@@ -193,9 +191,6 @@ export function LessonPlanForm({ places }: LessonPlanFormProps) {
         >
           Wyczyść
         </Button>
-        {savedFlash ? (
-          <span className="text-sm font-medium text-bus-deep">Zapisano</span>
-        ) : null}
         {hasConfiguredLessons(plan) ? (
           <Link
             href={filtersHref({

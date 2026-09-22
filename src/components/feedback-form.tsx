@@ -2,10 +2,12 @@
 
 import { Turnstile } from "@marsidev/react-turnstile";
 import { useActionState, useState } from "react";
+import { toast } from "sonner";
 import {
   sendFeedback,
   type FeedbackState,
 } from "@/app/actions/feedback";
+import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,8 +18,13 @@ const initialState: FeedbackState = {
   message: "",
 };
 
-export function FeedbackForm() {
+export function FeedbackForm({
+  onSuccess,
+}: {
+  onSuccess?: () => void;
+} = {}) {
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
+  const { theme } = useTheme();
   const [state, formAction, pending] = useActionState(sendFeedback, initialState);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [turnstileKey, setTurnstileKey] = useState(0);
@@ -28,6 +35,8 @@ export function FeedbackForm() {
     if (state.ok && state.message) {
       setTurnstileToken("");
       setTurnstileKey((key) => key + 1);
+      toast.success(state.message);
+      onSuccess?.();
     }
   }
 
@@ -87,9 +96,9 @@ export function FeedbackForm() {
 
           {siteKey ? (
             <Turnstile
-              key={turnstileKey}
+              key={`${turnstileKey}-${theme}`}
               siteKey={siteKey}
-              options={{ size: "flexible" }}
+              options={{ size: "flexible", theme }}
               onSuccess={setTurnstileToken}
               onExpire={() => setTurnstileToken("")}
               onError={() => setTurnstileToken("")}

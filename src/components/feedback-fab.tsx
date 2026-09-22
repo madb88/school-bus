@@ -40,7 +40,10 @@ export function FeedbackFab() {
         <MessageSquare aria-hidden className="size-4" />
         <span className="hidden sm:inline">Opinia</span>
       </SheetTrigger>
-      <SheetContent side="right" className="gap-0 overflow-y-auto">
+      <SheetContent
+        side="right"
+        className="gap-0 overflow-y-auto sm:max-w-md"
+      >
         <SheetHeader>
           <SheetTitle>Podziel się opinią</SheetTitle>
           <SheetDescription>
@@ -48,7 +51,10 @@ export function FeedbackFab() {
             aplikacji.
           </SheetDescription>
         </SheetHeader>
-        <FeedbackForm key={formInstance} />
+        <FeedbackForm
+          key={formInstance}
+          onSuccess={() => setOpen(false)}
+        />
       </SheetContent>
     </Sheet>
   );

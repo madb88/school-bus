@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { StopCombobox } from "@/components/stop-combobox";
 import { Button } from "@/components/ui/button";
 import { useLessonPlan } from "@/lib/child-schedule/use-lesson-plan";
@@ -42,7 +43,6 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
     boardStopId: canonicalUniqueStopId(schedule, rawPref.boardStopId),
     alightStopId: canonicalUniqueStopId(schedule, rawPref.alightStopId),
   };
-  const [savedFlash, setSavedFlash] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const hintPlace = lessonPlan.place ?? preferredPlace;
@@ -142,15 +142,13 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
       };
       saveMzkRoutePreference(normalized);
       setDraft(null);
-      setSavedFlash(true);
-      window.setTimeout(() => setSavedFlash(false), 2000);
+      toast.success("Trasa MZK zapisana");
     });
   }
 
   function handleClear() {
     clearMzkRoutePreference();
     setDraft({ ...EMPTY_MZK_ROUTE });
-    setSavedFlash(false);
   }
 
   return (
@@ -320,9 +318,6 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
         >
           Wyczyść
         </Button>
-        {savedFlash ? (
-          <span className="text-sm font-medium text-bus-deep">Zapisano</span>
-        ) : null}
         {hasConfiguredMzkRoute(pref) && !sameStop ? (
           <Link
             href={filtersHref({
