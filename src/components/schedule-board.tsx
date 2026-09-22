@@ -25,11 +25,21 @@ type ScheduleBoardProps = {
 
 function formatFetchedAt(iso: string): string {
   try {
-    return new Intl.DateTimeFormat("pl-PL", {
-      dateStyle: "medium",
-      timeStyle: "short",
+    const parts = new Intl.DateTimeFormat("pl-PL", {
       timeZone: "Europe/Warsaw",
-    }).format(new Date(iso));
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).formatToParts(new Date(iso));
+
+    const get = (type: Intl.DateTimeFormatPartTypes) =>
+      parts.find((part) => part.type === type)?.value ?? "";
+
+    // Fixed shape avoids Node vs browser locale quirks ("o" vs ",").
+    return `${get("day")}.${get("month")}.${get("year")}, ${get("hour")}:${get("minute")}`;
   } catch {
     return iso;
   }
@@ -38,30 +48,44 @@ function formatFetchedAt(iso: string): string {
 function PlaceChip({
   place,
   highlight,
+  onSelect,
 }: {
   place: string;
   highlight: boolean;
+  onSelect: (place: string) => void;
 }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-md px-2 py-0.5 text-sm transition-colors",
+    <button
+      type="button"
+      onClick={() => onSelect(place)}
+      aria-pressed={highlight}
+      title={
         highlight
-          ? "bg-bus text-asphalt font-semibold"
-          : "bg-muted text-muted-foreground",
+          ? `Wyłącz filtr: ${place}`
+          : `Filtruj po miejscu: ${place}`
+      }
+      className={cn(
+        "inline-flex !cursor-pointer items-center rounded-md px-2 py-0.5 text-sm transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+        highlight
+          ? "bg-bus text-asphalt font-semibold hover:bg-bus/90"
+          : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground",
       )}
+      style={{ cursor: "pointer" }}
     >
       {place}
-    </span>
+    </button>
   );
 }
 
 function StopRow({
   stop,
   activePlace,
+  onSelectPlace,
 }: {
   stop: Stop;
   activePlace: string | null;
+  onSelectPlace: (place: string) => void;
 }) {
   return (
     <li className="grid grid-cols-[4.5rem_1fr] gap-3 border-t border-border/50 py-3 first:border-t-0 sm:grid-cols-[5.5rem_1fr] sm:gap-4">
@@ -74,6 +98,7 @@ function StopRow({
             key={item}
             place={item}
             highlight={activePlace !== null && item === activePlace}
+            onSelect={onSelectPlace}
           />
         ))}
       </div>
@@ -158,6 +183,12 @@ export function ScheduleBoard({
       setMatchLessonPlan(true);
       setPlaceOverride(undefined);
       setDateFilter((current) => (current === "all" ? "today" : current));
+    });
+  }
+
+  function selectPlace(nextPlace: string) {
+    startTransition(() => {
+      setPlaceOverride(place === nextPlace ? null : nextPlace);
     });
   }
 
@@ -423,6 +454,7 @@ export function ScheduleBoard({
                                 key={`${stop.time}-${stop.places.join("-")}-${index}`}
                                 stop={stop}
                                 activePlace={deferredPlace}
+                                onSelectPlace={selectPlace}
                               />
                             ))}
                           </ul>
@@ -460,6 +492,7 @@ export function ScheduleBoard({
                           key={`${day.dateLabel}-${run.time}-${index}`}
                           stop={run}
                           activePlace={deferredPlace}
+                          onSelectPlace={selectPlace}
                         />
                       ))}
                     </ul>
@@ -485,6 +518,7 @@ export function ScheduleBoard({
                           key={`${block.driver}-${run.time}-${index}`}
                           stop={run}
                           activePlace={deferredPlace}
+                          onSelectPlace={selectPlace}
                         />
                       ))}
                     </ul>

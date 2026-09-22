@@ -27,8 +27,8 @@ function stopIncludesPlace(stop: Stop, place: string): boolean {
   return stop.places.some((p) => p === place);
 }
 
-function courseIncludesPlace(course: Course, place: string): boolean {
-  return course.stops.some((stop) => stopIncludesPlace(stop, place));
+function narrowStopToPlace(stop: Stop, place: string): Stop {
+  return { ...stop, places: stop.places.filter((p) => p === place) };
 }
 
 export function collectPlaces(schedule: Schedule): string[] {
@@ -71,17 +71,18 @@ function filterPickupBlock(
     );
   }
 
-  if (place) {
-    courses = courses.filter((course) => courseIncludesPlace(course, place));
-  }
-
-  if (lessonStart) {
+  if (place || lessonStart) {
     courses = courses
       .map((course) => {
-        const stops = course.stops.filter((stop) => {
-          if (place && !stopIncludesPlace(stop, place)) return false;
-          return pickupFitsLessonStart(stop.time, lessonStart);
-        });
+        const stops = course.stops
+          .filter((stop) => {
+            if (place && !stopIncludesPlace(stop, place)) return false;
+            if (lessonStart && !pickupFitsLessonStart(stop.time, lessonStart)) {
+              return false;
+            }
+            return true;
+          })
+          .map((stop) => (place ? narrowStopToPlace(stop, place) : stop));
         if (!stops.length) return null;
         return { ...course, stops };
       })
@@ -97,11 +98,13 @@ function filterRunsByPlaceAndEnd(
   place: string | null,
   lessonEnd: string | null,
 ): Stop[] {
-  return runs.filter((run) => {
-    if (place && !stopIncludesPlace(run, place)) return false;
-    if (lessonEnd && !dropoffFitsLessonEnd(run.time, lessonEnd)) return false;
-    return true;
-  });
+  return runs
+    .filter((run) => {
+      if (place && !stopIncludesPlace(run, place)) return false;
+      if (lessonEnd && !dropoffFitsLessonEnd(run.time, lessonEnd)) return false;
+      return true;
+    })
+    .map((run) => (place ? narrowStopToPlace(run, place) : run));
 }
 
 function filterDayDropoff(
