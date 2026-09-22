@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { FeedbackFab } from "@/components/feedback-fab";
 import { SiteFooter } from "@/components/site-footer";
 
 export function PageShell({ children }: { children: ReactNode }) {
@@ -14,6 +15,7 @@ export function PageShell({ children }: { children: ReactNode }) {
         </div>
       </main>
       <SiteFooter />
+      <FeedbackFab />
     </>
   );
 }

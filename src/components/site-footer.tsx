@@ -3,8 +3,6 @@ import { DOWOZY_SOURCE_URL } from "@/lib/dowozy/types";
 import { loadMzkScheduleSnapshot } from "@/lib/mzk/load-schedule";
 import { MZK_DEVELOPER_PAGE_URL } from "@/lib/mzk/types";
 
-const CONTACT_EMAIL = "kaminskiqba@gmail.com";
-
 function formatFetchedAt(iso: string): string {
   try {
     const parts = new Intl.DateTimeFormat("pl-PL", {
@@ -77,20 +75,9 @@ export async function SiteFooter() {
           </div>
         )}
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
-          <p className="text-sm text-muted-foreground">
-            © {year} Dojazdy do szkoły
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Masz pomysł na usprawnienie? Napisz:{" "}
-            <a
-              href={`mailto:${CONTACT_EMAIL}`}
-              className="font-medium text-foreground underline underline-offset-2 hover:text-bus-deep"
-            >
-              {CONTACT_EMAIL}
-            </a>
-          </p>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          © {year} Dojazdy do szkoły
+        </p>
       </div>
     </footer>
   );
