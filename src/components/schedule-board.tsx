@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -73,6 +73,7 @@ import {
 } from "@/lib/mzk/route-storage";
 import type { MzkOdDeparture, MzkSchedule } from "@/lib/mzk/types";
 import { useMzkRoutePreference } from "@/lib/mzk/use-mzk-route";
+import { dismissHint, isHintDismissed } from "@/lib/onboarding-hints";
 import { cn } from "cn";
 
 type ScheduleBoardProps = {
@@ -412,7 +413,14 @@ export function ScheduleBoard({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [copiedFlash, setCopiedFlash] = useState(false);
   const [urlReady, setUrlReady] = useState(false);
+  const [planHintDismissed, setPlanHintDismissed] = useState(false);
+  const [mzkHintDismissed, setMzkHintDismissed] = useState(false);
   const skipUrlWrite = useRef(false);
+
+  useEffect(() => {
+    setPlanHintDismissed(isHintDismissed("plan"));
+    setMzkHintDismissed(isHintDismissed("mzk"));
+  }, []);
 
   const matchActive = matchLessonPlan && planReady;
   const place =
@@ -662,6 +670,10 @@ export function ScheduleBoard({
     direction !== "all" ||
     matchActive ||
     sourceMode !== "school";
+
+  const showPlanHint = !planReady && !planHintDismissed;
+  const showMzkHint =
+    !mzkRouteReady && !mzkHintDismissed && sourceMode === "school-mzk";
 
   const placeItems = [
     { label: "Wszystkie miejsca", value: null as string | null },
@@ -1138,6 +1150,71 @@ export function ScheduleBoard({
         ) : null}
       </div>
 
+      {showPlanHint || showMzkHint ? (
+        <div className="grid gap-3">
+          {showPlanHint ? (
+            <div className="rounded-xl border border-dashed border-border bg-card/60 px-5 py-4 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">Ustaw plan lekcji</p>
+              <p className="mt-1.5 leading-relaxed">
+                Dodaj godziny zajęć, żeby uzyskać bardziej spersonalizowany plan
+                dojazdu do szkoły — rozkład dopasuje się do rozpoczęcia i
+                zakończenia lekcji.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Link
+                  href="/lekcje"
+                  className={buttonVariants({ size: "sm", variant: "secondary" })}
+                >
+                  Przejdź do planu lekcji
+                </Link>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    dismissHint("plan");
+                    setPlanHintDismissed(true);
+                  }}
+                >
+                  Nie teraz
+                </Button>
+              </div>
+            </div>
+          ) : null}
+          {showMzkHint ? (
+            <div className="rounded-xl border border-dashed border-border bg-card/60 px-5 py-4 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">
+                Ustaw przystanek MZK
+              </p>
+              <p className="mt-1.5 leading-relaxed">
+                Wybierz przystanek wsiadania i wysiadania, żeby zobaczyć kursy
+                miejskie w jednej liście ze szkolnymi — spersonalizowany dojazd
+                do szkoły.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Link
+                  href="/mzk"
+                  className={buttonVariants({ size: "sm", variant: "secondary" })}
+                >
+                  Ustaw trasę MZK
+                </Link>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    dismissHint("mzk");
+                    setMzkHintDismissed(true);
+                  }}
+                >
+                  Nie teraz
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       {isEmpty ? (
         <p className="rounded-xl border border-dashed border-border bg-card/60 px-6 py-12 text-center text-muted-foreground">
           {sourceMode === "school-mzk" && !mzkRouteReady ? (
@@ -1194,19 +1271,6 @@ export function ScheduleBoard({
         </p>
       ) : sourceMode === "school-mzk" && mergedTimeline ? (
         <div className="animate-rise-delay-2 space-y-14 animate-in fade-in duration-300">
-          {!mzkRouteReady ? (
-            <p className="rounded-xl border border-dashed border-border bg-card/60 px-5 py-4 text-sm text-muted-foreground">
-              Ustaw przystanek wsiadania i wysiadania w{" "}
-              <Link
-                href="/mzk"
-                className="underline underline-offset-2 hover:text-foreground"
-              >
-                MZK
-              </Link>
-              , żeby zobaczyć kursy miejskie w jednej liście ze szkolnymi.
-            </p>
-          ) : null}
-
           {mzkRouteReady &&
           mzkDeparturesCount === 0 &&
           applyLessonFilter &&
