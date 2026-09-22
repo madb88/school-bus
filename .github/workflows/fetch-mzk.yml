@@ -2,8 +2,12 @@ name: Fetch MZK GTFS schedule
 
 on:
   schedule:
-    # Hourly; job no-ops unless Europe/Warsaw hour is 5 or 22.
-    - cron: "0 * * * *"
+    # Around 05:00 and 22:00 Europe/Warsaw (UTC shifts with DST).
+    # Gate below no-ops the wrong UTC hour.
+    - cron: "0 3 * * *" # 05:00 CEST
+    - cron: "0 4 * * *" # 05:00 CET
+    - cron: "0 20 * * *" # 22:00 CEST
+    - cron: "0 21 * * *" # 22:00 CET
   workflow_dispatch:
 
 permissions:
