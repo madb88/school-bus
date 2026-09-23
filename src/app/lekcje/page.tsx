@@ -4,6 +4,14 @@ import { SiteHeader } from "@/components/site-header";
 import { collectPlaces } from "@/lib/dowozy/filter-schedule";
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { DOWOZY_SOURCE_URL } from "@/lib/dowozy/types";
+import { buildPageMetadata } from "@/lib/site-metadata";
+
+export const metadata = buildPageMetadata({
+  title: "Plan lekcji",
+  description:
+    "Zapisz godziny startu i końca lekcji dziecka, żeby rozkład dopasował dowozy i odwozy.",
+  path: "/lekcje",
+});
 
 export default async function LekcjePage() {
   const schedule = await loadScheduleSnapshot();

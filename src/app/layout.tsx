@@ -3,6 +3,11 @@ import { Analytics } from "@vercel/analytics/next";
 import { Bricolage_Grotesque, Manrope } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import {
+  getSiteUrl,
+  rootDescription,
+  siteName,
+} from "@/lib/site-metadata";
 import "./globals.css";
 
 const display = Bricolage_Grotesque({
@@ -16,9 +21,29 @@ const sans = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Dojazdy do szkoły",
-  description:
-    "Dojazdy do szkoły — rozkład dowozów szkolnych i kursów MZK. Filtruj po dniu, miejscu i planie lekcji.",
+  metadataBase: new URL(getSiteUrl()),
+  title: {
+    default: siteName,
+    template: `%s · ${siteName}`,
+  },
+  description: rootDescription,
+  applicationName: siteName,
+  openGraph: {
+    type: "website",
+    locale: "pl_PL",
+    siteName,
+    title: siteName,
+    description: rootDescription,
+  },
+  twitter: {
+    card: "summary",
+    title: siteName,
+    description: rootDescription,
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export const viewport: Viewport = {

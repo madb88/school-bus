@@ -48,6 +48,26 @@ jobs:
         if: steps.gate.outputs.should_fetch == 'true'
         run: npm run fetch:mzk
 
+      - name: Verify MZK snapshot
+        if: steps.gate.outputs.should_fetch == 'true'
+        run: |
+          node -e "
+            const fs = require('fs');
+            const path = 'data/mzk-schedule.json';
+            if (!fs.existsSync(path)) {
+              console.error('Missing MZK schedule snapshot after fetch.');
+              process.exit(1);
+            }
+            const data = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const stops = Array.isArray(data.stops) ? data.stops.length : 0;
+            const trips = Array.isArray(data.trips) ? data.trips.length : 0;
+            if (stops === 0 || trips === 0) {
+              console.error('MZK schedule snapshot is empty — GTFS fetch/parse likely broke.');
+              process.exit(1);
+            }
+            console.log('MZK snapshot OK:', { stops, trips, fetchedAt: data.fetchedAt, feedEndDate: data.feedEndDate });
+          "
+
       - name: Commit snapshot if changed
         if: steps.gate.outputs.should_fetch == 'true'
         run: |
@@ -60,3 +80,9 @@ jobs:
           fi
           git commit -m "chore: update MZK schedule snapshot"
           git push
+
+      - name: Notify on failure
+        if: failure() && steps.gate.outputs.should_fetch == 'true'
+        run: |
+          echo "::error::Fetch MZK GTFS failed. GitHub notifies repository watchers on failed workflow runs — check Actions logs and the MZK developer feed."
+          exit 1

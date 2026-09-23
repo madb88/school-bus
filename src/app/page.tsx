@@ -10,6 +10,13 @@ import {
   mzkScheduleFreshness,
   schoolScheduleFreshness,
 } from "@/lib/schedule-freshness";
+import { buildPageMetadata, rootDescription } from "@/lib/site-metadata";
+
+export const metadata = buildPageMetadata({
+  title: "Rozkład dowozów",
+  description: rootDescription,
+  path: "/",
+});
 
 type HomeProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

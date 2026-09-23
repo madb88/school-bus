@@ -5,6 +5,14 @@ import { SiteHeader } from "@/components/site-header";
 import { loadMzkScheduleSnapshot } from "@/lib/mzk/load-schedule";
 import { MZK_DEVELOPER_PAGE_URL } from "@/lib/mzk/types";
 import { mzkScheduleFreshness } from "@/lib/schedule-freshness";
+import { buildPageMetadata } from "@/lib/site-metadata";
+
+export const metadata = buildPageMetadata({
+  title: "Trasa MZK",
+  description:
+    "Ustaw wsiadanie i wysiadanie MZK jako alternatywę dla dowozów szkolnych do Szkoły Olimpijczyków.",
+  path: "/mzk",
+});
 
 export default async function MzkPage() {
   const mzkSchedule = await loadMzkScheduleSnapshot();

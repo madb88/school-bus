@@ -68,7 +68,7 @@ export async function sendFeedback(
     };
   }
 
-  const rate = checkFeedbackRateLimit(ip);
+  const rate = await checkFeedbackRateLimit(ip);
   if (!rate.ok) {
     return {
       ok: false,

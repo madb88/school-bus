@@ -48,6 +48,27 @@ jobs:
         if: steps.gate.outputs.should_scrape == 'true'
         run: npm run scrape:dowozy
 
+      - name: Verify school snapshot
+        if: steps.gate.outputs.should_scrape == 'true'
+        run: |
+          node -e "
+            const fs = require('fs');
+            const path = 'data/dowozy-schedule.json';
+            if (!fs.existsSync(path)) {
+              console.error('Missing school schedule snapshot after scrape.');
+              process.exit(1);
+            }
+            const data = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const pickups = Array.isArray(data.pickups) ? data.pickups.length : 0;
+            const dropoffs = Array.isArray(data.dropoffsByDate) ? data.dropoffsByDate.length : 0;
+            const weekday = Array.isArray(data.dropoffsWeekday) ? data.dropoffsWeekday.length : 0;
+            if (pickups === 0 && dropoffs === 0 && weekday === 0) {
+              console.error('School schedule snapshot is empty — scrape likely broke.');
+              process.exit(1);
+            }
+            console.log('School snapshot OK:', { pickups, dropoffs, weekday, fetchedAt: data.fetchedAt });
+          "
+
       - name: Commit snapshot if changed
         if: steps.gate.outputs.should_scrape == 'true'
         run: |
@@ -60,3 +81,9 @@ jobs:
           fi
           git commit -m "chore: update dowozy schedule snapshot"
           git push
+
+      - name: Notify on failure
+        if: failure() && steps.gate.outputs.should_scrape == 'true'
+        run: |
+          echo "::error::Scrape dowozy schedule failed. GitHub notifies repository watchers on failed workflow runs — check Actions logs and the school source page."
+          exit 1

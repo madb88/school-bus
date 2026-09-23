@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "scrape:dowozy": "tsx scripts/scrape-dowozy.ts",
     "fetch:mzk": "tsx scripts/fetch-mzk-gtfs.ts"
   },
@@ -17,6 +19,8 @@
   "dependencies": {
     "@base-ui/react": "^1.8.0",
     "@marsidev/react-turnstile": "^1.6.1",
+    "@upstash/ratelimit": "^2.1.0",
+    "@upstash/redis": "^1.39.0",
     "@vercel/analytics": "^2.0.1",
     "cheerio": "^1.1.2",
     "class-variance-authority": "^0.7.1",
@@ -40,6 +44,7 @@
     "eslint-config-next": "16.3.5",
     "tailwindcss": "^4",
     "tsx": "^4.20.5",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   }
 }

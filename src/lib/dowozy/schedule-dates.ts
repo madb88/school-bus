@@ -135,10 +135,12 @@ export function courseAllowedOnWeekday(
 ): boolean {
   if (!note) return true;
   const n = note.toLowerCase();
-  if (n.includes("poniedziałku") && n.includes("czwartku")) {
+  const fromMonday =
+    n.includes("poniedziałek") || n.includes("poniedziałku");
+  if (fromMonday && n.includes("czwartku")) {
     return weekday >= 1 && weekday <= 4;
   }
-  if (n.includes("poniedziałek") && n.includes("piątek")) {
+  if (fromMonday && (n.includes("piątek") || n.includes("piątku"))) {
     return isSchoolDay(weekday);
   }
   return true;
