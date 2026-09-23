@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Fragment,
   startTransition,
   useDeferredValue,
   useEffect,
@@ -103,6 +104,87 @@ function directionLabel(value: ScheduleDirection): string {
 function sourceModeLabel(value: ScheduleSourceMode): string {
   if (value === "school-mzk") return "Szkolny + MZK";
   return "Autobus szkolny";
+}
+
+/**
+ * Index of the first run at/after lesson end, when a later run exists
+ * (separator is rendered after that index).
+ */
+function findLessonsEndedAfterIndex(
+  times: string[],
+  lessonEnd: string | null | undefined,
+): number | null {
+  if (!lessonEnd) return null;
+  const endMin = timeToMinutes(lessonEnd);
+  if (endMin === null) return null;
+
+  let firstAtOrAfter = -1;
+  for (let i = 0; i < times.length; i++) {
+    const minutes = timeToMinutes(times[i]!);
+    if (minutes !== null && minutes >= endMin) {
+      firstAtOrAfter = i;
+      break;
+    }
+  }
+  if (firstAtOrAfter < 0 || firstAtOrAfter >= times.length - 1) return null;
+  return firstAtOrAfter;
+}
+
+function LessonsEndedRow() {
+  return (
+    <li
+      role="separator"
+      aria-label="Lekcje skończone"
+      className="flex items-center gap-3 py-3"
+    >
+      <div className="h-px flex-1 bg-border/70" />
+      <span className="shrink-0 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+        Lekcje skończone
+      </span>
+      <div className="h-px flex-1 bg-border/70" />
+    </li>
+  );
+}
+
+function DropoffRunsList({
+  runs,
+  lessonEnd,
+  activePlace,
+  onSelectPlace,
+  nextTripId,
+  stopIdFor,
+}: {
+  runs: Stop[];
+  lessonEnd?: string | null;
+  activePlace: string | null;
+  onSelectPlace: (place: string) => void;
+  nextTripId?: string | null;
+  stopIdFor: (run: Stop, index: number) => string;
+}) {
+  const lessonsEndedAfterIndex = findLessonsEndedAfterIndex(
+    runs.map((run) => run.time),
+    lessonEnd,
+  );
+
+  return (
+    <ul className="rounded-xl border border-border/70 bg-card/90 px-3 py-1 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-4">
+      {runs.map((run, index) => {
+        const stopId = stopIdFor(run, index);
+        return (
+          <Fragment key={stopId}>
+            <StopRow
+              stopId={stopId}
+              stop={run}
+              activePlace={activePlace}
+              onSelectPlace={onSelectPlace}
+              isNext={nextTripId === stopId}
+            />
+            {lessonsEndedAfterIndex === index ? <LessonsEndedRow /> : null}
+          </Fragment>
+        );
+      })}
+    </ul>
+  );
 }
 
 function PlaceChip({
@@ -329,34 +411,47 @@ function TimelineList({
   activePlace,
   onSelectPlace,
   nextTripId,
+  lessonEnd,
 }: {
   entries: TimelineEntry[];
   activePlace: string | null;
   onSelectPlace: (place: string) => void;
   nextTripId?: string | null;
+  lessonEnd?: string | null;
 }) {
+  const lessonsEndedAfterIndex = findLessonsEndedAfterIndex(
+    entries.map((entry) => entry.time),
+    lessonEnd,
+  );
+
   return (
     <ul className="rounded-xl border border-border/70 bg-card/90 px-3 py-1 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-4">
       {entries.map((entry, index) => {
+        const showLessonsEnded = lessonsEndedAfterIndex === index;
+
         if (entry.kind === "mzk") {
           const id = `mzk-${entry.departure.departTime}-${entry.departure.route}-${index}`;
           return (
-            <MzkDepartureRow
-              key={id}
-              stopId={id}
-              departure={entry.departure}
-              isNext={nextTripId === id}
-            />
+            <Fragment key={id}>
+              <MzkDepartureRow
+                stopId={id}
+                departure={entry.departure}
+                isNext={nextTripId === id}
+              />
+              {showLessonsEnded ? <LessonsEndedRow /> : null}
+            </Fragment>
           );
         }
         return (
-          <SchoolTimelineRow
-            key={entry.stopId}
-            entry={entry}
-            activePlace={activePlace}
-            onSelectPlace={onSelectPlace}
-            isNext={nextTripId === entry.stopId}
-          />
+          <Fragment key={entry.stopId}>
+            <SchoolTimelineRow
+              entry={entry}
+              activePlace={activePlace}
+              onSelectPlace={onSelectPlace}
+              isNext={nextTripId === entry.stopId}
+            />
+            {showLessonsEnded ? <LessonsEndedRow /> : null}
+          </Fragment>
         );
       })}
     </ul>
@@ -557,6 +652,10 @@ export function ScheduleBoard({
     deferredMatch && target
       ? getDayTimes(lessonPlan, target.weekday)
       : undefined;
+  // Koniec lekcji z planu — także bez matcha, pod separator w Odwozach.
+  const planLessonEnd = target
+    ? getDayTimes(lessonPlan, target.weekday)?.end
+    : undefined;
   const planBlocksDay =
     deferredMatch &&
     target !== null &&
@@ -1414,6 +1513,7 @@ export function ScheduleBoard({
                 activePlace={deferredPlace}
                 onSelectPlace={selectPlace}
                 nextTripId={nextMerged?.id}
+                lessonEnd={planLessonEnd}
               />
             </section>
           ) : null}
@@ -1526,25 +1626,20 @@ export function ScheduleBoard({
                         {day.driver}
                       </p>
                     </div>
-                    <ul className="rounded-xl border border-border/70 bg-card/90 px-3 py-1 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-4">
-                      {day.runs.map((run, index) => {
-                        const stopId = stopDomId("dropoff-date", [
+                    <DropoffRunsList
+                      runs={day.runs}
+                      lessonEnd={planLessonEnd}
+                      activePlace={deferredPlace}
+                      onSelectPlace={selectPlace}
+                      nextTripId={nextTrip?.id}
+                      stopIdFor={(run, index) =>
+                        stopDomId("dropoff-date", [
                           day.dateLabel,
                           String(index),
                           run.time,
-                        ]);
-                        return (
-                          <StopRow
-                            key={stopId}
-                            stopId={stopId}
-                            stop={run}
-                            activePlace={deferredPlace}
-                            onSelectPlace={selectPlace}
-                            isNext={nextTrip?.id === stopId}
-                          />
-                        );
-                      })}
-                    </ul>
+                        ])
+                      }
+                    />
                   </article>
                 ))}
 
@@ -1561,25 +1656,20 @@ export function ScheduleBoard({
                         {block.driver}
                       </p>
                     </div>
-                    <ul className="rounded-xl border border-border/70 bg-card/90 px-3 py-1 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-4">
-                      {block.runs.map((run, index) => {
-                        const stopId = stopDomId("dropoff-weekday", [
+                    <DropoffRunsList
+                      runs={block.runs}
+                      lessonEnd={planLessonEnd}
+                      activePlace={deferredPlace}
+                      onSelectPlace={selectPlace}
+                      nextTripId={nextTrip?.id}
+                      stopIdFor={(run, index) =>
+                        stopDomId("dropoff-weekday", [
                           block.driver,
                           String(index),
                           run.time,
-                        ]);
-                        return (
-                          <StopRow
-                            key={stopId}
-                            stopId={stopId}
-                            stop={run}
-                            activePlace={deferredPlace}
-                            onSelectPlace={selectPlace}
-                            isNext={nextTrip?.id === stopId}
-                          />
-                        );
-                      })}
-                    </ul>
+                        ])
+                      }
+                    />
                   </article>
                 ))}
               </div>
