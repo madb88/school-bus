@@ -127,10 +127,8 @@ export function parseFilterParams(
     if (!normalized || normalized === "wszystkie" || normalized === "all") {
       dateFilter = "all";
     } else {
-      dateFilter = PARAM_TO_DAY[normalized] ?? "all";
+      dateFilter = PARAM_TO_DAY[normalized] ?? "today";
     }
-  } else if (matchLessonPlan) {
-    dateFilter = "today";
   }
 
   let place: string | null | undefined;
@@ -168,7 +166,7 @@ export function parseFilterParams(
   };
 }
 
-/** Build query string without leading `?`. Omits default "all" values. */
+/** Build query string without leading `?`. Omits defaults (today / direction all). */
 export function serializeFilterParams(filters: {
   place: string | null;
   dateFilter: ScheduleDateFilter;
@@ -188,7 +186,9 @@ export function serializeFilterParams(filters: {
     params.set("dopasuj", "0");
   }
 
-  if (filters.dateFilter !== "all") {
+  if (filters.dateFilter === "all") {
+    params.set("dzien", "wszystkie");
+  } else if (filters.dateFilter !== "today") {
     params.set("dzien", DAY_TO_PARAM[filters.dateFilter]);
   }
 

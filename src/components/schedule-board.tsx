@@ -11,6 +11,12 @@ import {
   useSyncExternalStore,
 } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
+import { Label } from "@/components/ui/label";
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@/components/ui/native-select";
 import {
   Select,
   SelectContent,
@@ -427,12 +433,7 @@ export function ScheduleBoard({
         ? lessonPlan.place
         : defaultPlace
       : placeOverride;
-  const dateFilter =
-    dateFilterOverride ??
-    (matchLessonPlan ||
-    (!initialFilters.hasExplicit && Boolean(defaultPlace))
-      ? "today"
-      : "all");
+  const dateFilter = dateFilterOverride ?? "today";
   const windowDraftValue = windowDraft ?? String(lessonMatchWindowMin);
 
   useEffect(() => {
@@ -500,9 +501,7 @@ export function ScheduleBoard({
         setMatchLessonPlan(nextMatch);
         setDirection(parsed.direction ?? "all");
         setSourceMode(nextSource);
-        setDateFilter(
-          parsed.dateFilter ?? (nextMatch ? "today" : "all"),
-        );
+        setDateFilter(parsed.dateFilter ?? "today");
         if (parsed.place === undefined) {
           setPlaceOverride(undefined);
         } else if (
@@ -634,7 +633,7 @@ export function ScheduleBoard({
 
   const hasActiveFilters =
     Boolean(place) ||
-    dateFilter !== "all" ||
+    dateFilter !== "today" ||
     direction !== "all" ||
     matchActive ||
     sourceMode !== "school";
@@ -646,6 +645,18 @@ export function ScheduleBoard({
   const placeItems = [
     { label: "Wszystkie miejsca", value: null as string | null },
     ...places.map((item) => ({ label: item, value: item })),
+  ];
+
+  const mobileDateItems = [
+    { label: "Wszystkie", value: "all" as const },
+    { label: "Dziś", value: "today" as const },
+    { label: "Jutro", value: "tomorrow" as const },
+  ];
+
+  const mobileDirectionItems = [
+    { label: "Wszystkie", value: "all" as const },
+    { label: "Dowozy", value: "pickups" as const },
+    { label: "Odwozy", value: "dropoffs" as const },
   ];
 
   function persistPlace(next: string | null) {
@@ -685,7 +696,7 @@ export function ScheduleBoard({
   function clearFilters() {
     startTransition(() => {
       setPlaceOverride(null);
-      setDateFilter("all");
+      setDateFilter("today");
       setDirection("all");
       setMatchLessonPlan(false);
       setShowAllMzkConnections(false);
@@ -712,204 +723,255 @@ export function ScheduleBoard({
   }
 
   const filterControls = (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-2 md:gap-x-3">
-      <div
-        className="flex flex-wrap gap-1"
-        role="group"
-        aria-label="Źródło kursów"
-      >
-        {(
-          [
-            ["school", "Szkolny"],
-            ["school-mzk", "Szkolny + MZK"],
-          ] as const
-        ).map(([value, label]) => (
-          <Button
-            key={value}
-            type="button"
-            size="sm"
-            variant={sourceMode === value ? "secondary" : "outline"}
-            aria-pressed={sourceMode === value}
-            onClick={() => {
-              startTransition(() => setSourceMode(value));
-            }}
-          >
-            {label}
-          </Button>
-        ))}
+    <div className="flex flex-wrap items-end gap-x-2 gap-y-2 md:gap-x-3">
+      <div className="flex shrink-0 flex-col gap-1">
+        <Label
+          id="schedule-source-filter-label"
+          className="text-xs text-muted-foreground"
+        >
+          Źródło
+        </Label>
+        <ButtonGroup aria-labelledby="schedule-source-filter-label">
+          {(
+            [
+              ["school", "Szkolny"],
+              ["school-mzk", "Szkolny + MZK"],
+            ] as const
+          ).map(([value, label]) => (
+            <Button
+              key={value}
+              type="button"
+              size="sm"
+              variant={sourceMode === value ? "secondary" : "outline"}
+              aria-pressed={sourceMode === value}
+              onClick={() => {
+                startTransition(() => setSourceMode(value));
+              }}
+            >
+              {label}
+            </Button>
+          ))}
+        </ButtonGroup>
       </div>
 
-      <div className="hidden h-5 w-px shrink-0 bg-border md:block" aria-hidden />
-
-      <div className="flex flex-wrap items-center gap-1.5">
-        {planReady ? (
-          <Button
-            type="button"
-            size="sm"
-            variant={matchActive ? "secondary" : "outline"}
-            aria-pressed={matchActive}
-            onClick={() => {
-              if (matchActive) {
-                startTransition(() => {
-                  setMatchLessonPlan(false);
-                  setShowAllMzkConnections(false);
-                });
-              } else {
-                enableMatchPlan();
-              }
-            }}
-          >
-            Do planu lekcji
-          </Button>
-        ) : (
-          <Link
-            href="/lekcje"
-            className="inline-flex h-7 items-center rounded-[min(var(--radius-md),12px)] border border-border bg-background px-2.5 text-[0.8rem] font-medium hover:bg-muted"
-          >
-            Ustaw plan
-          </Link>
-        )}
-        {matchActive &&
-        sourceMode === "school-mzk" &&
-        (hiddenMzkCount > 0 || showAllMzkConnections) ? (
-          <Button
-            type="button"
-            size="sm"
-            variant={showAllMzkConnections ? "secondary" : "outline"}
-            aria-pressed={showAllMzkConnections}
-            onClick={() => {
-              startTransition(() =>
-                setShowAllMzkConnections((current) => !current),
-              );
-            }}
-          >
-            {showAllMzkConnections
-              ? "Tylko do planu"
-              : `Wszystkie MZK${hiddenMzkCount > 0 ? ` (+${hiddenMzkCount})` : ""}`}
-          </Button>
-        ) : null}
-        {matchActive && dayTimes ? (
-          <span className="inline-flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs text-muted-foreground">
-            {dayTimes.start ? <span>od {dayTimes.start}</span> : null}
-            {dayTimes.start && dayTimes.end ? <span> </span> : null}
-            {dayTimes.end ? <span>do {dayTimes.end}</span> : null}
-            <span aria-hidden>·</span>
-            <label className="inline-flex items-center gap-1">
-              <span>okno ±</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={MIN_LESSON_MATCH_WINDOW_MIN}
-                max={MAX_LESSON_MATCH_WINDOW_MIN}
-                step={5}
-                value={windowDraftValue}
-                aria-label="Okno dopasowania do planu w minutach"
-                onChange={(event) => setWindowDraft(event.target.value)}
-                onBlur={() => commitLessonMatchWindow(windowDraftValue)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.currentTarget.blur();
-                  }
-                }}
-                className="h-6 w-12 rounded-md border border-border bg-card px-1.5 text-center tabular-nums text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
-              />
-              <span>min</span>
-            </label>
-          </span>
-        ) : null}
-        {matchActive && target && !dayTimes ? (
-          <span className="text-xs text-muted-foreground">
-            Brak godzin —{" "}
+      <div className="flex shrink-0 flex-col gap-1">
+        <Label
+          id="schedule-lesson-plan-label"
+          className="text-xs text-muted-foreground"
+        >
+          Plan lekcji
+        </Label>
+        <div
+          className="flex items-center gap-1.5"
+          aria-labelledby="schedule-lesson-plan-label"
+        >
+          {planReady ? (
+            <Button
+              type="button"
+              size="sm"
+              variant={matchActive ? "secondary" : "outline"}
+              aria-pressed={matchActive}
+              onClick={() => {
+                if (matchActive) {
+                  startTransition(() => {
+                    setMatchLessonPlan(false);
+                    setShowAllMzkConnections(false);
+                  });
+                } else {
+                  enableMatchPlan();
+                }
+              }}
+            >
+              Do planu lekcji
+            </Button>
+          ) : (
             <Link
               href="/lekcje"
-              className="underline underline-offset-2 hover:text-foreground"
+              className="inline-flex h-7 items-center rounded-[min(var(--radius-md),12px)] border border-border bg-background px-2.5 text-[0.8rem] font-medium hover:bg-muted"
             >
-              uzupełnij
+              Ustaw plan
             </Link>
-          </span>
-        ) : null}
+          )}
+          {matchActive &&
+          sourceMode === "school-mzk" &&
+          (hiddenMzkCount > 0 || showAllMzkConnections) ? (
+            <Button
+              type="button"
+              size="sm"
+              variant={showAllMzkConnections ? "secondary" : "outline"}
+              aria-pressed={showAllMzkConnections}
+              onClick={() => {
+                startTransition(() =>
+                  setShowAllMzkConnections((current) => !current),
+                );
+              }}
+            >
+              {showAllMzkConnections
+                ? "Tylko do planu"
+                : `Wszystkie MZK${hiddenMzkCount > 0 ? ` (+${hiddenMzkCount})` : ""}`}
+            </Button>
+          ) : null}
+          {matchActive && dayTimes ? (
+            <span className="inline-flex items-center gap-x-1 whitespace-nowrap text-xs text-muted-foreground">
+              {dayTimes.start ? <span>od {dayTimes.start}</span> : null}
+              {dayTimes.start && dayTimes.end ? <span> </span> : null}
+              {dayTimes.end ? <span>do {dayTimes.end}</span> : null}
+              <span aria-hidden>·</span>
+              <label className="inline-flex items-center gap-1">
+                <span>okno ±</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={MIN_LESSON_MATCH_WINDOW_MIN}
+                  max={MAX_LESSON_MATCH_WINDOW_MIN}
+                  step={5}
+                  value={windowDraftValue}
+                  aria-label="Okno dopasowania do planu w minutach"
+                  onChange={(event) => setWindowDraft(event.target.value)}
+                  onBlur={() => commitLessonMatchWindow(windowDraftValue)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.currentTarget.blur();
+                    }
+                  }}
+                  className="h-6 w-12 rounded-md border border-border bg-card px-1.5 text-center tabular-nums text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+                />
+                <span>min</span>
+              </label>
+            </span>
+          ) : null}
+          {matchActive && target && !dayTimes ? (
+            <span className="whitespace-nowrap text-xs text-muted-foreground">
+              Brak godzin —{" "}
+              <Link
+                href="/lekcje"
+                className="underline underline-offset-2 hover:text-foreground"
+              >
+                uzupełnij
+              </Link>
+            </span>
+          ) : null}
+        </div>
       </div>
 
-      <div className="hidden h-5 w-px shrink-0 bg-border md:block" aria-hidden />
-
-      <div className="flex flex-wrap gap-1" role="group" aria-label="Dzień">
-        {(
-          [
-            ["all", "Wszystkie"],
-            ["today", "Dziś"],
-            ["tomorrow", "Jutro"],
-          ] as const
-        ).map(([value, label]) => (
-          <Button
-            key={value}
-            type="button"
-            size="sm"
-            variant={dateFilter === value ? "secondary" : "outline"}
-            aria-pressed={dateFilter === value}
-            onClick={() => {
-              startTransition(() => setDateFilter(value));
-            }}
-          >
-            {label}
-          </Button>
-        ))}
+      <div className="flex shrink-0 flex-col gap-1">
+        <Label
+          id="schedule-date-filter-label"
+          className="text-xs text-muted-foreground"
+        >
+          Dzień
+        </Label>
+        <ButtonGroup aria-labelledby="schedule-date-filter-label">
+          {(
+            [
+              ["all", "Wszystkie"],
+              ["today", "Dziś"],
+              ["tomorrow", "Jutro"],
+            ] as const
+          ).map(([value, label]) => (
+            <Button
+              key={value}
+              type="button"
+              size="sm"
+              variant={dateFilter === value ? "secondary" : "outline"}
+              aria-pressed={dateFilter === value}
+              onClick={() => {
+                startTransition(() => setDateFilter(value));
+              }}
+            >
+              {label}
+            </Button>
+          ))}
+        </ButtonGroup>
       </div>
 
-      <div className="hidden h-5 w-px shrink-0 bg-border md:block" aria-hidden />
-
-      <div className="min-w-0 flex-1 basis-40 md:max-w-56">
-        <Select
-          items={placeItems}
-          value={place}
-          onValueChange={(next) => {
+      <div className="flex w-44 shrink-0 flex-col gap-1 md:w-52">
+        <Label
+          id="schedule-place-filter-label"
+          className="text-xs text-muted-foreground"
+        >
+          Miejsce
+        </Label>
+        <NativeSelect
+          size="sm"
+          className="w-full max-w-full md:hidden"
+          aria-labelledby="schedule-place-filter-label"
+          value={place ?? ""}
+          onChange={(event) => {
+            const next = event.target.value || null;
             startTransition(() => {
               setPlaceOverride(next);
               persistPlace(next);
             });
           }}
         >
-          <SelectTrigger
-            size="sm"
-            aria-label="Miejsce"
-            className="w-full max-w-full border-border bg-card text-[0.8rem]"
-          >
-            <SelectValue placeholder="Wszystkie miejsca" />
-          </SelectTrigger>
-          <SelectContent alignItemWithTrigger={false}>
-            {placeItems.map((item) => (
-              <SelectItem key={item.value ?? "__all"} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div
-        className="flex flex-wrap gap-1"
-        role="group"
-        aria-label="Kierunek"
-      >
-        {(
-          [
-            ["all", "Wszystkie"],
-            ["pickups", "Dowozy"],
-            ["dropoffs", "Odwozy"],
-          ] as const
-        ).map(([value, label]) => (
-          <Button
-            key={value}
-            type="button"
-            size="sm"
-            variant={direction === value ? "secondary" : "outline"}
-            aria-pressed={direction === value}
-            onClick={() => {
-              startTransition(() => setDirection(value));
+          {placeItems.map((item) => (
+            <NativeSelectOption
+              key={item.value ?? "__all"}
+              value={item.value ?? ""}
+            >
+              {item.label}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
+        <div className="hidden w-full md:block">
+          <Select
+            items={placeItems}
+            value={place}
+            onValueChange={(next) => {
+              startTransition(() => {
+                setPlaceOverride(next);
+                persistPlace(next);
+              });
             }}
           >
-            {label}
-          </Button>
-        ))}
+            <SelectTrigger
+              size="sm"
+              aria-labelledby="schedule-place-filter-label"
+              className="w-full max-w-full border-border bg-card text-[0.8rem]"
+            >
+              <SelectValue placeholder="Wszystkie miejsca" />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              {placeItems.map((item) => (
+                <SelectItem key={item.value ?? "__all"} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="flex shrink-0 flex-col gap-1">
+        <Label
+          id="schedule-direction-filter-label"
+          className="text-xs text-muted-foreground"
+        >
+          Kierunek
+        </Label>
+        <ButtonGroup aria-labelledby="schedule-direction-filter-label">
+          {(
+            [
+              ["all", "Wszystkie"],
+              ["pickups", "Dowozy"],
+              ["dropoffs", "Odwozy"],
+            ] as const
+          ).map(([value, label]) => (
+            <Button
+              key={value}
+              type="button"
+              size="sm"
+              variant={direction === value ? "secondary" : "outline"}
+              aria-pressed={direction === value}
+              onClick={() => {
+                startTransition(() => setDirection(value));
+              }}
+            >
+              {label}
+            </Button>
+          ))}
+        </ButtonGroup>
       </div>
     </div>
   );
@@ -918,9 +980,9 @@ export function ScheduleBoard({
     <div className="space-y-10">
       <div className="sticky top-0 z-10 ml-[calc(50%-50vw)] w-screen space-y-2 border-y border-border/50 bg-[color-mix(in_srgb,var(--background)_88%,transparent)] py-2 shadow-[0_8px_30px_-18px_color-mix(in_srgb,var(--foreground)_35%,transparent)] backdrop-blur-md md:py-2.5">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 sm:px-6 lg:px-8">
-          {/* Mobile: compact bar + shortcuts */}
+          {/* Mobile: compact bar + day/direction selects */}
           <div className="flex flex-col gap-2 md:hidden">
-            <div className="flex items-center gap-2">
+            <div className="flex items-end gap-2">
               <Button
                 type="button"
                 size="sm"
@@ -934,54 +996,55 @@ export function ScheduleBoard({
                   {filtersOpen ? "▴" : "▾"}
                 </span>
               </Button>
-              <div className="flex min-w-0 flex-1 flex-wrap gap-1">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={dateFilter === "today" ? "secondary" : "outline"}
-                  aria-pressed={dateFilter === "today"}
-                  onClick={() => {
-                    startTransition(() =>
-                      setDateFilter(dateFilter === "today" ? "all" : "today"),
-                    );
-                  }}
-                >
-                  Dziś
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={
-                    direction === "pickups" ? "secondary" : "outline"
-                  }
-                  aria-pressed={direction === "pickups"}
-                  onClick={() => {
-                    startTransition(() =>
-                      setDirection((current) =>
-                        current === "pickups" ? "all" : "pickups",
-                      ),
-                    );
-                  }}
-                >
-                  Dowozy
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={
-                    direction === "dropoffs" ? "secondary" : "outline"
-                  }
-                  aria-pressed={direction === "dropoffs"}
-                  onClick={() => {
-                    startTransition(() =>
-                      setDirection((current) =>
-                        current === "dropoffs" ? "all" : "dropoffs",
-                      ),
-                    );
-                  }}
-                >
-                  Odwozy
-                </Button>
+              <div className="grid min-w-0 flex-1 grid-cols-2 gap-1.5">
+                <div className="flex min-w-0 flex-col gap-1">
+                  <Label
+                    htmlFor="schedule-mobile-date"
+                    className="text-xs text-muted-foreground"
+                  >
+                    Dzień
+                  </Label>
+                  <NativeSelect
+                    id="schedule-mobile-date"
+                    size="sm"
+                    className="w-full max-w-full"
+                    value={dateFilter}
+                    onChange={(event) => {
+                      const next = event.target.value as ScheduleDateFilter;
+                      startTransition(() => setDateFilter(next));
+                    }}
+                  >
+                    {mobileDateItems.map((item) => (
+                      <NativeSelectOption key={item.value} value={item.value}>
+                        {item.label}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </div>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <Label
+                    htmlFor="schedule-mobile-direction"
+                    className="text-xs text-muted-foreground"
+                  >
+                    Kierunek
+                  </Label>
+                  <NativeSelect
+                    id="schedule-mobile-direction"
+                    size="sm"
+                    className="w-full max-w-full"
+                    value={direction}
+                    onChange={(event) => {
+                      const next = event.target.value as ScheduleDirection;
+                      startTransition(() => setDirection(next));
+                    }}
+                  >
+                    {mobileDirectionItems.map((item) => (
+                      <NativeSelectOption key={item.value} value={item.value}>
+                        {item.label}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </div>
               </div>
             </div>
           </div>
@@ -1048,7 +1111,7 @@ export function ScheduleBoard({
                     size="sm"
                     onClick={clearFilters}
                   >
-                    Wyczyść
+                    Reset
                   </Button>
                 ) : null}
               </div>
