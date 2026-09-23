@@ -5,6 +5,11 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { StopCombobox } from "@/components/stop-combobox";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@/components/ui/native-select";
 import { useLessonPlan } from "@/lib/child-schedule/use-lesson-plan";
 import { usePreferredPlace } from "@/lib/child-schedule/use-preferred-place";
 import { filtersHref } from "@/lib/dowozy/filter-url";
@@ -190,12 +195,12 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
 
       <div className="grid gap-6 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
-          <label
+          <Label
             htmlFor="mzk-board-stop"
             className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
           >
             Wsiadam (do szkoły)
-          </label>
+          </Label>
           <StopCombobox
             id="mzk-board-stop"
             stops={stopOptions}
@@ -206,12 +211,12 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label
+          <Label
             htmlFor="mzk-alight-stop"
             className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
           >
             Wysiadam (przy szkole)
-          </label>
+          </Label>
           <StopCombobox
             id="mzk-alight-stop"
             stops={stopOptions}
@@ -243,14 +248,19 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
         </p>
       ) : null}
 
-      <label className="flex max-w-md flex-col gap-1.5">
-        <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+      <div className="flex max-w-md flex-col gap-1.5">
+        <Label
+          htmlFor="mzk-route"
+          className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+        >
           Numer linii{" "}
           <span className="normal-case tracking-normal text-muted-foreground/80">
             (opcjonalnie)
           </span>
-        </span>
-        <select
+        </Label>
+        <NativeSelect
+          id="mzk-route"
+          className="w-full max-w-full [&_select]:h-11 [&_select]:text-base"
           value={selectedRoute}
           onChange={(event) => setRoute(event.target.value)}
           disabled={
@@ -259,25 +269,28 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
             sameStop ||
             availableRoutes.length === 0
           }
-          className="h-11 w-full rounded-lg border border-border bg-card px-3 text-base text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60"
         >
           {availableRoutes.length === 0 ? (
-            <option value="">Najpierw wybierz przystanki</option>
+            <NativeSelectOption value="">
+              Najpierw wybierz przystanki
+            </NativeSelectOption>
           ) : availableRoutes.length === 1 ? (
-            <option value={availableRoutes[0]}>
+            <NativeSelectOption value={availableRoutes[0]}>
               Linia {availableRoutes[0]}
-            </option>
+            </NativeSelectOption>
           ) : (
             <>
-              <option value="">Wszystkie linie na trasie</option>
+              <NativeSelectOption value="">
+                Wszystkie linie na trasie
+              </NativeSelectOption>
               {availableRoutes.map((route) => (
-                <option key={route} value={route}>
+                <NativeSelectOption key={route} value={route}>
                   Linia {route}
-                </option>
+                </NativeSelectOption>
               ))}
             </>
           )}
-        </select>
+        </NativeSelect>
         {availableRoutes.length === 1 ? (
           <span className="text-sm text-muted-foreground">
             Na tej trasie jeździ tylko linia {availableRoutes[0]} — ustawiona
@@ -292,7 +305,7 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
             Brak bezpośredniego kursu MZK między tymi przystankami.
           </span>
         ) : null}
-      </label>
+      </div>
 
       {sameStop ? (
         <p className="text-sm text-muted-foreground">

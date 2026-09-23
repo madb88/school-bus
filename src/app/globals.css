@@ -198,36 +198,6 @@
   }
 }
 
-@keyframes bus-roll {
-  from {
-    opacity: 0;
-    transform: translateX(-12%) translateY(0.5rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0) translateY(0);
-  }
-}
-
-@keyframes road-scroll {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: 48px 0;
-  }
-}
-
-@keyframes soft-pulse {
-  0%,
-  100% {
-    opacity: 0.45;
-  }
-  50% {
-    opacity: 0.85;
-  }
-}
-
 .animate-rise {
   animation: rise-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -238,16 +208,4 @@
 
 .animate-rise-delay-2 {
   animation: rise-in 0.95s cubic-bezier(0.22, 1, 0.36, 1) 0.24s both;
-}
-
-.animate-bus {
-  animation: bus-roll 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
-}
-
-.animate-road {
-  animation: road-scroll 1.2s linear infinite;
-}
-
-.animate-glow {
-  animation: soft-pulse 4s ease-in-out infinite;
 }

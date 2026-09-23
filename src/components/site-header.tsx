@@ -30,7 +30,7 @@ export function SiteHeader({ current }: SiteHeaderProps) {
             <path d="M7 17v2M17 17v2M3 12h18M7 9h2M15 9h2" />
           </svg>
         </span>
-        <span className="text-xs font-semibold tracking-[0.2em] text-bus-deep uppercase transition-colors group-hover:text-foreground">
+        <span className="font-display text-sm font-semibold tracking-tight text-asphalt sm:text-base">
           Dojazdy do szkoły
         </span>
       </Link>

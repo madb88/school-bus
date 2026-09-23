@@ -24,11 +24,14 @@ export default async function Home({ searchParams }: HomeProps) {
         <SiteHeader current="rozklad" />
       </div>
       {schedule ? (
-        <ScheduleBoard
-          schedule={schedule}
-          mzkSchedule={mzkSchedule}
-          initialFilters={initialFilters}
-        />
+        <>
+          <h1 className="sr-only">Rozkład dowozów</h1>
+          <ScheduleBoard
+            schedule={schedule}
+            mzkSchedule={mzkSchedule}
+            initialFilters={initialFilters}
+          />
+        </>
       ) : (
         <div className="space-y-8">
           <div className="animate-rise-delay space-y-3">

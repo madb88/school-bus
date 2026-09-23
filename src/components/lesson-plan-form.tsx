@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { PlaceCombobox } from "@/components/place-combobox";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@/components/ui/native-select";
 import {
   clearLessonPlan,
   hasConfiguredLessons,
@@ -92,31 +99,50 @@ export function LessonPlanForm({ places }: LessonPlanFormProps) {
     setDraft({ ...EMPTY_LESSON_PLAN, days: {} });
   }
 
+  function setPlace(next: string | null) {
+    setDraft((prev) => ({
+      ...(prev ?? stored),
+      place: next,
+    }));
+  }
+
   return (
     <div className="space-y-8">
-      <label className="flex max-w-md flex-col gap-1.5">
-        <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+      <div className="flex max-w-md flex-col gap-1.5">
+        <Label
+          id="lesson-place-label"
+          htmlFor="lesson-place"
+          className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+        >
           Przystanek / miejscowość
-        </span>
-        <select
+        </Label>
+        <NativeSelect
+          id="lesson-place"
+          className="w-full max-w-full md:hidden [&_select]:h-11 [&_select]:text-base"
+          aria-labelledby="lesson-place-label"
           value={plan.place ?? ""}
           onChange={(event) => {
-            const value = event.target.value;
-            setDraft((prev) => ({
-              ...(prev ?? stored),
-              place: value === "" ? null : value,
-            }));
+            setPlace(event.target.value === "" ? null : event.target.value);
           }}
-          className="h-11 rounded-lg border border-border bg-card px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         >
-          <option value="">Wybierz miejsce</option>
+          <NativeSelectOption value="">Wybierz miejsce</NativeSelectOption>
           {places.map((place) => (
-            <option key={place} value={place}>
+            <NativeSelectOption key={place} value={place}>
               {place}
-            </option>
+            </NativeSelectOption>
           ))}
-        </select>
-      </label>
+        </NativeSelect>
+        <div className="hidden w-full md:block">
+          <PlaceCombobox
+            id="lesson-place-desktop"
+            places={places}
+            value={plan.place}
+            onChange={setPlace}
+            aria-labelledby="lesson-place-label"
+            placeholder="Wybierz lub szukaj miejsca…"
+          />
+        </div>
+      </div>
 
       <div className="overflow-x-auto rounded-xl border border-border/70 bg-card/90 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]">
         <table className="w-full min-w-md text-left text-sm">
@@ -139,24 +165,24 @@ export function LessonPlanForm({ places }: LessonPlanFormProps) {
                     {label}
                   </td>
                   <td className="px-4 py-3">
-                    <input
+                    <Input
                       type="time"
                       value={day?.start ?? ""}
                       onChange={(event) =>
                         updateDay(key, "start", event.target.value)
                       }
-                      className="h-10 w-full max-w-36 rounded-lg border border-border bg-background px-2 tabular-nums outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      className="h-10 max-w-36 bg-background tabular-nums"
                     />
                   </td>
                   <td className="px-4 py-3">
-                    <input
+                    <Input
                       type="time"
                       value={day?.end ?? ""}
                       disabled={!day?.start}
                       onChange={(event) =>
                         updateDay(key, "end", event.target.value)
                       }
-                      className="h-10 w-full max-w-36 rounded-lg border border-border bg-background px-2 tabular-nums outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-40"
+                      className="h-10 max-w-36 bg-background tabular-nums"
                     />
                   </td>
                 </tr>

@@ -125,11 +125,11 @@ function PlaceChip({
           : `Filtruj po miejscu: ${place}`
       }
       className={cn(
-        "inline-flex cursor-pointer! items-center rounded-md px-2 py-0.5 text-sm transition-colors",
+        "inline-flex cursor-pointer! items-center rounded-md px-1.5 py-0.5 text-sm transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
         highlight
-          ? "bg-bus text-bus-foreground font-semibold hover:bg-bus/90"
-          : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+          ? "bg-bus/15 font-semibold text-bus-deep ring-1 ring-bus/35 hover:bg-bus/25"
+          : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
       )}
       style={{ cursor: "pointer" }}
     >
@@ -155,12 +155,18 @@ function StopRow({
     <li
       id={stopId}
       className={cn(
-        "grid grid-cols-[4.5rem_1fr] gap-3 border-t border-border/50 py-3 first:border-t-0 sm:grid-cols-[5.5rem_1fr] sm:gap-4",
-        isNext &&
-          "-mx-2 rounded-lg border-t-transparent bg-bus/10 px-2 ring-1 ring-bus/35 sm:-mx-3 sm:px-3",
+        "grid grid-cols-[4.5rem_1fr] gap-3 border-l-2 border-border/50 py-3 pl-3 sm:grid-cols-[5.5rem_1fr] sm:gap-4 sm:pl-4",
+        isNext && "border-l-bus bg-bus/8 -ml-px rounded-r-lg pr-2",
       )}
     >
-      <div className="flex flex-col gap-1">
+      <div className="relative flex flex-col gap-1">
+        <span
+          aria-hidden
+          className={cn(
+            "absolute top-2 -left-[calc(0.75rem+5px)] size-2 rounded-full bg-border sm:-left-[calc(1rem+5px)]",
+            isNext && "bg-bus",
+          )}
+        />
         <time
           className={cn(
             "font-display text-lg font-bold tabular-nums tracking-tight text-asphalt sm:text-xl",
@@ -175,7 +181,7 @@ function StopRow({
           </span>
         ) : null}
       </div>
-      <div className="flex flex-wrap items-center gap-1.5 self-center">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 self-center">
         {stop.places.map((item) => (
           <PlaceChip
             key={item}
@@ -207,12 +213,18 @@ function MzkDepartureRow({
     <li
       id={stopId}
       className={cn(
-        "grid grid-cols-[4.5rem_1fr] gap-3 border-t border-border/50 py-3 first:border-t-0 sm:grid-cols-[5.5rem_1fr] sm:gap-4",
-        isNext &&
-          "-mx-2 rounded-lg border-t-transparent bg-mzk/10 px-2 ring-1 ring-mzk/35 sm:-mx-3 sm:px-3",
+        "grid grid-cols-[4.5rem_1fr] gap-3 border-l-2 border-border/50 py-3 pl-3 sm:grid-cols-[5.5rem_1fr] sm:gap-4 sm:pl-4",
+        isNext && "border-l-mzk bg-mzk/8 -ml-px rounded-r-lg pr-2",
       )}
     >
-      <div className="flex flex-col gap-0.5">
+      <div className="relative flex flex-col gap-0.5">
+        <span
+          aria-hidden
+          className={cn(
+            "absolute top-2 -left-[calc(0.75rem+5px)] size-2 rounded-full bg-border sm:-left-[calc(1rem+5px)]",
+            isNext && "bg-mzk",
+          )}
+        />
         <time
           className={cn(
             "font-display text-lg font-bold tabular-nums tracking-tight text-asphalt sm:text-xl",
@@ -233,7 +245,7 @@ function MzkDepartureRow({
       </div>
       <div className="flex flex-col gap-1 self-center">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="inline-flex items-center rounded-md bg-mzk/15 px-2 py-0.5 text-xs font-semibold tracking-wide text-mzk-deep uppercase">
+          <span className="text-xs font-semibold tracking-wide text-mzk-deep uppercase">
             MZK {departure.route}
           </span>
           <span className="text-sm text-foreground">
@@ -264,12 +276,18 @@ function SchoolTimelineRow({
     <li
       id={entry.stopId}
       className={cn(
-        "grid grid-cols-[4.5rem_1fr] gap-3 border-t border-border/50 py-3 first:border-t-0 sm:grid-cols-[5.5rem_1fr] sm:gap-4",
-        isNext &&
-          "-mx-2 rounded-lg border-t-transparent bg-bus/10 px-2 ring-1 ring-bus/35 sm:-mx-3 sm:px-3",
+        "grid grid-cols-[4.5rem_1fr] gap-3 border-l-2 border-border/50 py-3 pl-3 sm:grid-cols-[5.5rem_1fr] sm:gap-4 sm:pl-4",
+        isNext && "border-l-bus bg-bus/8 -ml-px rounded-r-lg pr-2",
       )}
     >
-      <div className="flex flex-col gap-1">
+      <div className="relative flex flex-col gap-1">
+        <span
+          aria-hidden
+          className={cn(
+            "absolute top-2 -left-[calc(0.75rem+5px)] size-2 rounded-full bg-border sm:-left-[calc(1rem+5px)]",
+            isNext && "bg-bus",
+          )}
+        />
         <time
           className={cn(
             "font-display text-lg font-bold tabular-nums tracking-tight text-asphalt sm:text-xl",
@@ -286,12 +304,12 @@ function SchoolTimelineRow({
       </div>
       <div className="flex flex-col gap-1.5 self-center">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="inline-flex items-center rounded-md bg-bus/15 px-2 py-0.5 text-xs font-semibold tracking-wide text-bus-deep uppercase">
+          <span className="text-xs font-semibold tracking-wide text-bus-deep uppercase">
             Szkolny
           </span>
           <span className="text-xs text-muted-foreground">{entry.context}</span>
         </div>
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           {entry.places.map((item) => (
             <PlaceChip
               key={item}
@@ -318,7 +336,7 @@ function TimelineList({
   nextTripId?: string | null;
 }) {
   return (
-    <ul className="rounded-xl border border-border/70 bg-card/90 px-4 py-1 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-5">
+    <ul className="rounded-xl border border-border/70 bg-card/90 px-3 py-1 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-4">
       {entries.map((entry, index) => {
         if (entry.kind === "mzk") {
           const id = `mzk-${entry.departure.departTime}-${entry.departure.route}-${index}`;
@@ -638,6 +656,14 @@ export function ScheduleBoard({
     matchActive ||
     sourceMode !== "school";
 
+  const activeFilterCount = [
+    Boolean(place),
+    dateFilter !== "today",
+    direction !== "all",
+    matchActive,
+    sourceMode !== "school",
+  ].filter(Boolean).length;
+
   const showPlanHint = !planReady && !planHintDismissed;
   const showMzkHint =
     !mzkRouteReady && !mzkHintDismissed && sourceMode === "school-mzk";
@@ -723,7 +749,7 @@ export function ScheduleBoard({
   }
 
   const filterControls = (
-    <div className="flex flex-wrap items-end gap-x-2 gap-y-2 md:gap-x-3">
+    <div className="flex flex-wrap items-end gap-x-2 gap-y-3 md:gap-x-3">
       <div className="flex shrink-0 flex-col gap-1">
         <Label
           id="schedule-source-filter-label"
@@ -753,6 +779,11 @@ export function ScheduleBoard({
           ))}
         </ButtonGroup>
       </div>
+
+      <div
+        aria-hidden
+        className="mb-1 hidden h-8 w-px shrink-0 bg-border/70 md:block"
+      />
 
       <div className="flex shrink-0 flex-col gap-1">
         <Label
@@ -853,6 +884,11 @@ export function ScheduleBoard({
           ) : null}
         </div>
       </div>
+
+      <div
+        aria-hidden
+        className="mb-1 hidden h-8 w-px shrink-0 bg-border/70 md:block"
+      />
 
       <div className="flex shrink-0 flex-col gap-1">
         <Label
@@ -978,8 +1014,8 @@ export function ScheduleBoard({
 
   return (
     <div className="space-y-10">
-      <div className="sticky top-0 z-10 ml-[calc(50%-50vw)] w-screen space-y-2 border-y border-border/50 bg-[color-mix(in_srgb,var(--background)_88%,transparent)] py-2 shadow-[0_8px_30px_-18px_color-mix(in_srgb,var(--foreground)_35%,transparent)] backdrop-blur-md md:py-2.5">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 sm:px-6 lg:px-8">
+      <div className="sticky top-0 z-10 -mx-6 space-y-2 border-y border-border/50 bg-[color-mix(in_srgb,var(--background)_92%,transparent)] px-6 py-2 shadow-[0_8px_24px_-20px_color-mix(in_srgb,var(--foreground)_40%,transparent)] backdrop-blur-md sm:-mx-10 sm:px-10 md:py-2.5">
+        <div className="flex flex-col gap-2">
           {/* Mobile: compact bar + day/direction selects */}
           <div className="flex flex-col gap-2 md:hidden">
             <div className="flex items-end gap-2">
@@ -992,6 +1028,11 @@ export function ScheduleBoard({
                 onClick={() => setFiltersOpen((open) => !open)}
               >
                 Filtry
+                {activeFilterCount > 0 ? (
+                  <span className="inline-flex min-w-5 items-center justify-center rounded-md bg-bus/15 px-1 text-[0.7rem] font-semibold text-bus-deep tabular-nums">
+                    {activeFilterCount}
+                  </span>
+                ) : null}
                 <span aria-hidden className="text-muted-foreground">
                   {filtersOpen ? "▴" : "▾"}
                 </span>
@@ -1062,7 +1103,7 @@ export function ScheduleBoard({
         </div>
 
         {hasActiveFilters || nextTrip || nextMerged ? (
-          <div className="mx-auto flex max-w-6xl flex-col gap-1.5 px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between gap-3">
               <p className="min-w-0 truncate text-xs text-muted-foreground sm:text-sm">
                 {matchActive ? "Plan · " : null}
@@ -1179,16 +1220,15 @@ export function ScheduleBoard({
       </div>
 
       {showPlanHint || showMzkHint ? (
-        <div className="grid gap-3">
+        <div className="grid gap-2">
           {showPlanHint ? (
-            <div className="rounded-xl border border-dashed border-border bg-card/60 px-5 py-4 text-sm text-muted-foreground">
+            <div className="border-l-2 border-bus/40 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
               <p className="font-medium text-foreground">Ustaw plan lekcji</p>
-              <p className="mt-1.5 leading-relaxed">
-                Dodaj godziny zajęć, żeby uzyskać bardziej spersonalizowany plan
-                dojazdu do szkoły — rozkład dopasuje się do rozpoczęcia i
-                zakończenia lekcji.
+              <p className="mt-1 leading-relaxed">
+                Dodaj godziny zajęć, żeby rozkład dopasował kursy do startu i
+                końca lekcji.
               </p>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
+              <div className="mt-2.5 flex flex-wrap items-center gap-2">
                 <Link
                   href="/lekcje"
                   className={buttonVariants({ size: "sm", variant: "secondary" })}
@@ -1198,7 +1238,7 @@ export function ScheduleBoard({
                 <Button
                   type="button"
                   size="sm"
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => {
                     dismissHint("plan");
                   }}
@@ -1209,16 +1249,15 @@ export function ScheduleBoard({
             </div>
           ) : null}
           {showMzkHint ? (
-            <div className="rounded-xl border border-dashed border-border bg-card/60 px-5 py-4 text-sm text-muted-foreground">
+            <div className="border-l-2 border-mzk/40 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
               <p className="font-medium text-foreground">
                 Ustaw przystanek MZK
               </p>
-              <p className="mt-1.5 leading-relaxed">
-                Wybierz przystanek wsiadania i wysiadania, żeby zobaczyć kursy
-                miejskie w jednej liście ze szkolnymi — spersonalizowany dojazd
-                do szkoły.
+              <p className="mt-1 leading-relaxed">
+                Wybierz wsiadanie i wysiadanie, żeby zobaczyć kursy miejskie
+                razem ze szkolnymi.
               </p>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
+              <div className="mt-2.5 flex flex-wrap items-center gap-2">
                 <Link
                   href="/mzk"
                   className={buttonVariants({ size: "sm", variant: "secondary" })}
@@ -1228,7 +1267,7 @@ export function ScheduleBoard({
                 <Button
                   type="button"
                   size="sm"
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => {
                     dismissHint("mzk");
                   }}
@@ -1242,7 +1281,7 @@ export function ScheduleBoard({
       ) : null}
 
       {isEmpty ? (
-        <p className="rounded-xl border border-dashed border-border bg-card/60 px-6 py-12 text-center text-muted-foreground">
+        <p className="border-l-2 border-border bg-muted/30 px-4 py-8 text-center text-muted-foreground">
           {sourceMode === "school-mzk" && !mzkRouteReady ? (
             <>
               Ustaw trasę MZK (wsiadanie → wysiadanie) w{" "}
@@ -1302,7 +1341,7 @@ export function ScheduleBoard({
           applyLessonFilter &&
           hiddenMzkCount > 0 &&
           !showAllMzkConnections ? (
-            <p className="rounded-xl border border-dashed border-border bg-card/60 px-5 py-4 text-sm text-muted-foreground">
+            <p className="border-l-2 border-mzk/40 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
               Brak kursów MZK pasujących do planu lekcji (+{hiddenMzkCount} poza
               oknem).{" "}
               <button
@@ -1320,7 +1359,7 @@ export function ScheduleBoard({
           {mzkRouteReady &&
           mzkDeparturesCount === 0 &&
           !(applyLessonFilter && hiddenMzkCount > 0 && !showAllMzkConnections) ? (
-            <p className="rounded-xl border border-dashed border-border bg-card/60 px-5 py-4 text-sm text-muted-foreground">
+            <p className="border-l-2 border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
               Brak bezpośrednich kursów MZK na tej trasie w wybranym dniu — poniżej
               tylko kursy szkolne.{" "}
               <Link
@@ -1401,7 +1440,7 @@ export function ScheduleBoard({
                         {block.kind === "vehicle" ? "pojazd" : "kierowca"}
                       </span>
                     </div>
-                    <div className="rounded-xl border border-border/70 bg-card/90 px-4 py-1 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-5">
+                    <div className="rounded-xl border border-border/70 bg-card/90 px-3 py-1 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-4">
                       {block.courses.map((course, courseIndex) => (
                         <div
                           key={`${block.name}-${course.label}-${course.note ?? ""}`}
@@ -1472,7 +1511,7 @@ export function ScheduleBoard({
                         {day.driver}
                       </p>
                     </div>
-                    <ul className="rounded-xl border border-border/70 bg-card/90 px-4 py-1 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-5">
+                    <ul className="rounded-xl border border-border/70 bg-card/90 px-3 py-1 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-4">
                       {day.runs.map((run, index) => {
                         const stopId = stopDomId("dropoff-date", [
                           day.dateLabel,
@@ -1507,7 +1546,7 @@ export function ScheduleBoard({
                         {block.driver}
                       </p>
                     </div>
-                    <ul className="rounded-xl border border-border/70 bg-card/90 px-4 py-1 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-5">
+                    <ul className="rounded-xl border border-border/70 bg-card/90 px-3 py-1 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-4">
                       {block.runs.map((run, index) => {
                         const stopId = stopDomId("dropoff-weekday", [
                           block.driver,
