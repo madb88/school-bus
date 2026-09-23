@@ -1336,6 +1336,20 @@ export function ScheduleBoard({
         </p>
       ) : sourceMode === "school-mzk" && mergedTimeline ? (
         <div className="animate-rise-delay-2 space-y-14 animate-in fade-in duration-300">
+          {!mzkRouteReady ? (
+            <p className="border-l-2 border-mzk/40 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+              Dodaj przystanki MZK, żeby zobaczyć też kursy miejskie razem ze
+              szkolnymi.{" "}
+              <Link
+                href="/mzk"
+                className="underline underline-offset-2 hover:text-foreground"
+              >
+                Ustaw trasę
+              </Link>
+              .
+            </p>
+          ) : null}
+
           {mzkRouteReady &&
           mzkDeparturesCount === 0 &&
           applyLessonFilter &&
