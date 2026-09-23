@@ -8,6 +8,8 @@ Aplikacja **Autobus szkolny** — śledzenie bezpiecznego dojazdu dzieci do szko
 - Tailwind CSS
 - shadcn/ui
 
+Wersja aplikacji (`package.json` → pole `version`) jest pokazywana w stopce. Przy większych zmianach user-facing podbij semver (np. `0.2.0` → `0.3.0`).
+
 ## Uruchomienie lokalne
 
 ```bash

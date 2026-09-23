@@ -1,3 +1,4 @@
+import { formatAppVersion } from "@/lib/app-version";
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { DOWOZY_SOURCE_URL } from "@/lib/dowozy/types";
 import { loadMzkScheduleMeta } from "@/lib/mzk/load-schedule";
@@ -26,6 +27,7 @@ function formatFetchedAt(iso: string): string {
 
 export async function SiteFooter() {
   const year = new Date().getFullYear();
+  const version = formatAppVersion();
   const [schoolSchedule, mzkMeta] = await Promise.all([
     loadScheduleSnapshot(),
     loadMzkScheduleMeta(),
@@ -77,6 +79,10 @@ export async function SiteFooter() {
 
         <p className="text-sm text-muted-foreground">
           © {year} Dojazdy do szkoły
+          <span aria-hidden className="mx-1.5 text-border">
+            ·
+          </span>
+          <span className="tabular-nums">{version}</span>
         </p>
       </div>
     </footer>
