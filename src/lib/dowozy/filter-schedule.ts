@@ -3,6 +3,7 @@ import {
   dropoffFitsLessonEnd,
   getDayTimes,
   pickupFitsLessonStart,
+  timeToMinutes,
 } from "@/lib/child-schedule/match";
 import { DEFAULT_LESSON_MATCH_WINDOW_MIN } from "@/lib/child-schedule/match-window";
 import type {
@@ -26,6 +27,62 @@ export type { ScheduleDateFilter } from "./schedule-dates";
 
 function stopIncludesPlace(stop: Stop, place: string): boolean {
   return stop.places.some((p) => p === place);
+}
+
+/** Earliest valid clock time among strings; invalid times sort last. */
+function earliestMinutes(times: string[]): number {
+  let min = Number.POSITIVE_INFINITY;
+  for (const time of times) {
+    const minutes = timeToMinutes(time);
+    if (minutes !== null && minutes < min) min = minutes;
+  }
+  return min;
+}
+
+function compareByMinutes(a: number, b: number): number {
+  return a - b;
+}
+
+function courseFirstStopMinutes(course: Course): number {
+  return earliestMinutes(course.stops.map((stop) => stop.time));
+}
+
+function sortPickupBlock(block: DriverBlock): DriverBlock {
+  const courses = [...block.courses].sort((a, b) =>
+    compareByMinutes(courseFirstStopMinutes(a), courseFirstStopMinutes(b)),
+  );
+  return { ...block, courses };
+}
+
+function pickupBlockMinutes(block: DriverBlock): number {
+  return earliestMinutes(
+    block.courses.flatMap((course) => course.stops.map((stop) => stop.time)),
+  );
+}
+
+function sortRuns(runs: Stop[]): Stop[] {
+  return [...runs].sort((a, b) =>
+    compareByMinutes(
+      timeToMinutes(a.time) ?? Number.POSITIVE_INFINITY,
+      timeToMinutes(b.time) ?? Number.POSITIVE_INFINITY,
+    ),
+  );
+}
+
+function sortDayDropoff(day: DayDropoff): DayDropoff {
+  return { ...day, runs: sortRuns(day.runs) };
+}
+
+function dayDropoffMinutes(day: DayDropoff): number {
+  return earliestMinutes(day.runs.map((run) => run.time));
+}
+
+function sortWeekdayDropoff(block: WeekdayDropoff): WeekdayDropoff {
+  return { ...block, runs: sortRuns(block.runs) };
+}
+
+function weekdayDropoffMinutes(block: WeekdayDropoff): number {
+  return earliestMinutes(block.runs.map((run) => run.time));
 }
 
 function narrowStopToPlace(stop: Stop, place: string): Stop {
@@ -201,6 +258,10 @@ export function filterSchedule(
             ),
           )
           .filter((block): block is DriverBlock => block !== null)
+          .map(sortPickupBlock)
+          .sort((a, b) =>
+            compareByMinutes(pickupBlockMinutes(a), pickupBlockMinutes(b)),
+          )
       : [];
 
   let dropoffsByDate =
@@ -214,7 +275,11 @@ export function filterSchedule(
     .map((day) =>
       filterDayDropoff(day, place, lessonEnd, lessonMatchWindowMin),
     )
-    .filter((day): day is DayDropoff => day !== null);
+    .filter((day): day is DayDropoff => day !== null)
+    .map(sortDayDropoff)
+    .sort((a, b) =>
+      compareByMinutes(dayDropoffMinutes(a), dayDropoffMinutes(b)),
+    );
 
   let dropoffsWeekday =
     showDropoffs && !planBlocksDay ? schedule.dropoffsWeekday : [];
@@ -225,7 +290,11 @@ export function filterSchedule(
     .map((block) =>
       filterWeekdayDropoff(block, place, lessonEnd, lessonMatchWindowMin),
     )
-    .filter((block): block is WeekdayDropoff => block !== null);
+    .filter((block): block is WeekdayDropoff => block !== null)
+    .map(sortWeekdayDropoff)
+    .sort((a, b) =>
+      compareByMinutes(weekdayDropoffMinutes(a), weekdayDropoffMinutes(b)),
+    );
 
   return {
     ...schedule,
