@@ -16,7 +16,7 @@ import {
   hasConfiguredLessons,
   saveLessonPlan,
 } from "@/lib/child-schedule/storage";
-import { formatTimeInput } from "@/lib/child-schedule/match";
+import { formatTimeInput, timeToMinutes } from "@/lib/child-schedule/match";
 import { savePreferredPlace } from "@/lib/child-schedule/preferred-place";
 import {
   EMPTY_LESSON_PLAN,
@@ -31,17 +31,39 @@ type LessonPlanFormProps = {
   places: string[];
 };
 
+function dayHasEndBeforeStart(
+  start: string | undefined,
+  end: string | undefined,
+): boolean {
+  if (!start || !end) return false;
+  const startMin = timeToMinutes(start);
+  const endMin = timeToMinutes(end);
+  if (startMin === null || endMin === null) return false;
+  return endMin < startMin;
+}
+
 export function LessonPlanForm({ places }: LessonPlanFormProps) {
   const stored = useLessonPlan();
   const [draft, setDraft] = useState<ChildLessonPlan | null>(null);
   const plan = draft ?? stored;
   const [pending, startTransition] = useTransition();
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const daysMissingEnd = WEEKDAY_OPTIONS.filter(({ key }) => {
+    const day = plan.days[key];
+    return Boolean(day?.start && !day.end);
+  });
+  const daysInvalidEnd = WEEKDAY_OPTIONS.filter(({ key }) => {
+    const day = plan.days[key];
+    return dayHasEndBeforeStart(day?.start, day?.end);
+  });
 
   function updateDay(
     key: WeekdayKey,
     field: "start" | "end",
     value: string,
   ) {
+    setSaveError(null);
     setDraft((prev) => {
       const base = prev ?? stored;
       const nextDays = { ...base.days };
@@ -72,6 +94,18 @@ export function LessonPlanForm({ places }: LessonPlanFormProps) {
   function handleSave() {
     startTransition(() => {
       const source = draft ?? stored;
+
+      for (const { key, label } of WEEKDAY_OPTIONS) {
+        const day = source.days[key];
+        if (!day?.start || !day.end) continue;
+        if (dayHasEndBeforeStart(day.start, day.end)) {
+          const message = `${label}: koniec lekcji nie może być wcześniejszy niż start.`;
+          setSaveError(message);
+          toast.error(message);
+          return;
+        }
+      }
+
       const normalized: ChildLessonPlan = {
         place: source.place,
         days: {},
@@ -90,16 +124,31 @@ export function LessonPlanForm({ places }: LessonPlanFormProps) {
         savePreferredPlace(normalized.place);
       }
       setDraft(null);
-      toast.success("Plan lekcji zapisany");
+      setSaveError(null);
+
+      const missingEnd = WEEKDAY_OPTIONS.filter(({ key }) => {
+        const day = normalized.days[key];
+        return Boolean(day?.start && !day.end);
+      });
+      if (missingEnd.length > 0) {
+        toast.success("Plan lekcji zapisany", {
+          description:
+            "Bez godziny końca odwozy nie dopasują się do planu — uzupełnij koniec lekcji, gdy znasz godzinę.",
+        });
+      } else {
+        toast.success("Plan lekcji zapisany");
+      }
     });
   }
 
   function handleClear() {
     clearLessonPlan();
     setDraft({ ...EMPTY_LESSON_PLAN, days: {} });
+    setSaveError(null);
   }
 
   function setPlace(next: string | null) {
+    setSaveError(null);
     setDraft((prev) => ({
       ...(prev ?? stored),
       place: next,
@@ -156,6 +205,7 @@ export function LessonPlanForm({ places }: LessonPlanFormProps) {
           <tbody>
             {WEEKDAY_OPTIONS.map(({ key, label }) => {
               const day = plan.days[key];
+              const invalidEnd = dayHasEndBeforeStart(day?.start, day?.end);
               return (
                 <tr
                   key={key}
@@ -179,10 +229,11 @@ export function LessonPlanForm({ places }: LessonPlanFormProps) {
                       type="time"
                       value={day?.end ?? ""}
                       disabled={!day?.start}
+                      aria-invalid={invalidEnd || undefined}
                       onChange={(event) =>
                         updateDay(key, "end", event.target.value)
                       }
-                      className="h-10 max-w-36 bg-background tabular-nums"
+                      className="h-10 max-w-36 bg-background tabular-nums aria-invalid:border-destructive"
                     />
                   </td>
                 </tr>
@@ -192,18 +243,33 @@ export function LessonPlanForm({ places }: LessonPlanFormProps) {
         </table>
       </div>
 
-      <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-        Start służy do doboru dowozów (kurs przed lekcją). Koniec — do odwozów
-        (kurs o godzinie końca lub później). Dane zapisujemy tylko w tej
-        przeglądarce.
-      </p>
+      <div className="max-w-xl space-y-2 text-sm leading-relaxed text-muted-foreground">
+        <p>
+          Start służy do doboru dowozów (kurs przed lekcją). Koniec — do odwozów
+          (kurs o godzinie końca lub później). Dane zapisujemy tylko w tej
+          przeglądarce.
+        </p>
+        {daysMissingEnd.length > 0 ? (
+          <p className="text-asphalt/80">
+            Brak końca lekcji (
+            {daysMissingEnd.map((d) => d.label).join(", ")}
+            ) — odwozy nie dopasują się do planu w te dni.
+          </p>
+        ) : null}
+        {daysInvalidEnd.length > 0 || saveError ? (
+          <p className="text-destructive" role="alert">
+            {saveError ??
+              `Koniec lekcji nie może być wcześniejszy niż start (${daysInvalidEnd.map((d) => d.label).join(", ")}).`}
+          </p>
+        ) : null}
+      </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <Button
           type="button"
           size="lg"
           variant="secondary"
-          disabled={pending}
+          disabled={pending || daysInvalidEnd.length > 0}
           onClick={handleSave}
         >
           Zapisz plan

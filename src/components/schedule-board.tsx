@@ -67,7 +67,7 @@ import {
   resolveTargetDay,
 } from "@/lib/dowozy/schedule-dates";
 import type { Schedule, Stop } from "@/lib/dowozy/types";
-import { findOdDepartures, formatTravelDuration } from "@/lib/mzk/filter-departures";
+import { formatTravelDuration } from "@/lib/mzk/filter-departures";
 import {
   buildMergedTimeline,
   findNextMergedEntry,
@@ -77,15 +77,18 @@ import {
   hasConfiguredMzkRoute,
   loadMzkRoutePreference,
 } from "@/lib/mzk/route-storage";
-import type { MzkOdDeparture, MzkSchedule } from "@/lib/mzk/types";
+import type { MzkOdDeparture } from "@/lib/mzk/types";
+import { useMzkOdDepartures } from "@/lib/mzk/use-mzk-od-departures";
 import { useMzkRoutePreference } from "@/lib/mzk/use-mzk-route";
 import { dismissHint } from "@/lib/onboarding-hints";
 import { useHintDismissed } from "@/lib/use-hint-dismissed";
 import { cn } from "cn";
+import { toast } from "sonner";
 
 type ScheduleBoardProps = {
   schedule: Schedule;
-  mzkSchedule?: MzkSchedule | null;
+  /** True when MZK snapshot exists on the server (full feed stays off the client). */
+  mzkAvailable?: boolean;
   initialFilters: ParsedFilterParams;
 };
 
@@ -484,7 +487,7 @@ function SectionHeading({
 
 export function ScheduleBoard({
   schedule,
-  mzkSchedule = null,
+  mzkAvailable = false,
   initialFilters,
 }: ScheduleBoardProps) {
   const places = collectPlaces(schedule);
@@ -492,7 +495,8 @@ export function ScheduleBoard({
   const preferredPlace = usePreferredPlace();
   const mzkRoute = useMzkRoutePreference();
   const planReady = hasConfiguredLessons(lessonPlan);
-  const mzkRouteReady = hasConfiguredMzkRoute(mzkRoute);
+  const mzkRouteConfigured = hasConfiguredMzkRoute(mzkRoute);
+  const mzkRouteReady = mzkAvailable && mzkRouteConfigured;
   const defaultPlace = preferredPlace ?? lessonPlan.place;
   const router = useRouter();
   const pathname = usePathname();
@@ -662,33 +666,30 @@ export function ScheduleBoard({
     isSchoolDay(target.weekday) &&
     !dayTimes;
 
+  const mzkFetchEnabled =
+    deferredSourceMode === "school-mzk" && mzkRouteReady && !planBlocksDay;
+
+  const {
+    data: mzkOd,
+    loading: mzkLoading,
+    error: mzkFetchError,
+  } = useMzkOdDepartures({
+    enabled: mzkFetchEnabled,
+    boardStopId: mzkRoute.boardStopId,
+    alightStopId: mzkRoute.alightStopId,
+    dateFilter: deferredDateFilter,
+    route: mzkRoute.route,
+  });
+
   const rawMzkPickups =
-    deferredSourceMode === "school-mzk" &&
-    mzkRouteReady &&
-    !planBlocksDay &&
+    mzkFetchEnabled &&
     (deferredDirection === "all" || deferredDirection === "pickups")
-      ? findOdDepartures(
-          mzkSchedule,
-          mzkRoute.boardStopId,
-          mzkRoute.alightStopId,
-          deferredDateFilter,
-          now,
-          mzkRoute.route,
-        )
+      ? mzkOd.pickups
       : [];
   const rawMzkDropoffs =
-    deferredSourceMode === "school-mzk" &&
-    mzkRouteReady &&
-    !planBlocksDay &&
+    mzkFetchEnabled &&
     (deferredDirection === "all" || deferredDirection === "dropoffs")
-      ? findOdDepartures(
-          mzkSchedule,
-          mzkRoute.alightStopId,
-          mzkRoute.boardStopId,
-          deferredDateFilter,
-          now,
-          mzkRoute.route,
-        ).filter((d) => {
+      ? mzkOd.dropoffs.filter((d) => {
           // Powroty po 18:00 nie są potrzebne przy dowozach szkolnych.
           const minutes = timeToMinutes(d.departTime);
           return minutes !== null && minutes <= 18 * 60;
@@ -765,7 +766,7 @@ export function ScheduleBoard({
 
   const showPlanHint = !planReady && !planHintDismissed;
   const showMzkHint =
-    !mzkRouteReady && !mzkHintDismissed && sourceMode === "school-mzk";
+    !mzkRouteConfigured && !mzkHintDismissed && sourceMode === "school-mzk";
 
   const placeItems = [
     { label: "Wszystkie miejsca", value: null as string | null },
@@ -821,6 +822,7 @@ export function ScheduleBoard({
   function clearFilters() {
     startTransition(() => {
       setPlaceOverride(null);
+      persistPlace(null);
       setDateFilter("today");
       setDirection("all");
       setMatchLessonPlan(false);
@@ -838,12 +840,34 @@ export function ScheduleBoard({
       sourceMode,
     });
     const absolute = new URL(href, window.location.origin).toString();
+    const shareNote =
+      "Link zawiera filtry rozkładu. Plan lekcji i trasa MZK zostają tylko w tej przeglądarce.";
+
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({
+          title: "Dojazdy do szkoły",
+          text: shareNote,
+          url: absolute,
+        });
+        setCopiedFlash(true);
+        window.setTimeout(() => setCopiedFlash(false), 2000);
+        return;
+      } catch (error) {
+        // User cancelled share sheet — don't fall through to clipboard toast.
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+      }
+    }
+
     try {
       await navigator.clipboard.writeText(absolute);
       setCopiedFlash(true);
       window.setTimeout(() => setCopiedFlash(false), 2000);
+      toast.message("Link skopiowany", { description: shareNote });
     } catch {
-      window.prompt("Skopiuj link:", absolute);
+      window.prompt(`${shareNote}\n\nSkopiuj link:`, absolute);
     }
   }
 
@@ -984,12 +1008,9 @@ export function ScheduleBoard({
         </div>
       </div>
 
-      <div
-        aria-hidden
-        className="mb-1 hidden h-8 w-px shrink-0 bg-border/70 md:block"
-      />
+      <div className="mb-1 hidden h-8 w-px shrink-0 bg-border/70 md:block" aria-hidden />
 
-      <div className="flex shrink-0 flex-col gap-1">
+      <div className="hidden shrink-0 flex-col gap-1 md:flex">
         <Label
           id="schedule-date-filter-label"
           className="text-xs text-muted-foreground"
@@ -1020,65 +1041,41 @@ export function ScheduleBoard({
         </ButtonGroup>
       </div>
 
-      <div className="flex w-44 shrink-0 flex-col gap-1 md:w-52">
+      <div className="hidden w-44 shrink-0 flex-col gap-1 md:flex md:w-52">
         <Label
           id="schedule-place-filter-label"
           className="text-xs text-muted-foreground"
         >
           Miejsce
         </Label>
-        <NativeSelect
-          size="sm"
-          className="w-full max-w-full md:hidden"
-          aria-labelledby="schedule-place-filter-label"
-          value={place ?? ""}
-          onChange={(event) => {
-            const next = event.target.value || null;
+        <Select
+          items={placeItems}
+          value={place}
+          onValueChange={(next) => {
             startTransition(() => {
               setPlaceOverride(next);
               persistPlace(next);
             });
           }}
         >
-          {placeItems.map((item) => (
-            <NativeSelectOption
-              key={item.value ?? "__all"}
-              value={item.value ?? ""}
-            >
-              {item.label}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-        <div className="hidden w-full md:block">
-          <Select
-            items={placeItems}
-            value={place}
-            onValueChange={(next) => {
-              startTransition(() => {
-                setPlaceOverride(next);
-                persistPlace(next);
-              });
-            }}
+          <SelectTrigger
+            size="sm"
+            aria-labelledby="schedule-place-filter-label"
+            className="w-full max-w-full border-border bg-card text-[0.8rem]"
           >
-            <SelectTrigger
-              size="sm"
-              aria-labelledby="schedule-place-filter-label"
-              className="w-full max-w-full border-border bg-card text-[0.8rem]"
-            >
-              <SelectValue placeholder="Wszystkie miejsca" />
-            </SelectTrigger>
-            <SelectContent alignItemWithTrigger={false}>
-              {placeItems.map((item) => (
-                <SelectItem key={item.value ?? "__all"} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            <SelectValue placeholder="Wszystkie miejsca" />
+          </SelectTrigger>
+          <SelectContent alignItemWithTrigger={false}>
+            {placeItems.map((item) => (
+              <SelectItem key={item.value ?? "__all"} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="flex shrink-0 flex-col gap-1">
+      <div className="hidden shrink-0 flex-col gap-1 md:flex">
         <Label
           id="schedule-direction-filter-label"
           className="text-xs text-muted-foreground"
@@ -1115,7 +1112,7 @@ export function ScheduleBoard({
     <div className="space-y-10">
       <div className="sticky top-0 z-10 -mx-6 space-y-2 border-y border-border/50 bg-[color-mix(in_srgb,var(--background)_92%,transparent)] px-6 py-2 shadow-[0_8px_24px_-20px_color-mix(in_srgb,var(--foreground)_40%,transparent)] backdrop-blur-md sm:-mx-10 sm:px-10 md:py-2.5">
         <div className="flex flex-col gap-2">
-          {/* Mobile: compact bar + day/direction selects */}
+          {/* Mobile: compact bar + place / day / direction */}
           <div className="flex flex-col gap-2 md:hidden">
             <div className="flex items-end gap-2">
               <Button
@@ -1136,55 +1133,85 @@ export function ScheduleBoard({
                   {filtersOpen ? "▴" : "▾"}
                 </span>
               </Button>
-              <div className="grid min-w-0 flex-1 grid-cols-2 gap-1.5">
-                <div className="flex min-w-0 flex-col gap-1">
-                  <Label
-                    htmlFor="schedule-mobile-date"
-                    className="text-xs text-muted-foreground"
-                  >
-                    Dzień
-                  </Label>
-                  <NativeSelect
-                    id="schedule-mobile-date"
-                    size="sm"
-                    className="w-full max-w-full"
-                    value={dateFilter}
-                    onChange={(event) => {
-                      const next = event.target.value as ScheduleDateFilter;
-                      startTransition(() => setDateFilter(next));
-                    }}
-                  >
-                    {mobileDateItems.map((item) => (
-                      <NativeSelectOption key={item.value} value={item.value}>
-                        {item.label}
-                      </NativeSelectOption>
-                    ))}
-                  </NativeSelect>
-                </div>
-                <div className="flex min-w-0 flex-col gap-1">
-                  <Label
-                    htmlFor="schedule-mobile-direction"
-                    className="text-xs text-muted-foreground"
-                  >
-                    Kierunek
-                  </Label>
-                  <NativeSelect
-                    id="schedule-mobile-direction"
-                    size="sm"
-                    className="w-full max-w-full"
-                    value={direction}
-                    onChange={(event) => {
-                      const next = event.target.value as ScheduleDirection;
-                      startTransition(() => setDirection(next));
-                    }}
-                  >
-                    {mobileDirectionItems.map((item) => (
-                      <NativeSelectOption key={item.value} value={item.value}>
-                        {item.label}
-                      </NativeSelectOption>
-                    ))}
-                  </NativeSelect>
-                </div>
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <Label
+                  htmlFor="schedule-mobile-place"
+                  className="text-xs text-muted-foreground"
+                >
+                  Miejsce
+                </Label>
+                <NativeSelect
+                  id="schedule-mobile-place"
+                  size="sm"
+                  className="w-full max-w-full"
+                  value={place ?? ""}
+                  onChange={(event) => {
+                    const next = event.target.value || null;
+                    startTransition(() => {
+                      setPlaceOverride(next);
+                      persistPlace(next);
+                    });
+                  }}
+                >
+                  {placeItems.map((item) => (
+                    <NativeSelectOption
+                      key={item.value ?? "__all"}
+                      value={item.value ?? ""}
+                    >
+                      {item.label}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              <div className="flex min-w-0 flex-col gap-1">
+                <Label
+                  htmlFor="schedule-mobile-date"
+                  className="text-xs text-muted-foreground"
+                >
+                  Dzień
+                </Label>
+                <NativeSelect
+                  id="schedule-mobile-date"
+                  size="sm"
+                  className="w-full max-w-full"
+                  value={dateFilter}
+                  onChange={(event) => {
+                    const next = event.target.value as ScheduleDateFilter;
+                    startTransition(() => setDateFilter(next));
+                  }}
+                >
+                  {mobileDateItems.map((item) => (
+                    <NativeSelectOption key={item.value} value={item.value}>
+                      {item.label}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </div>
+              <div className="flex min-w-0 flex-col gap-1">
+                <Label
+                  htmlFor="schedule-mobile-direction"
+                  className="text-xs text-muted-foreground"
+                >
+                  Kierunek
+                </Label>
+                <NativeSelect
+                  id="schedule-mobile-direction"
+                  size="sm"
+                  className="w-full max-w-full"
+                  value={direction}
+                  onChange={(event) => {
+                    const next = event.target.value as ScheduleDirection;
+                    startTransition(() => setDirection(next));
+                  }}
+                >
+                  {mobileDirectionItems.map((item) => (
+                    <NativeSelectOption key={item.value} value={item.value}>
+                      {item.label}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
               </div>
             </div>
           </div>
@@ -1251,7 +1278,7 @@ export function ScheduleBoard({
                     size="sm"
                     onClick={clearFilters}
                   >
-                    Reset
+                    Wyczyść filtry
                   </Button>
                 ) : null}
               </div>
@@ -1381,7 +1408,16 @@ export function ScheduleBoard({
 
       {isEmpty ? (
         <p className="border-l-2 border-border bg-muted/30 px-4 py-8 text-center text-muted-foreground">
-          {sourceMode === "school-mzk" && !mzkRouteReady ? (
+          {sourceMode === "school-mzk" && !mzkAvailable ? (
+            <>Rozkład MZK jest chwilowo niedostępny.</>
+          ) : sourceMode === "school-mzk" && mzkLoading ? (
+            <>Ładowanie kursów MZK…</>
+          ) : sourceMode === "school-mzk" && mzkFetchError ? (
+            <>
+              Nie udało się pobrać kursów MZK. Odśwież stronę lub spróbuj
+              ponownie za chwilę.
+            </>
+          ) : sourceMode === "school-mzk" && !mzkRouteConfigured ? (
             <>
               Ustaw trasę MZK (wsiadanie → wysiadanie) w{" "}
               <Link

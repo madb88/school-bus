@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 import { parseFilterParams } from "@/lib/dowozy/filter-url";
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { DOWOZY_SOURCE_URL } from "@/lib/dowozy/types";
-import { loadMzkScheduleSnapshot } from "@/lib/mzk/load-schedule";
+import { loadMzkScheduleMeta } from "@/lib/mzk/load-schedule";
 
 type HomeProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -12,9 +12,9 @@ type HomeProps = {
 
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
-  const [schedule, mzkSchedule] = await Promise.all([
+  const [schedule, mzkMeta] = await Promise.all([
     loadScheduleSnapshot(),
-    loadMzkScheduleSnapshot(),
+    loadMzkScheduleMeta(),
   ]);
   const initialFilters = parseFilterParams(params);
 
@@ -28,7 +28,7 @@ export default async function Home({ searchParams }: HomeProps) {
           <h1 className="sr-only">Rozkład dowozów</h1>
           <ScheduleBoard
             schedule={schedule}
-            mzkSchedule={mzkSchedule}
+            mzkAvailable={Boolean(mzkMeta)}
             initialFilters={initialFilters}
           />
         </>

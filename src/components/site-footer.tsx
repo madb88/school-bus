@@ -1,6 +1,6 @@
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { DOWOZY_SOURCE_URL } from "@/lib/dowozy/types";
-import { loadMzkScheduleSnapshot } from "@/lib/mzk/load-schedule";
+import { loadMzkScheduleMeta } from "@/lib/mzk/load-schedule";
 import { MZK_DEVELOPER_PAGE_URL } from "@/lib/mzk/types";
 
 function formatFetchedAt(iso: string): string {
@@ -26,15 +26,15 @@ function formatFetchedAt(iso: string): string {
 
 export async function SiteFooter() {
   const year = new Date().getFullYear();
-  const [schoolSchedule, mzkSchedule] = await Promise.all([
+  const [schoolSchedule, mzkMeta] = await Promise.all([
     loadScheduleSnapshot(),
-    loadMzkScheduleSnapshot(),
+    loadMzkScheduleMeta(),
   ]);
 
   return (
     <footer className="border-t border-border/60">
       <div className="mx-auto flex max-w-4xl flex-col gap-4 px-6 py-8 sm:px-10">
-        {(schoolSchedule || mzkSchedule) && (
+        {(schoolSchedule || mzkMeta) && (
           <div className="space-y-1 text-xs text-muted-foreground sm:text-sm">
             {schoolSchedule ? (
               <p>
@@ -54,18 +54,18 @@ export async function SiteFooter() {
                 </a>
               </p>
             ) : null}
-            {mzkSchedule ? (
+            {mzkMeta ? (
               <p>
                 Rozkład MZK zaktualizowano{" "}
-                {formatFetchedAt(mzkSchedule.fetchedAt)}
+                {formatFetchedAt(mzkMeta.fetchedAt)}
                 {" · "}
                 <a
-                  href={mzkSchedule.sourceUrl || MZK_DEVELOPER_PAGE_URL}
+                  href={mzkMeta.sourceUrl || MZK_DEVELOPER_PAGE_URL}
                   className="underline underline-offset-2 hover:text-foreground"
                   target="_blank"
                   rel="noreferrer"
                 >
-                  źródło: {mzkSchedule.attribution}
+                  źródło: {mzkMeta.attribution}
                 </a>
                 {" · "}
                 godziny z GTFS mogą różnić się o 1–3 min od tabliczki na
