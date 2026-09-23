@@ -25,6 +25,7 @@ import {
   type MzkRoutePreference,
 } from "@/lib/mzk/route-preference";
 import { suggestMzkRoutes } from "@/lib/mzk/route-suggestions";
+import { mzkNearestPlaceNote } from "@/lib/mzk/place-map";
 import {
   clearMzkRoutePreference,
   hasConfiguredMzkRoute,
@@ -52,6 +53,7 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
 
   const hintPlace = lessonPlan.place ?? preferredPlace;
   const suggestions = suggestMzkRoutes(schedule, hintPlace);
+  const nearestNote = mzkNearestPlaceNote(hintPlace);
 
   const availableRoutes = routesForOd(
     schedule,
@@ -169,6 +171,9 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
               </span>
             ) : null}
           </p>
+          {nearestNote ? (
+            <p className="text-sm text-muted-foreground">{nearestNote}</p>
+          ) : null}
           <div className="flex flex-wrap gap-2">
             {suggestions.map((item) => {
               const active =

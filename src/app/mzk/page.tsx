@@ -1,10 +1,16 @@
 import { MzkRouteForm } from "@/components/mzk-route-form";
 import { PageShell } from "@/components/page-shell";
+import { ScheduleStatusBanner } from "@/components/schedule-status-banner";
 import { SiteHeader } from "@/components/site-header";
 import { loadMzkScheduleSnapshot } from "@/lib/mzk/load-schedule";
+import { MZK_DEVELOPER_PAGE_URL } from "@/lib/mzk/types";
+import { mzkScheduleFreshness } from "@/lib/schedule-freshness";
 
 export default async function MzkPage() {
   const mzkSchedule = await loadMzkScheduleSnapshot();
+  const freshness = mzkSchedule
+    ? [mzkScheduleFreshness(mzkSchedule.fetchedAt, mzkSchedule.feedEndDate)]
+    : [];
 
   return (
     <PageShell>
@@ -29,13 +35,23 @@ export default async function MzkPage() {
         </p>
       </header>
 
-      <div className="animate-rise-delay-2">
+      <div className="animate-rise-delay-2 space-y-6">
+        <ScheduleStatusBanner items={freshness} />
         {mzkSchedule && mzkSchedule.stops.length > 0 ? (
           <MzkRouteForm schedule={mzkSchedule} />
         ) : (
           <p className="text-muted-foreground">
-            Najpierw pobierz rozkład MZK ({`npm run fetch:mzk`}), żeby wybrać
-            przystanki z listy.
+            Rozkład MZK jest chwilowo niedostępny. Spróbuj ponownie później
+            albo sprawdź źródło na stronie{" "}
+            <a
+              href={MZK_DEVELOPER_PAGE_URL}
+              className="underline underline-offset-2 hover:text-foreground"
+              target="_blank"
+              rel="noreferrer"
+            >
+              MZK Zielona Góra
+            </a>
+            .
           </p>
         )}
       </div>

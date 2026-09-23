@@ -15,14 +15,29 @@ export function SiteNav({ current }: SiteNavProps) {
     );
 
   return (
-    <nav className="flex items-center gap-1 rounded-lg border border-border/60 bg-card/50 p-1 backdrop-blur-sm">
-      <Link href="/" className={linkClass(current === "rozklad")}>
+    <nav
+      className="flex items-center gap-1 rounded-lg border border-border/60 bg-card/50 p-1 backdrop-blur-sm"
+      aria-label="Główne"
+    >
+      <Link
+        href="/"
+        className={linkClass(current === "rozklad")}
+        aria-current={current === "rozklad" ? "page" : undefined}
+      >
         Rozkład
       </Link>
-      <Link href="/lekcje" className={linkClass(current === "lekcje")}>
+      <Link
+        href="/lekcje"
+        className={linkClass(current === "lekcje")}
+        aria-current={current === "lekcje" ? "page" : undefined}
+      >
         Plan lekcji
       </Link>
-      <Link href="/mzk" className={linkClass(current === "mzk")}>
+      <Link
+        href="/mzk"
+        className={linkClass(current === "mzk")}
+        aria-current={current === "mzk" ? "page" : undefined}
+      >
         MZK
       </Link>
     </nav>

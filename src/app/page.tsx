@@ -1,10 +1,15 @@
 import { PageShell } from "@/components/page-shell";
 import { ScheduleBoard } from "@/components/schedule-board";
+import { ScheduleStatusBanner } from "@/components/schedule-status-banner";
 import { SiteHeader } from "@/components/site-header";
 import { parseFilterParams } from "@/lib/dowozy/filter-url";
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { DOWOZY_SOURCE_URL } from "@/lib/dowozy/types";
 import { loadMzkScheduleMeta } from "@/lib/mzk/load-schedule";
+import {
+  mzkScheduleFreshness,
+  schoolScheduleFreshness,
+} from "@/lib/schedule-freshness";
 
 type HomeProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -17,6 +22,12 @@ export default async function Home({ searchParams }: HomeProps) {
     loadMzkScheduleMeta(),
   ]);
   const initialFilters = parseFilterParams(params);
+  const freshness = [
+    schedule ? schoolScheduleFreshness(schedule.fetchedAt) : null,
+    mzkMeta
+      ? mzkScheduleFreshness(mzkMeta.fetchedAt, mzkMeta.feedEndDate)
+      : null,
+  ].filter((item): item is NonNullable<typeof item> => item !== null);
 
   return (
     <PageShell>
@@ -26,6 +37,7 @@ export default async function Home({ searchParams }: HomeProps) {
       {schedule ? (
         <>
           <h1 className="sr-only">Rozkład dowozów</h1>
+          <ScheduleStatusBanner items={freshness} className="mb-6" />
           <ScheduleBoard
             schedule={schedule}
             mzkAvailable={Boolean(mzkMeta)}
@@ -39,11 +51,8 @@ export default async function Home({ searchParams }: HomeProps) {
               Rozkład dowozów
             </h1>
             <p className="text-muted-foreground">
-              Brak snapshota. Uruchom{" "}
-              <code className="rounded bg-muted px-1.5 py-0.5 text-sm">
-                npm run scrape:dowozy
-              </code>
-              , żeby pobrać rozkład ze strony{" "}
+              Rozkład szkolny jest chwilowo niedostępny. Spróbuj ponownie
+              później albo sprawdź źródło na stronie{" "}
               <a
                 href={DOWOZY_SOURCE_URL}
                 className="underline underline-offset-2 hover:text-foreground"

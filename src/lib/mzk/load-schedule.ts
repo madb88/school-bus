@@ -3,6 +3,7 @@ import path from "node:path";
 import { cache } from "react";
 import type { MzkSchedule } from "./types";
 import { MZK_SNAPSHOT_PATH } from "./types";
+import { isMzkScheduleSnapshot } from "./validate-schedule";
 
 export type MzkScheduleMeta = {
   sourceUrl: string;
@@ -20,7 +21,18 @@ export const loadMzkScheduleSnapshot = cache(
 
     try {
       const raw = await readFile(filePath, "utf8");
-      return JSON.parse(raw) as MzkSchedule;
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        console.error("Invalid JSON in MZK schedule snapshot:", filePath);
+        return null;
+      }
+      if (!isMzkScheduleSnapshot(parsed)) {
+        console.error("Unexpected MZK schedule snapshot shape:", filePath);
+        return null;
+      }
+      return parsed;
     } catch (error) {
       if (
         error &&
@@ -30,7 +42,8 @@ export const loadMzkScheduleSnapshot = cache(
       ) {
         return null;
       }
-      throw error;
+      console.error("Failed to load MZK schedule snapshot:", error);
+      return null;
     }
   },
 );

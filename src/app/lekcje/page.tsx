@@ -3,6 +3,7 @@ import { PageShell } from "@/components/page-shell";
 import { SiteHeader } from "@/components/site-header";
 import { collectPlaces } from "@/lib/dowozy/filter-schedule";
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
+import { DOWOZY_SOURCE_URL } from "@/lib/dowozy/types";
 
 export default async function LekcjePage() {
   const schedule = await loadScheduleSnapshot();
@@ -29,8 +30,17 @@ export default async function LekcjePage() {
           <LessonPlanForm places={places} />
         ) : (
           <p className="text-muted-foreground">
-            Najpierw pobierz rozkład ({`npm run scrape:dowozy`}), żeby wybrać
-            przystanek z listy miejsc.
+            Lista miejsc jest chwilowo niedostępna — rozkład szkolny nie
+            załadował się. Spróbuj ponownie później albo zajrzyj na stronę{" "}
+            <a
+              href={DOWOZY_SOURCE_URL}
+              className="underline underline-offset-2 hover:text-foreground"
+              target="_blank"
+              rel="noreferrer"
+            >
+              szkoły
+            </a>
+            .
           </p>
         )}
       </div>

@@ -3,6 +3,7 @@ import path from "node:path";
 import { cache } from "react";
 import type { Schedule } from "./types";
 import { DOWOZY_SNAPSHOT_PATH } from "./types";
+import { isScheduleSnapshot } from "./validate-schedule";
 
 export const loadScheduleSnapshot = cache(
   async (cwd: string = process.cwd()): Promise<Schedule | null> => {
@@ -10,7 +11,18 @@ export const loadScheduleSnapshot = cache(
 
     try {
       const raw = await readFile(filePath, "utf8");
-      return JSON.parse(raw) as Schedule;
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        console.error("Invalid JSON in school schedule snapshot:", filePath);
+        return null;
+      }
+      if (!isScheduleSnapshot(parsed)) {
+        console.error("Unexpected school schedule snapshot shape:", filePath);
+        return null;
+      }
+      return parsed;
     } catch (error) {
       if (
         error &&
@@ -20,7 +32,8 @@ export const loadScheduleSnapshot = cache(
       ) {
         return null;
       }
-      throw error;
+      console.error("Failed to load school schedule snapshot:", error);
+      return null;
     }
   },
 );
