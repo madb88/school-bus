@@ -1401,18 +1401,25 @@ export function ScheduleBoard({
                         {block.kind === "vehicle" ? "pojazd" : "kierowca"}
                       </span>
                     </div>
-                    <div className="space-y-5">
-                      {block.courses.map((course) => (
+                    <div className="rounded-xl border border-border/70 bg-card/90 px-4 py-1 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-5">
+                      {block.courses.map((course, courseIndex) => (
                         <div
                           key={`${block.name}-${course.label}-${course.note ?? ""}`}
-                          className="rounded-xl border border-border/70 bg-card/90 px-4 py-3 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-5"
+                          className={cn(
+                            courseIndex > 0 && "border-t border-border/50",
+                          )}
                         >
-                          <div className="mb-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                            <p className="font-medium text-foreground">
+                          <div
+                            className={cn(
+                              "flex flex-wrap items-baseline gap-x-2 gap-y-0.5 pt-3 pb-0.5",
+                              courseIndex === 0 && "pt-2",
+                            )}
+                          >
+                            <p className="text-sm font-medium text-foreground">
                               {course.label}
                             </p>
                             {course.note ? (
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-xs text-muted-foreground">
                                 {course.note}
                               </p>
                             ) : null}
