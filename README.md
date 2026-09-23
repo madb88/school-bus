@@ -30,7 +30,7 @@ Otwórz [http://127.0.0.1:43123](http://127.0.0.1:43123).
 | `npm run fetch:mzk`     | Pobiera rozkład MZK (GTFS) jako alternatywy kursów |
 
 Snapshot szkolny: `data/dowozy-schedule.json`. Snapshot MZK: `data/mzk-schedule.json`.  
-GitHub Actions odpalają oba fetchy o **05:00** i **22:00** (Europe/Warsaw) i commitują zmiany automatycznie. Workflowy scrape/fetch kończą się błędem przy pustym snapshocie (GitHub powiadamia watcherów repo). CI na PR uruchamia lint, testy i build.
+GitHub Actions odpalają oba fetchy raz dziennie o **06:00** (Europe/Warsaw) i commitują zmiany automatycznie. Workflowy scrape/fetch kończą się błędem przy pustym snapshocie (GitHub powiadamia watcherów repo). CI na PR uruchamia lint, testy i build.
 
 Źródło MZK: [mzk.zgora.pl/dla-deweloperow](https://www.mzk.zgora.pl/dla-deweloperow) (GTFS).
 

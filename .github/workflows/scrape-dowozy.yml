@@ -2,12 +2,10 @@ name: Scrape dowozy schedule
 
 on:
   schedule:
-    # Around 05:00 and 22:00 Europe/Warsaw (UTC shifts with DST).
+    # Around 06:00 Europe/Warsaw (UTC shifts with DST).
     # Gate below no-ops the wrong UTC hour.
-    - cron: "0 3 * * *" # 05:00 CEST
-    - cron: "0 4 * * *" # 05:00 CET
-    - cron: "0 20 * * *" # 22:00 CEST
-    - cron: "0 21 * * *" # 22:00 CET
+    - cron: "0 4 * * *" # 06:00 CEST
+    - cron: "0 5 * * *" # 06:00 CET
   workflow_dispatch:
 
 permissions:
@@ -22,11 +20,11 @@ jobs:
         run: |
           HOUR=$(TZ=Europe/Warsaw date +%H)
           echo "warsaw_hour=$HOUR"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "$HOUR" = "05" ] || [ "$HOUR" = "22" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "$HOUR" = "06" ]; then
             echo "should_scrape=true" >> "$GITHUB_OUTPUT"
           else
             echo "should_scrape=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping scrape (Warsaw hour=$HOUR, want 05 or 22)."
+            echo "Skipping scrape (Warsaw hour=$HOUR, want 06)."
           fi
 
       - name: Checkout

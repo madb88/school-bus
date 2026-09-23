@@ -8,9 +8,9 @@ export type FreshnessInfo = {
   message: string;
 };
 
-/** School scrape runs twice daily — older than this means the pipeline likely stalled. */
+/** School scrape runs once daily — older than this means the pipeline likely stalled. */
 const SCHOOL_STALE_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
-/** GTFS fetch also runs twice daily. */
+/** GTFS fetch also runs once daily. */
 const MZK_STALE_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
 /** Warn when the published GTFS feed ends within this many days. */
 const MZK_FEED_END_WARN_DAYS = 14;
