@@ -128,7 +128,7 @@ function PlaceChip({
         "inline-flex cursor-pointer! items-center rounded-md px-1.5 py-0.5 text-sm transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
         highlight
-          ? "bg-bus/15 font-semibold text-bus-deep ring-1 ring-bus/35 hover:bg-bus/25"
+          ? "bg-foreground/8 font-semibold text-asphalt ring-1 ring-foreground/15 hover:bg-foreground/12"
           : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
       )}
       style={{ cursor: "pointer" }}
@@ -213,16 +213,16 @@ function MzkDepartureRow({
     <li
       id={stopId}
       className={cn(
-        "grid grid-cols-[4.5rem_1fr] gap-3 border-l-2 border-border/50 py-3 pl-3 sm:grid-cols-[5.5rem_1fr] sm:gap-4 sm:pl-4",
-        isNext && "border-l-mzk bg-mzk/8 -ml-px rounded-r-lg pr-2",
+        "grid grid-cols-[4.5rem_1fr] gap-3 border-l-2 border-mzk/45 bg-mzk/[0.04] py-3 pl-3 sm:grid-cols-[5.5rem_1fr] sm:gap-4 sm:pl-4",
+        isNext && "border-l-mzk bg-mzk/12 -ml-px rounded-r-lg pr-2",
       )}
     >
       <div className="relative flex flex-col gap-0.5">
         <span
           aria-hidden
           className={cn(
-            "absolute top-2 -left-[calc(0.75rem+5px)] size-2 rounded-full bg-border sm:-left-[calc(1rem+5px)]",
-            isNext && "bg-mzk",
+            "absolute top-2 -left-[calc(0.75rem+5px)] size-2 rounded-full bg-mzk sm:-left-[calc(1rem+5px)]",
+            isNext && "ring-2 ring-mzk/30",
           )}
         />
         <time
@@ -245,10 +245,10 @@ function MzkDepartureRow({
       </div>
       <div className="flex flex-col gap-1 self-center">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="text-xs font-semibold tracking-wide text-mzk-deep uppercase">
+          <span className="inline-flex items-center rounded-md bg-mzk/15 px-2 py-0.5 text-xs font-semibold tracking-wide text-mzk-deep uppercase">
             MZK {departure.route}
           </span>
-          <span className="text-sm text-foreground">
+          <span className="text-sm font-medium text-foreground">
             {departure.headsign ||
               `${departure.boardStopName} → ${departure.alightStopName}`}
           </span>
@@ -276,16 +276,16 @@ function SchoolTimelineRow({
     <li
       id={entry.stopId}
       className={cn(
-        "grid grid-cols-[4.5rem_1fr] gap-3 border-l-2 border-border/50 py-3 pl-3 sm:grid-cols-[5.5rem_1fr] sm:gap-4 sm:pl-4",
-        isNext && "border-l-bus bg-bus/8 -ml-px rounded-r-lg pr-2",
+        "grid grid-cols-[4.5rem_1fr] gap-3 border-l-2 border-bus/45 bg-bus/[0.03] py-3 pl-3 sm:grid-cols-[5.5rem_1fr] sm:gap-4 sm:pl-4",
+        isNext && "border-l-bus bg-bus/12 -ml-px rounded-r-lg pr-2",
       )}
     >
       <div className="relative flex flex-col gap-1">
         <span
           aria-hidden
           className={cn(
-            "absolute top-2 -left-[calc(0.75rem+5px)] size-2 rounded-full bg-border sm:-left-[calc(1rem+5px)]",
-            isNext && "bg-bus",
+            "absolute top-2 -left-[calc(0.75rem+5px)] size-2 rounded-full bg-bus sm:-left-[calc(1rem+5px)]",
+            isNext && "ring-2 ring-bus/30",
           )}
         />
         <time
@@ -304,7 +304,7 @@ function SchoolTimelineRow({
       </div>
       <div className="flex flex-col gap-1.5 self-center">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="text-xs font-semibold tracking-wide text-bus-deep uppercase">
+          <span className="inline-flex items-center rounded-md bg-bus/15 px-2 py-0.5 text-xs font-semibold tracking-wide text-bus-deep uppercase">
             Szkolny
           </span>
           <span className="text-xs text-muted-foreground">{entry.context}</span>
