@@ -163,7 +163,7 @@ function StopRow({
         <span
           aria-hidden
           className={cn(
-            "absolute top-2 -left-[calc(0.75rem+5px)] size-2 rounded-full bg-border sm:-left-[calc(1rem+5px)]",
+            "absolute top-2 -left-4.25 size-2 rounded-full bg-border sm:-left-5.25",
             isNext && "bg-bus",
           )}
         />
@@ -213,7 +213,7 @@ function MzkDepartureRow({
     <li
       id={stopId}
       className={cn(
-        "grid grid-cols-[4.5rem_1fr] gap-3 border-l-2 border-mzk/45 bg-mzk/[0.04] py-3 pl-3 sm:grid-cols-[5.5rem_1fr] sm:gap-4 sm:pl-4",
+        "grid grid-cols-[4.5rem_1fr] gap-3 border-l-2 border-mzk/45 bg-mzk/4 py-3 pl-3 sm:grid-cols-[5.5rem_1fr] sm:gap-4 sm:pl-4",
         isNext && "border-l-mzk bg-mzk/12 -ml-px rounded-r-lg pr-2",
       )}
     >
@@ -221,7 +221,7 @@ function MzkDepartureRow({
         <span
           aria-hidden
           className={cn(
-            "absolute top-2 -left-[calc(0.75rem+5px)] size-2 rounded-full bg-mzk sm:-left-[calc(1rem+5px)]",
+            "absolute top-2 -left-4.25 size-2 rounded-full bg-mzk sm:-left-5.25",
             isNext && "ring-2 ring-mzk/30",
           )}
         />
@@ -276,7 +276,7 @@ function SchoolTimelineRow({
     <li
       id={entry.stopId}
       className={cn(
-        "grid grid-cols-[4.5rem_1fr] gap-3 border-l-2 border-bus/45 bg-bus/[0.03] py-3 pl-3 sm:grid-cols-[5.5rem_1fr] sm:gap-4 sm:pl-4",
+        "grid grid-cols-[4.5rem_1fr] gap-3 border-l-2 border-bus/45 bg-bus/3 py-3 pl-3 sm:grid-cols-[5.5rem_1fr] sm:gap-4 sm:pl-4",
         isNext && "border-l-bus bg-bus/12 -ml-px rounded-r-lg pr-2",
       )}
     >
@@ -284,7 +284,7 @@ function SchoolTimelineRow({
         <span
           aria-hidden
           className={cn(
-            "absolute top-2 -left-[calc(0.75rem+5px)] size-2 rounded-full bg-bus sm:-left-[calc(1rem+5px)]",
+            "absolute top-2 -left-4.25 size-2 rounded-full bg-bus sm:-left-5.25",
             isNext && "ring-2 ring-bus/30",
           )}
         />
@@ -1459,6 +1459,7 @@ export function ScheduleBoard({
                         <div
                           key={`${block.name}-${course.label}-${course.note ?? ""}`}
                           className={cn(
+                            "pb-2",
                             courseIndex > 0 && "border-t border-border/50",
                           )}
                         >

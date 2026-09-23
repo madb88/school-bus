@@ -75,8 +75,8 @@ export function StopCombobox({
         <Combobox.Positioner className="z-50 outline-none" sideOffset={4}>
           <Combobox.Popup
             className={cn(
-              "w-[var(--anchor-width)] max-w-[var(--available-width)] overflow-hidden rounded-lg border border-border bg-card text-foreground shadow-lg",
-              "origin-[var(--transform-origin)] transition-[scale,opacity] duration-100",
+              "w-(--anchor-width) max-w-(--available-width) overflow-hidden rounded-lg border border-border bg-card text-foreground shadow-lg",
+              "origin-(--transform-origin) transition-[scale,opacity] duration-100",
               "data-starting-style:scale-95 data-starting-style:opacity-0",
               "data-ending-style:scale-95 data-ending-style:opacity-0",
             )}
