@@ -1,10 +1,10 @@
 import type { ChildLessonPlan, WeekdayKey } from "./types";
 
 /** Max minutes before lesson start for a matching morning pickup/arrival. */
-export const PICKUP_WINDOW_BEFORE_START_MIN = 90;
+export const PICKUP_WINDOW_BEFORE_START_MIN = 150;
 
 /** Max minutes after lesson end for a matching afternoon dropoff departure. */
-export const DROPOFF_WINDOW_AFTER_END_MIN = 90;
+export const DROPOFF_WINDOW_AFTER_END_MIN = 150;
 
 /** "8:00" / "08:00" → minutes from midnight */
 export function timeToMinutes(time: string): number | null {
@@ -34,7 +34,7 @@ export function getDayTimes(
 
 /**
  * Morning trip fits if it happens before lessons start, but not earlier
- * than `windowMin` minutes before start (default 90).
+ * than `windowMin` minutes before start (default 150).
  */
 export function pickupFitsLessonStart(
   stopTime: string,
@@ -50,7 +50,7 @@ export function pickupFitsLessonStart(
 
 /**
  * Afternoon trip fits if it leaves at/after lessons end, but not later
- * than `windowMin` minutes after end (default 90).
+ * than `windowMin` minutes after end (default 150).
  */
 export function dropoffFitsLessonEnd(
   runTime: string,
