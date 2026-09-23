@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cn } from "cn";
 
 type SiteNavProps = {
-  current: "rozklad" | "lekcje" | "mzk";
+  current: "rozklad" | "lekcje" | "mzk" | "o-aplikacji";
 };
 
 export function SiteNav({ current }: SiteNavProps) {
@@ -16,7 +16,7 @@ export function SiteNav({ current }: SiteNavProps) {
 
   return (
     <nav
-      className="flex items-center gap-1 rounded-lg border border-border/60 bg-card/50 p-1 backdrop-blur-sm"
+      className="flex flex-wrap items-center gap-1 rounded-lg border border-border/60 bg-card/50 p-1 backdrop-blur-sm"
       aria-label="Główne"
     >
       <Link
@@ -39,6 +39,13 @@ export function SiteNav({ current }: SiteNavProps) {
         aria-current={current === "mzk" ? "page" : undefined}
       >
         MZK
+      </Link>
+      <Link
+        href="/o-aplikacji"
+        className={linkClass(current === "o-aplikacji")}
+        aria-current={current === "o-aplikacji" ? "page" : undefined}
+      >
+        O aplikacji
       </Link>
     </nav>
   );

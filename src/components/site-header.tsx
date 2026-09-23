@@ -3,7 +3,7 @@ import { SiteNav } from "@/components/site-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 type SiteHeaderProps = {
-  current: "rozklad" | "lekcje" | "mzk";
+  current: "rozklad" | "lekcje" | "mzk" | "o-aplikacji";
 };
 
 export function SiteHeader({ current }: SiteHeaderProps) {
