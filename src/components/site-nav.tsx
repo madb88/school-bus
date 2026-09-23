@@ -1,8 +1,21 @@
 import Link from "next/link";
 import { cn } from "cn";
 
+export type NavId = "rozklad" | "lekcje" | "mzk" | "o-aplikacji";
+
+export const NAV_ITEMS: ReadonlyArray<{
+  id: NavId;
+  href: string;
+  label: string;
+}> = [
+  { id: "rozklad", href: "/", label: "Rozkład" },
+  { id: "lekcje", href: "/lekcje", label: "Plan lekcji" },
+  { id: "mzk", href: "/mzk", label: "MZK" },
+  { id: "o-aplikacji", href: "/o-aplikacji", label: "O aplikacji" },
+];
+
 type SiteNavProps = {
-  current: "rozklad" | "lekcje" | "mzk" | "o-aplikacji";
+  current: NavId;
 };
 
 export function SiteNav({ current }: SiteNavProps) {
@@ -16,37 +29,19 @@ export function SiteNav({ current }: SiteNavProps) {
 
   return (
     <nav
-      className="flex flex-wrap items-center gap-1 rounded-lg border border-border/60 bg-card/50 p-1 backdrop-blur-sm"
+      className="hidden items-center gap-1 rounded-lg border border-border/60 bg-card/50 p-1 backdrop-blur-sm md:flex"
       aria-label="Główne"
     >
-      <Link
-        href="/"
-        className={linkClass(current === "rozklad")}
-        aria-current={current === "rozklad" ? "page" : undefined}
-      >
-        Rozkład
-      </Link>
-      <Link
-        href="/lekcje"
-        className={linkClass(current === "lekcje")}
-        aria-current={current === "lekcje" ? "page" : undefined}
-      >
-        Plan lekcji
-      </Link>
-      <Link
-        href="/mzk"
-        className={linkClass(current === "mzk")}
-        aria-current={current === "mzk" ? "page" : undefined}
-      >
-        MZK
-      </Link>
-      <Link
-        href="/o-aplikacji"
-        className={linkClass(current === "o-aplikacji")}
-        aria-current={current === "o-aplikacji" ? "page" : undefined}
-      >
-        O aplikacji
-      </Link>
+      {NAV_ITEMS.map((item) => (
+        <Link
+          key={item.id}
+          href={item.href}
+          className={linkClass(current === item.id)}
+          aria-current={current === item.id ? "page" : undefined}
+        >
+          {item.label}
+        </Link>
+      ))}
     </nav>
   );
 }

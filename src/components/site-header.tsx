@@ -1,21 +1,22 @@
 import Link from "next/link";
-import { SiteNav } from "@/components/site-nav";
+import { MobileNav } from "@/components/mobile-nav";
+import { SiteNav, type NavId } from "@/components/site-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 type SiteHeaderProps = {
-  current: "rozklad" | "lekcje" | "mzk" | "o-aplikacji";
+  current: NavId;
 };
 
 export function SiteHeader({ current }: SiteHeaderProps) {
   return (
-    <header className="animate-rise flex flex-wrap items-center justify-between gap-4">
+    <header className="animate-rise flex items-center justify-between gap-4">
       <Link
         href="/"
-        className="group inline-flex items-center gap-2.5 no-underline"
+        className="group inline-flex min-w-0 items-center gap-2.5 no-underline"
       >
         <span
           aria-hidden
-          className="grid size-8 place-items-center rounded-lg bg-bus text-bus-foreground shadow-[0_0_0_1px_color-mix(in_srgb,var(--bus)_40%,transparent)] transition-transform duration-300 group-hover:-rotate-3 group-hover:scale-105"
+          className="grid size-8 shrink-0 place-items-center rounded-lg bg-bus text-bus-foreground shadow-[0_0_0_1px_color-mix(in_srgb,var(--bus)_40%,transparent)] transition-transform duration-300 group-hover:-rotate-3 group-hover:scale-105"
         >
           <svg
             viewBox="0 0 24 24"
@@ -30,13 +31,14 @@ export function SiteHeader({ current }: SiteHeaderProps) {
             <path d="M7 17v2M17 17v2M3 12h18M7 9h2M15 9h2" />
           </svg>
         </span>
-        <span className="font-display text-sm font-semibold tracking-tight text-asphalt sm:text-base">
+        <span className="truncate font-display text-sm font-semibold tracking-tight text-asphalt sm:text-base">
           Dojazdy do szkoły
         </span>
       </Link>
 
-      <div className="flex items-center gap-3 sm:gap-4">
+      <div className="flex shrink-0 items-center gap-3 sm:gap-4">
         <SiteNav current={current} />
+        <MobileNav current={current} />
         <ThemeToggle />
       </div>
     </header>
