@@ -38,13 +38,16 @@ export default async function Home({ searchParams }: HomeProps) {
 
   return (
     <PageShell>
-      <div className="mb-8">
+      <div className="mb-8 print:hidden">
         <SiteHeader current="rozklad" />
       </div>
       {schedule ? (
         <>
           <h1 className="sr-only">Rozkład dowozów</h1>
-          <ScheduleStatusBanner items={freshness} className="mb-6" />
+          <ScheduleStatusBanner
+            items={freshness}
+            className="mb-6 print:hidden"
+          />
           <ScheduleBoard
             schedule={schedule}
             mzkAvailable={Boolean(mzkMeta)}

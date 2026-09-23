@@ -32,7 +32,7 @@ export function FeedbackFab() {
           <Button
             type="button"
             size="lg"
-            className="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom,0px))] z-40 shadow-md max-sm:size-11 max-sm:gap-0 sm:right-6 sm:bottom-6 sm:gap-2"
+            className="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom,0px))] z-40 shadow-md print:hidden max-sm:size-11 max-sm:gap-0 sm:right-6 sm:bottom-6 sm:gap-2"
             aria-label="Wyślij opinię"
           />
         }

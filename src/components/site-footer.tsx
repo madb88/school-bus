@@ -34,7 +34,7 @@ export async function SiteFooter() {
   ]);
 
   return (
-    <footer className="border-t border-border/60">
+    <footer className="border-t border-border/60 print:hidden">
       <div className="mx-auto flex max-w-4xl flex-col gap-4 px-6 py-8 sm:px-10">
         {(schoolSchedule || mzkMeta) && (
           <div className="space-y-1 text-xs text-muted-foreground sm:text-sm">

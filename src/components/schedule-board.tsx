@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { Check, FilterX, Link2, Printer } from "lucide-react";
 import {
   Fragment,
   startTransition,
@@ -248,8 +249,8 @@ function StopRow({
         <span
           aria-hidden
           className={cn(
-            "absolute top-2 -left-4.25 size-2 rounded-full bg-border sm:-left-5.25",
-            isNext && "bg-bus",
+            "timeline-dot absolute top-2 -left-4.25 size-2 rounded-full border-2 border-border bg-border sm:-left-5.25",
+            isNext && "border-bus bg-bus",
           )}
         />
         <time
@@ -306,7 +307,7 @@ function MzkDepartureRow({
         <span
           aria-hidden
           className={cn(
-            "absolute top-2 -left-4.25 size-2 rounded-full bg-mzk sm:-left-5.25",
+            "timeline-dot absolute top-2 -left-4.25 size-2 rounded-full border-2 border-mzk bg-mzk sm:-left-5.25",
             isNext && "ring-2 ring-mzk/30",
           )}
         />
@@ -369,7 +370,7 @@ function SchoolTimelineRow({
         <span
           aria-hidden
           className={cn(
-            "absolute top-2 -left-4.25 size-2 rounded-full bg-bus sm:-left-5.25",
+            "timeline-dot absolute top-2 -left-4.25 size-2 rounded-full border-2 border-bus bg-bus sm:-left-5.25",
             isNext && "ring-2 ring-bus/30",
           )}
         />
@@ -1108,9 +1109,52 @@ export function ScheduleBoard({
     </div>
   );
 
+  const filterSummary = (
+    <>
+      {matchActive ? "Plan · " : null}
+      {sourceMode !== "school" ? (
+        <>
+          {sourceModeLabel(sourceMode)}
+          {" · "}
+        </>
+      ) : null}
+      {dateLabel(dateFilter)}
+      {place ? (
+        <>
+          {" · "}
+          <span className="font-medium text-foreground">{place}</span>
+        </>
+      ) : null}
+      {direction !== "all" ? (
+        <>
+          {" · "}
+          {directionLabel(direction)}
+        </>
+      ) : null}
+      {" · "}
+      {tripCount}{" "}
+      {tripCount === 1 ? "pozycja" : tripCount < 5 ? "pozycje" : "pozycji"}
+    </>
+  );
+
   return (
     <div className="space-y-10">
-      <div className="sticky top-0 z-10 -mx-6 space-y-2 border-y border-border/50 bg-[color-mix(in_srgb,var(--background)_92%,transparent)] px-6 py-2 shadow-[0_8px_24px_-20px_color-mix(in_srgb,var(--foreground)_40%,transparent)] backdrop-blur-md sm:-mx-10 sm:px-10 md:py-2.5">
+      <header className="hidden print:block">
+        <p className="text-xs tracking-wide text-muted-foreground uppercase">
+          Dojazdy do szkoły
+        </p>
+        <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-foreground">
+          {schedule.title || "Rozkład dowozów"}
+        </h1>
+        {schedule.periodLabel ? (
+          <p className="mt-1 text-sm text-muted-foreground">
+            Obowiązuje: {schedule.periodLabel}
+          </p>
+        ) : null}
+        <p className="mt-3 text-sm text-foreground">{filterSummary}</p>
+      </header>
+
+      <div className="sticky top-0 z-10 -mx-6 space-y-2 border-y border-border/50 bg-[color-mix(in_srgb,var(--background)_92%,transparent)] px-6 py-2 shadow-[0_8px_24px_-20px_color-mix(in_srgb,var(--foreground)_40%,transparent)] backdrop-blur-md print:hidden sm:-mx-10 sm:px-10 md:py-2.5">
         <div className="flex flex-col gap-2">
           {/* Mobile: compact bar + place / day / direction */}
           <div className="flex flex-col gap-2 md:hidden">
@@ -1228,125 +1272,118 @@ export function ScheduleBoard({
           </div>
         </div>
 
-        {hasActiveFilters || nextTrip || nextMerged ? (
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between gap-3">
-              <p className="min-w-0 truncate text-xs text-muted-foreground sm:text-sm">
-                {matchActive ? "Plan · " : null}
-                {sourceMode !== "school" ? (
-                  <>
-                    {sourceModeLabel(sourceMode)}
-                    {" · "}
-                  </>
-                ) : null}
-                {dateLabel(dateFilter)}
-                {place ? (
-                  <>
-                    {" · "}
-                    <span className="font-medium text-foreground">{place}</span>
-                  </>
-                ) : null}
-                {direction !== "all" ? (
-                  <>
-                    {" · "}
-                    {directionLabel(direction)}
-                  </>
-                ) : null}
-                {" · "}
-                {tripCount}{" "}
-                {tripCount === 1
-                  ? "pozycja"
-                  : tripCount < 5
-                    ? "pozycje"
-                    : "pozycji"}
-              </p>
-              <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between gap-3">
+            <p className="min-w-0 truncate text-xs text-muted-foreground sm:text-sm">
+              {filterSummary}
+            </p>
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="size-7 px-0 sm:h-7 sm:w-auto sm:px-2.5"
+                aria-label="Drukuj"
+                onClick={() => {
+                  window.print();
+                }}
+              >
+                <Printer aria-hidden />
+                <span className="hidden sm:inline">Drukuj</span>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="size-7 px-0 sm:h-7 sm:w-auto sm:px-2.5"
+                aria-label={copiedFlash ? "Skopiowano" : "Kopiuj link"}
+                onClick={() => {
+                  void copyShareLink();
+                }}
+              >
+                {copiedFlash ? (
+                  <Check aria-hidden />
+                ) : (
+                  <Link2 aria-hidden />
+                )}
+                <span className="hidden sm:inline">
+                  {copiedFlash ? "Skopiowano" : "Kopiuj link"}
+                </span>
+              </Button>
+              {hasActiveFilters ? (
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  onClick={() => {
-                    void copyShareLink();
-                  }}
+                  className="size-7 px-0 sm:h-7 sm:w-auto sm:px-2.5"
+                  aria-label="Wyczyść filtry"
+                  onClick={clearFilters}
                 >
-                  {copiedFlash ? "Skopiowano" : "Kopiuj link"}
+                  <FilterX aria-hidden />
+                  <span className="hidden sm:inline">Wyczyść filtry</span>
                 </Button>
-                {hasActiveFilters ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearFilters}
-                  >
-                    Wyczyść filtry
-                  </Button>
-                ) : null}
-              </div>
+              ) : null}
             </div>
-            {nextMerged ? (
-              <p className="text-xs text-foreground sm:text-sm">
-                <span className="font-semibold text-bus-deep">
-                  Najbliższy kurs
-                </span>
-                {": "}
-                <a
-                  href={`#${nextMerged.id}`}
-                  className="font-display font-bold tabular-nums underline-offset-2 hover:underline"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    document
-                      .getElementById(nextMerged.id)
-                      ?.scrollIntoView({
-                        behavior: "smooth",
-                        block: "center",
-                      });
-                  }}
-                >
-                  {nextMerged.time}
-                </a>
-                {" · "}
-                {nextMerged.label}
-                {" · "}
-                {nextMerged.kind === "pickup" ? "dowóz" : "odwóz"}
-              </p>
-            ) : nextTrip ? (
-              <p className="text-xs text-foreground sm:text-sm">
-                <span className="font-semibold text-bus-deep">
-                  Najbliższy kurs
-                </span>
-                {": "}
-                <a
-                  href={`#${nextTrip.id}`}
-                  className="font-display font-bold tabular-nums underline-offset-2 hover:underline"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    document
-                      .getElementById(nextTrip.id)
-                      ?.scrollIntoView({
-                        behavior: "smooth",
-                        block: "center",
-                      });
-                  }}
-                >
-                  {nextTrip.time}
-                </a>
-                {" · "}
-                {nextTrip.places.join(", ")}
-                {" · "}
-                {nextTrip.kind === "pickup" ? "dowóz" : "odwóz"}
-                {nextTrip.context ? ` (${nextTrip.context})` : null}
-              </p>
-            ) : dateFilter === "today" && !isEmpty ? (
-              <p className="text-xs text-muted-foreground sm:text-sm">
-                Brak kolejnych kursów na dziś w tym filtrze.
-              </p>
-            ) : null}
           </div>
-        ) : null}
+          {nextMerged ? (
+            <p className="text-xs text-foreground sm:text-sm">
+              <span className="font-semibold text-bus-deep">
+                Najbliższy kurs
+              </span>
+              {": "}
+              <a
+                href={`#${nextMerged.id}`}
+                className="font-display font-bold tabular-nums underline-offset-2 hover:underline"
+                onClick={(event) => {
+                  event.preventDefault();
+                  document.getElementById(nextMerged.id)?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                  });
+                }}
+              >
+                {nextMerged.time}
+              </a>
+              {" · "}
+              {nextMerged.label}
+              {" · "}
+              {nextMerged.kind === "pickup" ? "dowóz" : "odwóz"}
+            </p>
+          ) : nextTrip ? (
+            <p className="text-xs text-foreground sm:text-sm">
+              <span className="font-semibold text-bus-deep">
+                Najbliższy kurs
+              </span>
+              {": "}
+              <a
+                href={`#${nextTrip.id}`}
+                className="font-display font-bold tabular-nums underline-offset-2 hover:underline"
+                onClick={(event) => {
+                  event.preventDefault();
+                  document.getElementById(nextTrip.id)?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                  });
+                }}
+              >
+                {nextTrip.time}
+              </a>
+              {" · "}
+              {nextTrip.places.join(", ")}
+              {" · "}
+              {nextTrip.kind === "pickup" ? "dowóz" : "odwóz"}
+              {nextTrip.context ? ` (${nextTrip.context})` : null}
+            </p>
+          ) : dateFilter === "today" && !isEmpty ? (
+            <p className="text-xs text-muted-foreground sm:text-sm">
+              Brak kolejnych kursów na dziś w tym filtrze.
+            </p>
+          ) : null}
+        </div>
       </div>
 
       {showPlanHint || showMzkHint ? (
-        <div className="grid gap-2">
+        <div className="grid gap-2 print:hidden">
           {showPlanHint ? (
             <div className="border-l-2 border-bus/40 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
               <p className="font-medium text-foreground">Ustaw plan lekcji</p>
@@ -1472,7 +1509,7 @@ export function ScheduleBoard({
       ) : sourceMode === "school-mzk" && mergedTimeline ? (
         <div className="animate-rise-delay-2 space-y-14 animate-in fade-in duration-300">
           {!mzkRouteReady ? (
-            <p className="border-l-2 border-mzk/40 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+            <p className="border-l-2 border-mzk/40 bg-muted/40 px-4 py-3 text-sm text-muted-foreground print:hidden">
               Dodaj przystanki MZK, żeby zobaczyć też kursy miejskie razem ze
               szkolnymi.{" "}
               <Link
@@ -1490,7 +1527,7 @@ export function ScheduleBoard({
           applyLessonFilter &&
           hiddenMzkCount > 0 &&
           !showAllMzkConnections ? (
-            <p className="border-l-2 border-mzk/40 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+            <p className="border-l-2 border-mzk/40 bg-muted/40 px-4 py-3 text-sm text-muted-foreground print:hidden">
               Brak kursów MZK pasujących do planu lekcji (+{hiddenMzkCount} poza
               oknem).{" "}
               <button
@@ -1508,7 +1545,7 @@ export function ScheduleBoard({
           {mzkRouteReady &&
           mzkDeparturesCount === 0 &&
           !(applyLessonFilter && hiddenMzkCount > 0 && !showAllMzkConnections) ? (
-            <p className="border-l-2 border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+            <p className="border-l-2 border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground print:hidden">
               Brak bezpośrednich kursów MZK na tej trasie w wybranym dniu — poniżej
               tylko kursy szkolne.{" "}
               <Link
@@ -1555,7 +1592,7 @@ export function ScheduleBoard({
           ) : null}
 
           {mzkRouteReady ? (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground print:hidden">
               Kursy MZK (pon–pt, dni nauki) i szkolne są w jednej liście wg
               godziny.{" "}
               <Link
