@@ -917,7 +917,7 @@ export function ScheduleBoard({
           Plan lekcji
         </Label>
         <div
-          className="flex flex-col gap-1.5"
+          className="flex flex-col gap-1.5 md:flex-row md:flex-wrap md:items-center"
           aria-labelledby="schedule-lesson-plan-label"
         >
           <div className="flex flex-wrap items-center gap-1.5">
@@ -969,7 +969,7 @@ export function ScheduleBoard({
             ) : null}
           </div>
           {matchActive && dayTimes ? (
-            <span className="inline-flex flex-wrap items-center gap-x-1 gap-y-1 text-xs text-muted-foreground">
+            <span className="inline-flex flex-wrap items-center gap-x-1 gap-y-1 whitespace-nowrap text-xs text-muted-foreground">
               {dayTimes.start ? <span>od {dayTimes.start}</span> : null}
               {dayTimes.start && dayTimes.end ? <span> </span> : null}
               {dayTimes.end ? <span>do {dayTimes.end}</span> : null}
