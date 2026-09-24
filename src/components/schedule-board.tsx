@@ -10,6 +10,7 @@ import {
   FilterX,
   Flag,
   Link2,
+  Loader2,
   MapPin,
   Moon,
   Printer,
@@ -701,6 +702,9 @@ export function ScheduleBoard({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [extraOptionsOpen, setExtraOptionsOpen] = useState(false);
   const [copiedFlash, setCopiedFlash] = useState(false);
+  // Wait for localStorage prefs (plan / miejsce / MZK) before painting trips —
+  // otherwise SSR empty defaults flash into filtered client content.
+  const [prefsReady, setPrefsReady] = useState(false);
   const planHintDismissed = useHintDismissed("plan");
   const mzkHintDismissed = useHintDismissed("mzk");
   const skipUrlWrite = useRef(false);
@@ -717,6 +721,10 @@ export function ScheduleBoard({
       : placeOverride;
   const dateFilter = dateFilterOverride ?? "today";
   const windowDraftValue = windowDraft ?? String(lessonMatchWindowMin);
+
+  useEffect(() => {
+    setPrefsReady(true);
+  }, []);
 
   useEffect(() => {
     const tick = () => setNow(new Date());
@@ -1677,7 +1685,19 @@ export function ScheduleBoard({
         </div>
       ) : null}
 
-      {isEmpty ? (
+      {!prefsReady ? (
+        <div
+          className="flex min-h-[14rem] flex-col items-center justify-center gap-2.5 print:hidden"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <Loader2 className="size-5 animate-spin text-bus" aria-hidden />
+          <span className="text-xs text-muted-foreground">
+            Ładowanie rozkładu…
+          </span>
+        </div>
+      ) : isEmpty ? (
         <p className="border-l-2 border-border bg-muted/30 px-4 py-8 text-center text-muted-foreground">
           {sourceMode === "school-mzk" && !mzkAvailable ? (
             <>Rozkład MZK jest chwilowo niedostępny.</>
@@ -1741,7 +1761,7 @@ export function ScheduleBoard({
           )}
         </p>
       ) : sourceMode === "school-mzk" && mergedTimeline ? (
-        <div className="animate-rise-delay-2 space-y-6 animate-in fade-in duration-300">
+        <div className="space-y-6">
           {!mzkRouteReady ? (
             <p className="border-l-2 border-mzk/40 bg-muted/40 px-4 py-3 text-sm text-muted-foreground print:hidden">
               Dodaj przystanki MZK, żeby zobaczyć też kursy miejskie razem ze
@@ -1853,7 +1873,7 @@ export function ScheduleBoard({
           ) : null}
         </div>
       ) : (
-        <div className="animate-rise-delay-2 animate-in fade-in duration-300">
+        <div>
           <div
             className={cn(
               "grid items-start gap-4 print:gap-2",
