@@ -9,6 +9,7 @@ import {
   type LessonPlanPrintMode,
 } from "@/components/lesson-plan-print";
 import { PlaceCombobox } from "@/components/place-combobox";
+import { SettingsTransferSheet } from "@/components/settings-transfer-sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -387,6 +388,11 @@ export function LessonPlanForm({
         >
           Wyczyść
         </Button>
+        <SettingsTransferSheet
+          canTransfer={
+            hasConfiguredLessons(stored) || hasConfiguredMzkRoute(mzkRoute)
+          }
+        />
         {hasConfiguredLessons(plan) ? (
           <Link
             href={filtersHref({

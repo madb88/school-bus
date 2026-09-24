@@ -84,11 +84,12 @@ const steps: GuideStep[] = [
     body: (
       <>
         <span className="font-medium text-foreground">Kopiuj link</span>{" "}
-        udostępnia filtry rozkładu — plan lekcji i trasa MZK zostają tylko w tej
-        przeglądarce. Motyw jasny/ciemny znajdziesz w nagłówku, a opinię lub
-        pomysł wyślesz z przycisku{" "}
-        <span className="font-medium text-foreground">Opinia</span> w rogu
-        ekranu.
+        udostępnia filtry rozkładu. Plan lekcji i trasę MZK możesz też{" "}
+        <span className="font-medium text-foreground">przenieść na telefon</span>{" "}
+        kodem QR z planu lekcji (jednorazowy, ważny kilka minut). Motyw
+        jasny/ciemny znajdziesz w nagłówku, a opinię lub pomysł wyślesz z
+        przycisku <span className="font-medium text-foreground">Opinia</span> w
+        rogu ekranu.
       </>
     ),
   },
