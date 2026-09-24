@@ -1627,7 +1627,7 @@ export function ScheduleBoard({
       {showPlanHint || showMzkHint ? (
         <div className="grid gap-2 print:hidden">
           {showPlanHint ? (
-            <div className="border-l-2 border-bus/40 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+            <div className="rounded-xl border border-border/70 border-l-2 border-l-bus/50 bg-card px-4 py-3 text-sm text-muted-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]">
               <p className="font-medium text-foreground">Ustaw plan lekcji</p>
               <p className="mt-1 leading-relaxed">
                 Dodaj godziny zajęć, żeby rozkład dopasował kursy do startu i
@@ -1654,13 +1654,13 @@ export function ScheduleBoard({
             </div>
           ) : null}
           {showMzkHint ? (
-            <div className="border-l-2 border-mzk/40 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+            <div className="rounded-xl border border-border/70 border-l-2 border-l-mzk/50 bg-card px-4 py-3 text-sm text-muted-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]">
               <p className="font-medium text-foreground">
                 Ustaw przystanek MZK
               </p>
               <p className="mt-1 leading-relaxed">
                 Wybierz wsiadanie i wysiadanie, żeby zobaczyć kursy miejskie
-                razem ze szkolnymi.
+                razem ze szkolnymi — jako alternatywę dla autobusów szkolnych.
               </p>
               <div className="mt-2.5 flex flex-wrap items-center gap-2">
                 <Link
@@ -1762,20 +1762,6 @@ export function ScheduleBoard({
         </p>
       ) : sourceMode === "school-mzk" && mergedTimeline ? (
         <div className="space-y-6">
-          {!mzkRouteReady ? (
-            <p className="border-l-2 border-mzk/40 bg-muted/40 px-4 py-3 text-sm text-muted-foreground print:hidden">
-              Dodaj przystanki MZK, żeby zobaczyć też kursy miejskie razem ze
-              szkolnymi.{" "}
-              <Link
-                href="/mzk"
-                className="underline underline-offset-2 hover:text-foreground"
-              >
-                Ustaw trasę
-              </Link>
-              .
-            </p>
-          ) : null}
-
           {mzkRouteReady &&
           mzkDeparturesCount === 0 &&
           applyLessonFilter &&
