@@ -13,6 +13,7 @@ import {
 } from "@/lib/settings-transfer/rate-limit";
 import {
   isTransferStoreConfigured,
+  peekTransferPayload,
   saveTransferPayload,
   takeTransferPayload,
 } from "@/lib/settings-transfer/store";
@@ -34,14 +35,40 @@ function jsonError(message: string, status: number, retryAfterSec?: number) {
   return NextResponse.json({ error: message }, { status, headers });
 }
 
-/** Create a one-time transfer code (stored in Upstash Redis with TTL). */
-export async function POST(request: Request) {
+function readTokenFromRequest(request: Request): string {
+  const { searchParams } = new URL(request.url);
+  return normalizeTransferToken(
+    searchParams.get("t") ?? searchParams.get("code") ?? "",
+  );
+}
+
+async function requireTransferConfigured() {
   if (!isTransferStoreConfigured()) {
     return jsonError(
       "Transfer między urządzeniami nie jest skonfigurowany (brak Upstash Redis).",
       503,
     );
   }
+  return null;
+}
+
+async function requireRedeemRateLimit(request: Request) {
+  const ip = getClientIpFromHeaders(request.headers);
+  const rate = await checkTransferRedeemRateLimit(ip);
+  if (!rate.ok) {
+    return jsonError(
+      "Zbyt wiele prób. Spróbuj ponownie za chwilę.",
+      429,
+      rate.retryAfterSec,
+    );
+  }
+  return null;
+}
+
+/** Create a one-time transfer code (stored in Upstash Redis with TTL). */
+export async function POST(request: Request) {
+  const configured = await requireTransferConfigured();
+  if (configured) return configured;
 
   const ip = getClientIpFromHeaders(request.headers);
   const rate = await checkTransferCreateRateLimit(ip);
@@ -104,31 +131,48 @@ export async function POST(request: Request) {
 }
 
 /**
- * Redeem a one-time transfer code.
- * Consumes the Redis entry (getdel) — canceling after this requires a new QR.
+ * Preview a transfer code without consuming it.
+ * Returns summary only — full payload is returned on DELETE (confirm).
  */
 export async function GET(request: Request) {
-  if (!isTransferStoreConfigured()) {
-    return jsonError(
-      "Transfer między urządzeniami nie jest skonfigurowany (brak Upstash Redis).",
-      503,
-    );
+  const configured = await requireTransferConfigured();
+  if (configured) return configured;
+
+  const limited = await requireRedeemRateLimit(request);
+  if (limited) return limited;
+
+  const token = readTokenFromRequest(request);
+  if (!isValidTransferToken(token)) {
+    return jsonError("Podaj prawidłowy kod transferu.", 400);
   }
 
-  const ip = getClientIpFromHeaders(request.headers);
-  const rate = await checkTransferRedeemRateLimit(ip);
-  if (!rate.ok) {
-    return jsonError(
-      "Zbyt wiele prób. Spróbuj ponownie za chwilę.",
-      429,
-      rate.retryAfterSec,
-    );
+  const peeked = await peekTransferPayload(token);
+  if (!peeked.ok) {
+    return jsonError(peeked.error, peeked.status);
   }
 
-  const { searchParams } = new URL(request.url);
-  const rawToken = searchParams.get("t") ?? searchParams.get("code") ?? "";
-  const token = normalizeTransferToken(rawToken);
+  const parsed = parseSettingsTransferPayload(peeked.payload);
+  if ("error" in parsed) {
+    return jsonError(parsed.error, 400);
+  }
 
+  return NextResponse.json({
+    summary: summarizeTransferPayload(parsed, peeked.ttlSec),
+    expiresInSec: peeked.ttlSec,
+  });
+}
+
+/**
+ * Consume a transfer code and return the full payload for local apply.
+ */
+export async function DELETE(request: Request) {
+  const configured = await requireTransferConfigured();
+  if (configured) return configured;
+
+  const limited = await requireRedeemRateLimit(request);
+  if (limited) return limited;
+
+  const token = readTokenFromRequest(request);
   if (!isValidTransferToken(token)) {
     return jsonError("Podaj prawidłowy kod transferu.", 400);
   }

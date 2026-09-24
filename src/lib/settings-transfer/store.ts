@@ -52,8 +52,56 @@ export async function saveTransferPayload(
 }
 
 /**
- * Atomically read and delete a one-time transfer payload.
- * Returns null when missing/expired.
+ * Read a transfer payload without consuming it (preview).
+ */
+export async function peekTransferPayload(
+  token: string,
+): Promise<
+  | { ok: true; payload: unknown; ttlSec: number }
+  | { ok: false; error: string; status: 404 | 503 }
+> {
+  const redis = getTransferRedis();
+  if (!redis) {
+    return {
+      ok: false,
+      error: "Transfer wymaga skonfigurowanego Upstash Redis.",
+      status: 503,
+    };
+  }
+
+  const key = keyFor(token);
+
+  try {
+    const [raw, ttlSec] = await Promise.all([
+      redis.get<unknown>(key),
+      redis.ttl(key),
+    ]);
+
+    if (raw == null) {
+      return {
+        ok: false,
+        error: "Kod wygasł albo został już użyty.",
+        status: 404,
+      };
+    }
+
+    return {
+      ok: true,
+      payload: raw,
+      ttlSec: typeof ttlSec === "number" && ttlSec > 0 ? ttlSec : 0,
+    };
+  } catch (error) {
+    console.error("Failed to peek settings transfer", error);
+    return {
+      ok: false,
+      error: "Nie udało się odczytać kodu transferu.",
+      status: 503,
+    };
+  }
+}
+
+/**
+ * Atomically read and delete a one-time transfer payload (confirm apply).
  */
 export async function takeTransferPayload(
   token: string,

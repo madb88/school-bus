@@ -25,6 +25,12 @@ import type {
   SettingsTransferSummary,
 } from "@/lib/settings-transfer/types";
 
+type PeekResponse = {
+  summary?: SettingsTransferSummary;
+  expiresInSec?: number;
+  error?: string;
+};
+
 type RedeemResponse = {
   payload?: SettingsTransferPayload;
   summary?: SettingsTransferSummary;
@@ -51,16 +57,17 @@ export function SettingsRestorePanel({
   const [codeInput, setCodeInput] = useState(
     normalizedInitial ? formatTransferCode(normalizedInitial) : "",
   );
+  const [token, setToken] = useState(normalizedInitial);
   const [pending, startTransition] = useTransition();
+  const [applying, startApply] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [payload, setPayload] = useState<SettingsTransferPayload | null>(null);
   const [summary, setSummary] = useState<SettingsTransferSummary | null>(null);
   const [hasLocal] = useState(readHasLocalSettings);
-  const autoRedeemed = useRef(false);
+  const autoPeeked = useRef(false);
 
-  function redeem(raw: string) {
-    const token = normalizeTransferToken(raw);
-    if (!token) {
+  function peek(raw: string) {
+    const nextToken = normalizeTransferToken(raw);
+    if (!nextToken) {
       setError("Wpisz kod z drugiego urządzenia.");
       return;
     }
@@ -68,61 +75,77 @@ export function SettingsRestorePanel({
     startTransition(async () => {
       try {
         const res = await fetch(
-          `/api/settings-transfer?t=${encodeURIComponent(token)}`,
+          `/api/settings-transfer?t=${encodeURIComponent(nextToken)}`,
         );
-        const data = (await res.json()) as RedeemResponse;
-        if (!res.ok || !data.payload) {
+        const data = (await res.json()) as PeekResponse;
+        if (!res.ok || !data.summary) {
           setError(data.error ?? "Nie udało się odczytać kodu.");
-          setPayload(null);
           setSummary(null);
+          setToken("");
           return;
         }
         setError(null);
-        setPayload(data.payload);
-        setSummary(data.summary ?? null);
-        setCodeInput(formatTransferCode(token));
+        setSummary(data.summary);
+        setToken(nextToken);
+        setCodeInput(formatTransferCode(nextToken));
+        // Drop token from the address bar so cancel/history is cleaner.
+        if (typeof window !== "undefined") {
+          const url = new URL(window.location.href);
+          if (url.searchParams.has("t") || url.searchParams.has("code")) {
+            url.searchParams.delete("t");
+            url.searchParams.delete("code");
+            window.history.replaceState({}, "", url.pathname);
+          }
+        }
       } catch {
         setError("Nie udało się połączyć z serwerem.");
-        setPayload(null);
         setSummary(null);
+        setToken("");
       }
     });
   }
 
   useEffect(() => {
-    if (!normalizedInitial || autoRedeemed.current) return;
-    autoRedeemed.current = true;
+    if (!normalizedInitial || autoPeeked.current) return;
+    autoPeeked.current = true;
+    peek(normalizedInitial);
+  }, [normalizedInitial]);
 
-    const token = normalizedInitial;
-    startTransition(async () => {
+  function apply() {
+    if (!token) return;
+
+    startApply(async () => {
       try {
         const res = await fetch(
           `/api/settings-transfer?t=${encodeURIComponent(token)}`,
+          { method: "DELETE" },
         );
         const data = (await res.json()) as RedeemResponse;
         if (!res.ok || !data.payload) {
-          setError(data.error ?? "Nie udało się odczytać kodu.");
+          setError(data.error ?? "Nie udało się przywrócić ustawień.");
+          setSummary(null);
           return;
         }
-        setPayload(data.payload);
-        setSummary(data.summary ?? null);
-        setCodeInput(formatTransferCode(token));
+        applySettingsTransferPayload(data.payload);
+        toast.success("Ustawienia przywrócone na tym urządzeniu");
+        router.push("/lekcje");
       } catch {
         setError("Nie udało się połączyć z serwerem.");
       }
     });
-  }, [normalizedInitial]);
-
-  function apply() {
-    if (!payload) return;
-    applySettingsTransferPayload(payload);
-    toast.success("Ustawienia przywrócone na tym urządzeniu");
-    router.push("/lekcje");
   }
+
+  function cancelPreview() {
+    setSummary(null);
+    setError(null);
+    // Keep code in the input — cancel does not consume the Redis entry.
+  }
+
+  const busy = pending || applying;
 
   return (
     <div className="mx-auto max-w-lg space-y-6">
-      {!payload ? (
+      {!summary ? (
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="transfer-code">Kod z QR / drugiego urządzenia</Label>
@@ -137,7 +160,7 @@ export function SettingsRestorePanel({
               autoComplete="off"
               spellCheck={false}
               className="h-11 font-mono tracking-widest uppercase"
-              disabled={pending}
+              disabled={busy}
             />
           </div>
           {error ? (
@@ -148,14 +171,14 @@ export function SettingsRestorePanel({
           <Button
             type="button"
             size="lg"
-            disabled={pending || !normalizeTransferToken(codeInput)}
-            onClick={() => redeem(codeInput)}
+            disabled={busy || !normalizeTransferToken(codeInput)}
+            onClick={() => peek(codeInput)}
           >
-            {pending ? "Odczytuję…" : "Odbierz ustawienia"}
+            {pending ? "Odczytuję…" : "Pokaż ustawienia"}
           </Button>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Kod jest jednorazowy — po odczytaniu znika z serwera. Jeśli coś
-            pójdzie nie tak, wygeneruj nowy na urządzeniu źródłowym.
+            Podgląd nie zużywa kodu. Kod znika dopiero po potwierdzeniu
+            przywrócenia na tym urządzeniu.
           </p>
         </div>
       ) : (
@@ -167,23 +190,19 @@ export function SettingsRestorePanel({
             <li>
               Miejsce:{" "}
               <span className="font-medium text-foreground">
-                {summary?.place ?? payload.lessonPlan.place ?? "—"}
+                {summary.place ?? "—"}
               </span>
             </li>
             <li>
               Dni w planie lekcji:{" "}
               <span className="font-medium text-foreground">
-                {summary?.lessonDays ??
-                  Object.keys(payload.lessonPlan.days).length}
+                {summary.lessonDays}
               </span>
             </li>
             <li>
               Trasa MZK:{" "}
               <span className="font-medium text-foreground">
-                {summary?.hasMzkRoute ||
-                hasConfiguredMzkRoute(payload.mzkRoute)
-                  ? "tak"
-                  : "nie"}
+                {summary.hasMzkRoute ? "tak" : "nie"}
               </span>
             </li>
           </ul>
@@ -202,19 +221,33 @@ export function SettingsRestorePanel({
           ) : null}
 
           <div className="flex flex-wrap gap-3">
-            <Button type="button" size="lg" onClick={apply}>
-              Przywróć na tym urządzeniu
+            <Button
+              type="button"
+              size="lg"
+              disabled={busy}
+              onClick={apply}
+            >
+              {applying ? "Przywracam…" : "Przywróć na tym urządzeniu"}
+            </Button>
+            <Button
+              type="button"
+              size="lg"
+              variant="outline"
+              disabled={busy}
+              onClick={cancelPreview}
+            >
+              Wróć
             </Button>
             <Link
               href="/lekcje"
-              className={buttonVariants({ size: "lg", variant: "outline" })}
+              className={buttonVariants({ size: "lg", variant: "ghost" })}
             >
               Anuluj
             </Link>
           </div>
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Kod został już zużyty. Anulowanie nie przywróci go — wygeneruj nowy
-            QR na drugim urządzeniu, jeśli potrzebujesz.
+            Anulowanie albo „Wróć” nie zużywa kodu — możesz otworzyć go ponownie,
+            dopóki nie wygaśnie.
           </p>
         </div>
       )}

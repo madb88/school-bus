@@ -51,4 +51,4 @@ Formularz „Opinia” (przycisk w prawym dolnym rogu) wysyła wiadomość na e-
 
 ## Transfer ustawień (QR)
 
-Na stronie **Plan lekcji** przycisk „Przenieś na telefon” tworzy jednorazowy kod (TTL 15 min) w Upstash Redis. Drugie urządzenie skanuje QR albo otwiera `/przywroc` i wpisuje kod — plan lekcji, trasa MZK i okno dopasowania trafiają do `localStorage`.
+Na stronie **Plan lekcji** przycisk „Przenieś na inne urządzenie” tworzy kod (TTL 15 min) w Upstash Redis. Drugie urządzenie skanuje QR albo otwiera `/przywroc` i wpisuje kod — najpierw widać **podgląd** (bez zużycia kodu), a dopiero „Przywróć” przenosi plan lekcji, trasę MZK i okno dopasowania do `localStorage` i kasuje kod.

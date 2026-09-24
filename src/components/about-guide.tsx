@@ -85,8 +85,8 @@ const steps: GuideStep[] = [
       <>
         <span className="font-medium text-foreground">Kopiuj link</span>{" "}
         udostępnia filtry rozkładu. Plan lekcji i trasę MZK możesz też{" "}
-        <span className="font-medium text-foreground">przenieść na telefon</span>{" "}
-        kodem QR z planu lekcji (jednorazowy, ważny kilka minut). Motyw
+        <span className="font-medium text-foreground">przenieść na inne urządzenie</span>{" "}
+        kodem QR z planu lekcji (podgląd nie zużywa kodu; ważny kilka minut). Motyw
         jasny/ciemny znajdziesz w nagłówku, a opinię lub pomysł wyślesz z
         przycisku <span className="font-medium text-foreground">Opinia</span> w
         rogu ekranu.

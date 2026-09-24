@@ -92,6 +92,7 @@ export function SettingsTransferSheet({
           color: { dark: "#1a1a1a", light: "#ffffff" },
         });
 
+        setError(null);
         setQrDataUrl(dataUrl);
         setCode(data.code || formatTransferCode(data.token));
         setExpiresInSec(data.expiresInSec);
@@ -106,6 +107,11 @@ export function SettingsTransferSheet({
     if (!next) return;
     resetPanel();
     if (canTransfer) createTransfer();
+  }
+
+  function regenerate() {
+    resetPanel();
+    createTransfer();
   }
 
   async function copyCode() {
@@ -139,7 +145,7 @@ export function SettingsTransferSheet({
         }
       >
         <Smartphone aria-hidden />
-        Przenieś na telefon
+        Przenieś na inne urządzenie
       </SheetTrigger>
       <SheetContent side="right" className="gap-0 overflow-y-auto sm:max-w-md">
         <SheetHeader>
@@ -149,15 +155,27 @@ export function SettingsTransferSheet({
           </SheetTitle>
           <SheetDescription>
             Zeskanuj kod aparatem drugiego urządzenia albo wpisz kod na stronie
-            odbioru. Kod jest jednorazowy i wygasa po kilku minutach.
+            odbioru. Kod wygasa po kilku minutach; zużywa się dopiero po
+            potwierdzeniu przywrócenia.
           </SheetDescription>
         </SheetHeader>
 
         <div className="flex flex-col gap-4 px-4 pb-6">
           {error ? (
-            <p className="text-sm text-destructive" role="alert">
-              {error}
-            </p>
+            <div className="space-y-3">
+              <p className="text-sm text-destructive" role="alert">
+                {error}
+              </p>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={pending || !canTransfer}
+                onClick={regenerate}
+              >
+                Spróbuj ponownie
+              </Button>
+            </div>
           ) : null}
 
           {pending && !qrDataUrl && !error ? (
@@ -190,21 +208,32 @@ export function SettingsTransferSheet({
                   Ważny ok. {minutes} min
                 </p>
               ) : null}
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={copyCode}
-              >
-                Kopiuj kod
-              </Button>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={copyCode}
+                >
+                  Kopiuj kod
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={pending}
+                  onClick={regenerate}
+                >
+                  Nowy kod
+                </Button>
+              </div>
             </div>
           ) : null}
 
           <p className="text-xs leading-relaxed text-muted-foreground">
             Na drugim urządzeniu otwórz zeskanowany link albo wejdź w{" "}
             <span className="font-medium text-foreground">/przywroc</span> i
-            wpisz kod. Po odczytaniu kod znika — jeśli anulujesz, wygeneruj nowy.
+            wpisz kod. Anulowanie podglądu nie zużywa kodu.
           </p>
         </div>
       </SheetContent>
