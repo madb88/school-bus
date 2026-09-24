@@ -704,7 +704,12 @@ export function ScheduleBoard({
   const [copiedFlash, setCopiedFlash] = useState(false);
   // Wait for localStorage prefs (plan / miejsce / MZK) before painting trips —
   // otherwise SSR empty defaults flash into filtered client content.
-  const [prefsReady, setPrefsReady] = useState(false);
+  // useSyncExternalStore avoids setState-in-effect (server=false, client=true).
+  const prefsReady = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const planHintDismissed = useHintDismissed("plan");
   const mzkHintDismissed = useHintDismissed("mzk");
   const skipUrlWrite = useRef(false);
@@ -721,10 +726,6 @@ export function ScheduleBoard({
       : placeOverride;
   const dateFilter = dateFilterOverride ?? "today";
   const windowDraftValue = windowDraft ?? String(lessonMatchWindowMin);
-
-  useEffect(() => {
-    setPrefsReady(true);
-  }, []);
 
   useEffect(() => {
     const tick = () => setNow(new Date());
