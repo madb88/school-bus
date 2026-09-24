@@ -15,6 +15,15 @@ export type NewsItem = {
 /** Newest first — prepend new entries here. */
 export const NEWS_ITEMS: readonly NewsItem[] = [
   {
+    id: "settings-transfer-qr",
+    dateLabel: "24 września 2026",
+    title: "Przeniesienie ustawień na inne urządzenie",
+    lead: "Plan lekcji i trasę MZK przeniesiesz z komputera na telefon kodem QR — bez konta i bez przepisywania godzin.",
+    body: "Na stronie planu lekcji wybierz „Przenieś na inne urządzenie”: zobaczysz kod QR i krótki kod tekstowy (ważny ok. 15 minut). Na drugim urządzeniu zeskanuj kod albo otwórz /przywroc i wpisz go ręcznie. Najpierw widać podgląd ustawień — kod zużywa się dopiero po potwierdzeniu przywrócenia. Anulowanie podglądu nie kasuje kodu.",
+    href: "/lekcje",
+    cta: "Otwórz plan lekcji",
+  },
+  {
     id: "print-commute-plan",
     dateLabel: "24 września 2026",
     title: "Wydruk spersonalizowanego planu dojazdów",
