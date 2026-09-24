@@ -55,9 +55,11 @@ const steps = [
     body: (
       <>
         <span className="font-medium text-foreground">Kopiuj link</span>{" "}
-        udostępnia filtry rozkładu — plan lekcji i trasa MZK zostają tylko w tej
-        przeglądarce. Motyw jasny/ciemny znajdziesz w nagłówku, a opinię lub
-        pomysł wyślesz z przycisku{" "}
+        udostępnia filtry rozkładu — plan lekcji i trasa MZK zostają w tej
+        przeglądarce. Gdy włączysz powiadomienia, kopia planu lekcji jest też
+        zapisywana na serwerze, żeby przypomnienie dotyczyło tylko Twojego
+        kursu. Motyw jasny/ciemny znajdziesz w nagłówku, a opinię lub pomysł
+        wyślesz z przycisku{" "}
         <span className="font-medium text-foreground">Opinia</span> w rogu
         ekranu.
       </>

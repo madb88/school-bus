@@ -26,6 +26,7 @@ import {
 } from "@/lib/child-schedule/types";
 import { filtersHref } from "@/lib/dowozy/filter-url";
 import { useLessonPlan } from "@/lib/child-schedule/use-lesson-plan";
+import { syncStoredPushPlan } from "@/lib/push/browser";
 
 type LessonPlanFormProps = {
   places: string[];
@@ -123,6 +124,7 @@ export function LessonPlanForm({ places }: LessonPlanFormProps) {
       if (normalized.place) {
         savePreferredPlace(normalized.place);
       }
+      void syncStoredPushPlan(normalized);
       setDraft(null);
       setSaveError(null);
 
@@ -142,9 +144,11 @@ export function LessonPlanForm({ places }: LessonPlanFormProps) {
   }
 
   function handleClear() {
+    const cleared = { ...EMPTY_LESSON_PLAN, days: {} };
     clearLessonPlan();
-    setDraft({ ...EMPTY_LESSON_PLAN, days: {} });
+    setDraft(cleared);
     setSaveError(null);
+    void syncStoredPushPlan(cleared);
   }
 
   function setPlace(next: string | null) {
@@ -246,8 +250,9 @@ export function LessonPlanForm({ places }: LessonPlanFormProps) {
       <div className="max-w-xl space-y-2 text-sm leading-relaxed text-muted-foreground">
         <p>
           Start służy do doboru dowozów (kurs przed lekcją). Koniec — do odwozów
-          (kurs o godzinie końca lub później). Dane zapisujemy tylko w tej
-          przeglądarce.
+          (kurs o godzinie końca lub później). Plan zostaje w tej przeglądarce.
+          Po włączeniu powiadomień jego kopia trafia na serwer, żeby
+          przypomnienie dotyczyło tylko tego telefonu.
         </p>
         {daysMissingEnd.length > 0 ? (
           <p className="text-asphalt/80">

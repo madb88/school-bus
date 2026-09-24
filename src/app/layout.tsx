@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { Bricolage_Grotesque, Manrope } from "next/font/google";
+import { PwaRegister } from "@/components/pwa-register";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import {
@@ -28,6 +29,14 @@ export const metadata: Metadata = {
   },
   description: rootDescription,
   applicationName: siteName,
+  appleWebApp: {
+    capable: true,
+    title: siteName,
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
   openGraph: {
     type: "website",
     locale: "pl_PL",
@@ -67,6 +76,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Toaster position="top-center" richColors closeButton />
         </ThemeProvider>
         <Analytics />
+        <PwaRegister />
       </body>
     </html>
   );
