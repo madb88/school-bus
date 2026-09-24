@@ -224,6 +224,11 @@
     color: #0b1f3a !important;
   }
 
+  /* overflow-x-clip eats the right table border on paper */
+  main {
+    overflow: visible !important;
+  }
+
   .page-atmosphere,
   .page-atmosphere::before {
     display: none !important;
@@ -251,5 +256,26 @@
     print-color-adjust: exact;
     background-color: #0b1f3a !important;
     border-color: #0b1f3a !important;
+  }
+
+  .lesson-plan-print {
+    color: #000;
+  }
+
+  .lesson-plan-print table,
+  .lesson-plan-print th,
+  .lesson-plan-print td {
+    border-color: #000 !important;
+  }
+
+  .lesson-plan-print table {
+    outline: 1px solid #000;
+  }
+
+  /* Light header fill still reads on B&W printers */
+  .lesson-plan-print thead th {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    background-color: #e8e8e8 !important;
   }
 }

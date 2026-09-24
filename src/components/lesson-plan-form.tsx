@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { Printer } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { LessonPlanPrint } from "@/components/lesson-plan-print";
 import { PlaceCombobox } from "@/components/place-combobox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,10 +27,12 @@ import {
   type WeekdayKey,
 } from "@/lib/child-schedule/types";
 import { filtersHref } from "@/lib/dowozy/filter-url";
+import type { Schedule } from "@/lib/dowozy/types";
 import { useLessonPlan } from "@/lib/child-schedule/use-lesson-plan";
 
 type LessonPlanFormProps = {
   places: string[];
+  schedule: Schedule;
 };
 
 function dayHasEndBeforeStart(
@@ -42,7 +46,7 @@ function dayHasEndBeforeStart(
   return endMin < startMin;
 }
 
-export function LessonPlanForm({ places }: LessonPlanFormProps) {
+export function LessonPlanForm({ places, schedule }: LessonPlanFormProps) {
   const stored = useLessonPlan();
   const [draft, setDraft] = useState<ChildLessonPlan | null>(null);
   const plan = draft ?? stored;
@@ -155,41 +159,78 @@ export function LessonPlanForm({ places }: LessonPlanFormProps) {
     }));
   }
 
+  const canPrint = Boolean(plan.place) && hasConfiguredLessons(plan);
+
   return (
-    <div className="space-y-8">
-      <div className="flex max-w-md flex-col gap-1.5">
-        <Label
-          id="lesson-place-label"
-          htmlFor="lesson-place"
-          className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
-        >
-          Przystanek / miejscowość
-        </Label>
-        <NativeSelect
-          id="lesson-place"
-          className="w-full max-w-full md:hidden [&_select]:h-11 [&_select]:text-base"
-          aria-labelledby="lesson-place-label"
-          value={plan.place ?? ""}
-          onChange={(event) => {
-            setPlace(event.target.value === "" ? null : event.target.value);
-          }}
-        >
-          <NativeSelectOption value="">Wybierz miejsce</NativeSelectOption>
-          {places.map((place) => (
-            <NativeSelectOption key={place} value={place}>
-              {place}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-        <div className="hidden w-full md:block">
-          <PlaceCombobox
-            id="lesson-place-desktop"
-            places={places}
-            value={plan.place}
-            onChange={setPlace}
+    <>
+    <div className="space-y-8 print:hidden">
+      <div className="space-y-3">
+        <div className="flex max-w-md flex-col gap-1.5">
+          <Label
+            id="lesson-place-label"
+            htmlFor="lesson-place"
+            className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+          >
+            Przystanek / miejscowość
+          </Label>
+          <NativeSelect
+            id="lesson-place"
+            className="w-full max-w-full md:hidden [&_select]:h-11 [&_select]:text-base"
             aria-labelledby="lesson-place-label"
-            placeholder="Wybierz lub szukaj miejsca…"
-          />
+            value={plan.place ?? ""}
+            onChange={(event) => {
+              setPlace(event.target.value === "" ? null : event.target.value);
+            }}
+          >
+            <NativeSelectOption value="">Wybierz miejsce</NativeSelectOption>
+            {places.map((place) => (
+              <NativeSelectOption key={place} value={place}>
+                {place}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+          <div className="hidden w-full md:block">
+            <PlaceCombobox
+              id="lesson-place-desktop"
+              places={places}
+              value={plan.place}
+              onChange={setPlace}
+              aria-labelledby="lesson-place-label"
+              placeholder="Wybierz lub szukaj miejsca…"
+            />
+          </div>
+        </div>
+
+        <div
+          className={
+            "flex flex-col gap-3 rounded-xl border border-border/70 bg-card/90 px-4 py-3 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:flex-row sm:items-center sm:justify-between sm:gap-4" +
+            (canPrint ? "" : " opacity-60")
+          }
+        >
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {canPrint
+              ? "Wydrukuj spersonalizowany plan dojazdów: tabela poniedziałek–piątek z godzinami wyjazdu i powrotu dopasowanymi do lekcji dziecka."
+              : "Uzupełnij godziny lekcji (i wybierz przystanek), żeby wydrukować spersonalizowany plan dojazdów."}
+          </p>
+          <Button
+            type="button"
+            size="lg"
+            variant="outline"
+            className="shrink-0"
+            disabled={!canPrint}
+            aria-label="Wydrukuj spersonalizowany plan dojazdów"
+            title={
+              canPrint
+                ? undefined
+                : "Wybierz przystanek i uzupełnij godziny lekcji"
+            }
+            onClick={() => {
+              window.print();
+            }}
+          >
+            <Printer aria-hidden />
+            Drukuj plan dojazdów
+          </Button>
         </div>
       </div>
 
@@ -298,5 +339,7 @@ export function LessonPlanForm({ places }: LessonPlanFormProps) {
         ) : null}
       </div>
     </div>
+    <LessonPlanPrint schedule={schedule} plan={plan} />
+    </>
   );
 }

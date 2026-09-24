@@ -19,11 +19,11 @@ export default async function LekcjePage() {
 
   return (
     <PageShell>
-      <div className="mb-8">
+      <div className="mb-8 print:hidden">
         <SiteHeader current="lekcje" />
       </div>
 
-      <header className="animate-rise-delay mb-10 space-y-3">
+      <header className="animate-rise-delay mb-10 space-y-3 print:hidden">
         <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">
           Plan lekcji dziecka
         </h1>
@@ -34,8 +34,8 @@ export default async function LekcjePage() {
       </header>
 
       <div className="animate-rise-delay-2">
-        {places.length > 0 ? (
-          <LessonPlanForm places={places} />
+        {schedule && places.length > 0 ? (
+          <LessonPlanForm places={places} schedule={schedule} />
         ) : (
           <p className="text-muted-foreground">
             Lista miejsc jest chwilowo niedostępna — rozkład szkolny nie
