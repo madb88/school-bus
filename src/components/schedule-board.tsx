@@ -338,8 +338,8 @@ function StopRow({
       className={cn(
         tripRowCardClass,
         timelineRailClass,
-        "border-l-2 border-l-border/50",
-        isNext && "border-l-bus bg-bus/8",
+        "border-l-2 border-l-bus/40 bg-bus/3",
+        isNext && "border-l-bus bg-bus/10",
       )}
     >
       <div className="grid grid-cols-[3.75rem_1fr] gap-2.5 sm:grid-cols-[4.25rem_1fr] sm:gap-3">
@@ -347,8 +347,8 @@ function StopRow({
           <span
             aria-hidden
             className={cn(
-              "timeline-dot absolute top-1.5 -left-4 size-1.5 rounded-full bg-border sm:-left-4.5",
-              isNext && "bg-bus ring-2 ring-bus/25",
+              "timeline-dot absolute top-1.5 -left-4 size-1.5 rounded-full bg-bus sm:-left-4.5",
+              isNext && "ring-2 ring-bus/30",
             )}
           />
           <time
