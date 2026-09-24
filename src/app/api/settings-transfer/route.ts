@@ -45,7 +45,7 @@ function readTokenFromRequest(request: Request): string {
 async function requireTransferConfigured() {
   if (!isTransferStoreConfigured()) {
     return jsonError(
-      "Transfer między urządzeniami nie jest skonfigurowany (brak Upstash Redis).",
+      "Transfer między urządzeniami nie jest skonfigurowany (brak Upstash Redis lub SETTINGS_TRANSFER_SECRET).",
       503,
     );
   }

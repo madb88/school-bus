@@ -1,5 +1,10 @@
 import { Redis } from "@upstash/redis";
 import {
+  decryptTransferBlob,
+  encryptTransferBlob,
+  isTransferEncryptionConfigured,
+} from "./crypto";
+import {
   SETTINGS_TRANSFER_TTL_SEC,
   type SettingsTransferPayload,
 } from "./types";
@@ -22,12 +27,31 @@ export function getTransferRedis(): Redis | null {
   return redisClient;
 }
 
+/** Redis + encryption secret are both required for device transfer. */
 export function isTransferStoreConfigured(): boolean {
-  return getTransferRedis() !== null;
+  return getTransferRedis() !== null && isTransferEncryptionConfigured();
+}
+
+function missingConfigError(): string {
+  if (getTransferRedis() === null) {
+    return "Transfer wymaga skonfigurowanego Upstash Redis.";
+  }
+  return "Transfer wymaga SETTINGS_TRANSFER_SECRET (szyfrowanie w Redis).";
 }
 
 function keyFor(token: string): string {
   return `${KEY_PREFIX}${token}`;
+}
+
+function decodeBlob(
+  raw: unknown,
+): { ok: true; payload: unknown } | { ok: false; error: string } {
+  try {
+    return { ok: true, payload: decryptTransferBlob(raw) };
+  } catch (error) {
+    console.error("Failed to decrypt settings transfer blob", error);
+    return { ok: false, error: "Nie udało się odszyfrować ustawień." };
+  }
 }
 
 export async function saveTransferPayload(
@@ -35,15 +59,13 @@ export async function saveTransferPayload(
   payload: SettingsTransferPayload,
 ): Promise<{ ok: true; ttlSec: number } | { ok: false; error: string }> {
   const redis = getTransferRedis();
-  if (!redis) {
-    return {
-      ok: false,
-      error: "Transfer wymaga skonfigurowanego Upstash Redis.",
-    };
+  if (!redis || !isTransferEncryptionConfigured()) {
+    return { ok: false, error: missingConfigError() };
   }
 
   try {
-    await redis.set(keyFor(token), payload, { ex: SETTINGS_TRANSFER_TTL_SEC });
+    const blob = encryptTransferBlob(payload);
+    await redis.set(keyFor(token), blob, { ex: SETTINGS_TRANSFER_TTL_SEC });
     return { ok: true, ttlSec: SETTINGS_TRANSFER_TTL_SEC };
   } catch (error) {
     console.error("Failed to save settings transfer", error);
@@ -61,10 +83,10 @@ export async function peekTransferPayload(
   | { ok: false; error: string; status: 404 | 503 }
 > {
   const redis = getTransferRedis();
-  if (!redis) {
+  if (!redis || !isTransferEncryptionConfigured()) {
     return {
       ok: false,
-      error: "Transfer wymaga skonfigurowanego Upstash Redis.",
+      error: missingConfigError(),
       status: 503,
     };
   }
@@ -85,9 +107,14 @@ export async function peekTransferPayload(
       };
     }
 
+    const decoded = decodeBlob(raw);
+    if (!decoded.ok) {
+      return { ok: false, error: decoded.error, status: 503 };
+    }
+
     return {
       ok: true,
-      payload: raw,
+      payload: decoded.payload,
       ttlSec: typeof ttlSec === "number" && ttlSec > 0 ? ttlSec : 0,
     };
   } catch (error) {
@@ -110,10 +137,10 @@ export async function takeTransferPayload(
   | { ok: false; error: string; status: 404 | 503 }
 > {
   const redis = getTransferRedis();
-  if (!redis) {
+  if (!redis || !isTransferEncryptionConfigured()) {
     return {
       ok: false,
-      error: "Transfer wymaga skonfigurowanego Upstash Redis.",
+      error: missingConfigError(),
       status: 503,
     };
   }
@@ -129,7 +156,12 @@ export async function takeTransferPayload(
       };
     }
 
-    return { ok: true, payload: raw };
+    const decoded = decodeBlob(raw);
+    if (!decoded.ok) {
+      return { ok: false, error: decoded.error, status: 503 };
+    }
+
+    return { ok: true, payload: decoded.payload };
   } catch (error) {
     console.error("Failed to take settings transfer", error);
     return {
