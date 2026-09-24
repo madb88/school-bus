@@ -1,8 +1,19 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
+import { AboutPrintMock } from "@/components/about-print-mock";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "cn";
 
-const steps = [
+type GuideStep = {
+  number: string;
+  title: string;
+  body: ReactNode;
+  href?: string;
+  cta?: string;
+  visual?: "print";
+};
+
+const steps: GuideStep[] = [
   {
     number: "1",
     title: "Ustaw plan lekcji",
@@ -20,6 +31,24 @@ const steps = [
   },
   {
     number: "2",
+    title: "Wydrukuj plan dojazdów",
+    body: (
+      <>
+        Po uzupełnieniu godzin lekcji możesz wydrukować{" "}
+        <span className="font-medium text-foreground">
+          spersonalizowany plan dojazdów
+        </span>
+        : jedną kartkę na cały tydzień z lekcjami oraz godzinami wyjazdu i
+        powrotu autobusu szkolnego (opcjonalnie też z najbliższym MZK). Wygodne
+        do powieszenia w domu albo wrzucenia do torby.
+      </>
+    ),
+    href: "/lekcje",
+    cta: "Drukuj z planu lekcji",
+    visual: "print",
+  },
+  {
+    number: "3",
     title: "Ustaw trasę MZK",
     body: (
       <>
@@ -34,7 +63,7 @@ const steps = [
     cta: "Przejdź do trasy MZK",
   },
   {
-    number: "3",
+    number: "4",
     title: "Otwórz rozkład",
     body: (
       <>
@@ -50,7 +79,7 @@ const steps = [
     cta: "Otwórz rozkład",
   },
   {
-    number: "4",
+    number: "5",
     title: "Przydatne na co dzień",
     body: (
       <>
@@ -63,7 +92,7 @@ const steps = [
       </>
     ),
   },
-] as const;
+];
 
 export function AboutGuide() {
   return (
@@ -89,7 +118,12 @@ export function AboutGuide() {
             <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
               {step.body}
             </p>
-            {"href" in step && step.href ? (
+            {step.visual === "print" ? (
+              <div className="max-w-lg pt-1">
+                <AboutPrintMock />
+              </div>
+            ) : null}
+            {step.href ? (
               <div className="pt-1">
                 <Link
                   href={step.href}
