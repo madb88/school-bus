@@ -873,7 +873,7 @@ export function ScheduleBoard({
   }
 
   const filterControls = (
-    <div className="flex flex-wrap items-end gap-x-2 gap-y-3 md:gap-x-3">
+    <div className="flex flex-wrap items-start gap-x-2 gap-y-3 md:items-end md:gap-x-3">
       <div className="flex shrink-0 flex-col gap-1">
         <Label
           id="schedule-source-filter-label"
