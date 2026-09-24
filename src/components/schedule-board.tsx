@@ -917,57 +917,59 @@ export function ScheduleBoard({
           Plan lekcji
         </Label>
         <div
-          className="flex items-center gap-1.5"
+          className="flex flex-col gap-1.5"
           aria-labelledby="schedule-lesson-plan-label"
         >
-          {planReady ? (
-            <Button
-              type="button"
-              size="sm"
-              variant={matchActive ? "secondary" : "outline"}
-              aria-pressed={matchActive}
-              onClick={() => {
-                if (matchActive) {
-                  startTransition(() => {
-                    setMatchLessonPlan(false);
-                    setShowAllMzkConnections(false);
-                  });
-                } else {
-                  enableMatchPlan();
-                }
-              }}
-            >
-              Do planu lekcji
-            </Button>
-          ) : (
-            <Link
-              href="/lekcje"
-              className="inline-flex h-7 items-center rounded-[min(var(--radius-md),12px)] border border-border bg-background px-2.5 text-[0.8rem] font-medium hover:bg-muted"
-            >
-              Ustaw plan
-            </Link>
-          )}
-          {matchActive &&
-          sourceMode === "school-mzk" &&
-          (hiddenMzkCount > 0 || showAllMzkConnections) ? (
-            <Button
-              type="button"
-              size="sm"
-              variant={showAllMzkConnections ? "secondary" : "outline"}
-              aria-pressed={showAllMzkConnections}
-              onClick={() => {
-                startTransition(() =>
-                  setShowAllMzkConnections((current) => !current),
-                );
-              }}
-            >
-              {showAllMzkConnections
-                ? "Tylko do planu"
-                : `Wszystkie MZK${hiddenMzkCount > 0 ? ` (+${hiddenMzkCount})` : ""}`}
-            </Button>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {planReady ? (
+              <Button
+                type="button"
+                size="sm"
+                variant={matchActive ? "secondary" : "outline"}
+                aria-pressed={matchActive}
+                onClick={() => {
+                  if (matchActive) {
+                    startTransition(() => {
+                      setMatchLessonPlan(false);
+                      setShowAllMzkConnections(false);
+                    });
+                  } else {
+                    enableMatchPlan();
+                  }
+                }}
+              >
+                Do planu lekcji
+              </Button>
+            ) : (
+              <Link
+                href="/lekcje"
+                className="inline-flex h-7 items-center rounded-[min(var(--radius-md),12px)] border border-border bg-background px-2.5 text-[0.8rem] font-medium hover:bg-muted"
+              >
+                Ustaw plan
+              </Link>
+            )}
+            {matchActive &&
+            sourceMode === "school-mzk" &&
+            (hiddenMzkCount > 0 || showAllMzkConnections) ? (
+              <Button
+                type="button"
+                size="sm"
+                variant={showAllMzkConnections ? "secondary" : "outline"}
+                aria-pressed={showAllMzkConnections}
+                onClick={() => {
+                  startTransition(() =>
+                    setShowAllMzkConnections((current) => !current),
+                  );
+                }}
+              >
+                {showAllMzkConnections
+                  ? "Tylko do planu"
+                  : `Wszystkie MZK${hiddenMzkCount > 0 ? ` (+${hiddenMzkCount})` : ""}`}
+              </Button>
+            ) : null}
+          </div>
           {matchActive && dayTimes ? (
-            <span className="inline-flex items-center gap-x-1 whitespace-nowrap text-xs text-muted-foreground">
+            <span className="inline-flex flex-wrap items-center gap-x-1 gap-y-1 text-xs text-muted-foreground">
               {dayTimes.start ? <span>od {dayTimes.start}</span> : null}
               {dayTimes.start && dayTimes.end ? <span> </span> : null}
               {dayTimes.end ? <span>do {dayTimes.end}</span> : null}
@@ -996,7 +998,7 @@ export function ScheduleBoard({
             </span>
           ) : null}
           {matchActive && target && !dayTimes ? (
-            <span className="whitespace-nowrap text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               Brak godzin —{" "}
               <Link
                 href="/lekcje"
