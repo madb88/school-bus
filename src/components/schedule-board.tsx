@@ -8,10 +8,13 @@ import {
   Check,
   Clock,
   FilterX,
+  Flag,
   Link2,
   MapPin,
+  Moon,
   Printer,
   Settings2,
+  Sun,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -107,7 +110,7 @@ type ScheduleBoardProps = {
 };
 
 function dateLabel(value: ScheduleDateFilter): string {
-  if (value === "today") return "Dzisiaj";
+  if (value === "today") return "Dziś";
   if (value === "tomorrow") return "Jutro";
   return "Wszystkie dni";
 }
@@ -117,6 +120,41 @@ function directionLabel(value: ScheduleDirection): string {
   if (value === "dropoffs") return "Ze szkoły";
   return "wszystkie kierunki";
 }
+
+function formatTripCount(count: number): string {
+  if (count === 1) return "1 kurs";
+  if (count >= 2 && count <= 4) return `${count} kursy`;
+  return `${count} kursów`;
+}
+
+const tripBadgeBaseClass =
+  "inline-flex shrink-0 items-center rounded-md px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-wide uppercase";
+
+function TripBadge({
+  variant,
+  children,
+}: {
+  variant: "mzk" | "school";
+  children: ReactNode;
+}) {
+  return (
+    <span
+      className={cn(
+        tripBadgeBaseClass,
+        variant === "mzk"
+          ? "bg-mzk/15 text-mzk-deep"
+          : "bg-bus/15 text-bus-deep",
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+const tripRowCardClass =
+  "rounded-lg border border-border/60 bg-card/80 px-3 py-2.5 sm:px-3.5";
+
+const timelineRailClass = "relative pl-3 sm:pl-3.5";
 
 const filterToggleActiveClass =
   "border-transparent bg-bus text-bus-foreground shadow-none hover:bg-bus/90 hover:text-bus-foreground dark:border-transparent dark:bg-bus dark:text-bus-foreground dark:hover:bg-bus/85 dark:hover:text-bus-foreground";
@@ -193,14 +231,15 @@ function LessonsEndedRow() {
   return (
     <li
       role="separator"
-      aria-label="Lekcje skończone"
-      className="flex items-center gap-3 py-3"
+      aria-label="Koniec zajęć lekcyjnych"
+      className="flex items-center gap-2 py-1.5"
     >
-      <div className="h-px flex-1 bg-border/70" />
-      <span className="shrink-0 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-        Lekcje skończone
+      <div className="h-px flex-1 bg-border/60" />
+      <span className="inline-flex shrink-0 items-center gap-1 text-[0.7rem] font-medium text-muted-foreground">
+        <Flag className="size-3 text-bus-deep/70" aria-hidden />
+        Koniec zajęć lekcyjnych
       </span>
-      <div className="h-px flex-1 bg-border/70" />
+      <div className="h-px flex-1 bg-border/60" />
     </li>
   );
 }
@@ -226,7 +265,7 @@ function DropoffRunsList({
   );
 
   return (
-    <ul className="rounded-xl border border-border/70 bg-card/90 px-3 py-1 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-4">
+    <ul className="flex flex-col gap-2">
       {runs.map((run, index) => {
         const stopId = stopIdFor(run, index);
         return (
@@ -296,41 +335,50 @@ function StopRow({
     <li
       id={stopId}
       className={cn(
-        "grid grid-cols-[4.5rem_1fr] gap-3 border-l-2 border-border/50 py-3 pl-3 sm:grid-cols-[5.5rem_1fr] sm:gap-4 sm:pl-4",
-        isNext && "border-l-bus bg-bus/8 -ml-px rounded-r-lg pr-2",
+        tripRowCardClass,
+        timelineRailClass,
+        "border-l-2 border-l-border/50",
+        isNext && "border-l-bus bg-bus/8",
       )}
     >
-      <div className="relative flex flex-col gap-1">
-        <span
-          aria-hidden
-          className={cn(
-            "timeline-dot absolute top-2 -left-4.25 size-2 rounded-full border-2 border-border bg-border sm:-left-5.25",
-            isNext && "border-bus bg-bus",
-          )}
-        />
-        <time
-          className={cn(
-            "font-display text-lg font-bold tabular-nums tracking-tight text-asphalt sm:text-xl",
-            isNext && "text-bus-deep",
-          )}
-        >
-          {stop.time}
-        </time>
-        {isNext ? (
-          <span className="text-[0.65rem] font-semibold tracking-[0.12em] text-bus-deep uppercase">
-            Najbliższy
-          </span>
-        ) : null}
-      </div>
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 self-center">
-        {stop.places.map((item) => (
-          <PlaceChip
-            key={item}
-            place={item}
-            highlight={activePlace !== null && item === activePlace}
-            onSelect={onSelectPlace}
+      <div className="grid grid-cols-[3.75rem_1fr] gap-2.5 sm:grid-cols-[4.25rem_1fr] sm:gap-3">
+        <div className="relative flex flex-col gap-0.5">
+          <span
+            aria-hidden
+            className={cn(
+              "timeline-dot absolute top-1.5 -left-4 size-1.5 rounded-full bg-border sm:-left-4.5",
+              isNext && "bg-bus ring-2 ring-bus/25",
+            )}
           />
-        ))}
+          <time
+            className={cn(
+              "font-display text-lg font-bold tabular-nums tracking-tight text-asphalt sm:text-xl",
+              isNext && "text-bus-deep",
+            )}
+          >
+            {stop.time}
+          </time>
+          {isNext ? (
+            <span className="text-[0.65rem] font-semibold tracking-[0.12em] text-bus-deep uppercase">
+              Najbliższy
+            </span>
+          ) : null}
+        </div>
+        <div className="flex min-w-0 flex-col gap-1 self-center">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <TripBadge variant="school">Szkolny</TripBadge>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+            {stop.places.map((item) => (
+              <PlaceChip
+                key={item}
+                place={item}
+                highlight={activePlace !== null && item === activePlace}
+                onSelect={onSelectPlace}
+              />
+            ))}
+          </div>
+        </div>
       </div>
     </li>
   );
@@ -349,54 +397,58 @@ function MzkDepartureRow({
     departure.departTime,
     departure.arriveTime,
   );
+  const headsign =
+    departure.headsign ||
+    `${departure.boardStopName} → ${departure.alightStopName}`;
 
   return (
     <li
       id={stopId}
       className={cn(
-        "grid grid-cols-[4.5rem_1fr] gap-3 border-l-2 border-mzk/45 bg-mzk/4 py-3 pl-3 sm:grid-cols-[5.5rem_1fr] sm:gap-4 sm:pl-4",
-        isNext && "border-l-mzk bg-mzk/12 -ml-px rounded-r-lg pr-2",
+        tripRowCardClass,
+        timelineRailClass,
+        "border-l-2 border-l-mzk/40 bg-mzk/3",
+        isNext && "border-l-mzk bg-mzk/10",
       )}
     >
-      <div className="relative flex flex-col gap-0.5">
-        <span
-          aria-hidden
-          className={cn(
-            "timeline-dot absolute top-2 -left-4.25 size-2 rounded-full border-2 border-mzk bg-mzk sm:-left-5.25",
-            isNext && "ring-2 ring-mzk/30",
-          )}
-        />
-        <time
-          className={cn(
-            "font-display text-lg font-bold tabular-nums tracking-tight text-asphalt sm:text-xl",
-            isNext && "text-mzk-deep",
-          )}
-        >
-          {departure.departTime}
-        </time>
-        <span className="text-xs tabular-nums text-muted-foreground">
-          → {departure.arriveTime}
-          {duration ? ` · ${duration}` : null}
-        </span>
-        {isNext ? (
-          <span className="text-[0.65rem] font-semibold tracking-[0.12em] text-mzk-deep uppercase">
-            Najbliższy
-          </span>
-        ) : null}
-      </div>
-      <div className="flex flex-col gap-1 self-center">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="inline-flex items-center rounded-md bg-mzk/15 px-2 py-0.5 text-xs font-semibold tracking-wide text-mzk-deep uppercase">
-            MZK {departure.route}
-          </span>
-          <span className="text-sm font-medium text-foreground">
-            {departure.headsign ||
-              `${departure.boardStopName} → ${departure.alightStopName}`}
-          </span>
+      <div className="grid grid-cols-[3.75rem_1fr] gap-2.5 sm:grid-cols-[4.25rem_1fr] sm:gap-3">
+        <div className="relative flex flex-col gap-0.5">
+          <span
+            aria-hidden
+            className={cn(
+              "timeline-dot absolute top-1.5 -left-4 size-1.5 rounded-full bg-mzk sm:-left-4.5",
+              isNext && "ring-2 ring-mzk/30",
+            )}
+          />
+          <time
+            className={cn(
+              "font-display text-lg font-bold tabular-nums tracking-tight text-asphalt sm:text-xl",
+              isNext && "text-mzk-deep",
+            )}
+          >
+            {departure.departTime}
+          </time>
+          {isNext ? (
+            <span className="text-[0.65rem] font-semibold tracking-[0.12em] text-mzk-deep uppercase">
+              Najbliższy
+            </span>
+          ) : null}
         </div>
-        <p className="text-xs text-muted-foreground">
-          {departure.boardStopName} → {departure.alightStopName}
-        </p>
+        <div className="flex min-w-0 flex-col gap-0.5 self-center">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <TripBadge variant="mzk">MZK {departure.route}</TripBadge>
+            <span className="min-w-0 text-sm font-medium text-foreground">
+              {headsign}
+            </span>
+          </div>
+          <p className="text-xs tabular-nums text-muted-foreground">
+            ~ {departure.arriveTime}
+            {duration ? ` · ${duration}` : null}
+          </p>
+          <p className="truncate text-xs text-muted-foreground">
+            {departure.boardStopName} → {departure.alightStopName}
+          </p>
+        </div>
       </div>
     </li>
   );
@@ -417,48 +469,54 @@ function SchoolTimelineRow({
     <li
       id={entry.stopId}
       className={cn(
-        "grid grid-cols-[4.5rem_1fr] gap-3 border-l-2 border-bus/45 bg-bus/3 py-3 pl-3 sm:grid-cols-[5.5rem_1fr] sm:gap-4 sm:pl-4",
-        isNext && "border-l-bus bg-bus/12 -ml-px rounded-r-lg pr-2",
+        tripRowCardClass,
+        timelineRailClass,
+        "border-l-2 border-l-bus/40 bg-bus/3",
+        isNext && "border-l-bus bg-bus/10",
       )}
     >
-      <div className="relative flex flex-col gap-1">
-        <span
-          aria-hidden
-          className={cn(
-            "timeline-dot absolute top-2 -left-4.25 size-2 rounded-full border-2 border-bus bg-bus sm:-left-5.25",
-            isNext && "ring-2 ring-bus/30",
-          )}
-        />
-        <time
-          className={cn(
-            "font-display text-lg font-bold tabular-nums tracking-tight text-asphalt sm:text-xl",
-            isNext && "text-bus-deep",
-          )}
-        >
-          {entry.time}
-        </time>
-        {isNext ? (
-          <span className="text-[0.65rem] font-semibold tracking-[0.12em] text-bus-deep uppercase">
-            Najbliższy
-          </span>
-        ) : null}
-      </div>
-      <div className="flex flex-col gap-1.5 self-center">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="inline-flex items-center rounded-md bg-bus/15 px-2 py-0.5 text-xs font-semibold tracking-wide text-bus-deep uppercase">
-            Szkolny
-          </span>
-          <span className="text-xs text-muted-foreground">{entry.context}</span>
+      <div className="grid grid-cols-[3.75rem_1fr] gap-2.5 sm:grid-cols-[4.25rem_1fr] sm:gap-3">
+        <div className="relative flex flex-col gap-0.5">
+          <span
+            aria-hidden
+            className={cn(
+              "timeline-dot absolute top-1.5 -left-4 size-1.5 rounded-full bg-bus sm:-left-4.5",
+              isNext && "ring-2 ring-bus/30",
+            )}
+          />
+          <time
+            className={cn(
+              "font-display text-lg font-bold tabular-nums tracking-tight text-asphalt sm:text-xl",
+              isNext && "text-bus-deep",
+            )}
+          >
+            {entry.time}
+          </time>
+          {isNext ? (
+            <span className="text-[0.65rem] font-semibold tracking-[0.12em] text-bus-deep uppercase">
+              Najbliższy
+            </span>
+          ) : null}
         </div>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          {entry.places.map((item) => (
-            <PlaceChip
-              key={item}
-              place={item}
-              highlight={activePlace !== null && item === activePlace}
-              onSelect={onSelectPlace}
-            />
-          ))}
+        <div className="flex min-w-0 flex-col gap-1 self-center">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <TripBadge variant="school">Szkolny</TripBadge>
+            {entry.context ? (
+              <span className="min-w-0 truncate text-xs text-muted-foreground">
+                {entry.context}
+              </span>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+            {entry.places.map((item) => (
+              <PlaceChip
+                key={item}
+                place={item}
+                highlight={activePlace !== null && item === activePlace}
+                onSelect={onSelectPlace}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </li>
@@ -484,7 +542,7 @@ function TimelineList({
   );
 
   return (
-    <ul className="rounded-xl border border-border/70 bg-card/90 px-3 py-1 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-4">
+    <ul className="flex flex-col gap-2">
       {entries.map((entry, index) => {
         const showLessonsEnded = lessonsEndedAfterIndex === index;
 
@@ -519,25 +577,73 @@ function TimelineList({
 
 function SectionHeading({
   id,
-  eyebrow,
   title,
+  subtitle,
+  tripCount,
+  icon: Icon,
+  iconClassName,
 }: {
   id: string;
-  eyebrow: string;
   title: string;
+  subtitle: string;
+  tripCount: number;
+  icon: LucideIcon;
+  iconClassName?: string;
 }) {
   return (
-    <div className="mb-6">
-      <p className="text-xs font-semibold tracking-[0.18em] text-bus-deep uppercase">
-        {eyebrow}
-      </p>
-      <h2
-        id={id}
-        className="mt-1 font-display text-2xl font-bold tracking-tight text-asphalt sm:text-3xl"
-      >
-        {title}
-      </h2>
+    <div className="mb-4 flex items-start justify-between gap-3 border-b border-border/50 pb-3">
+      <div className="min-w-0">
+        <h2
+          id={id}
+          className="flex items-center gap-2 font-display text-lg font-bold tracking-tight text-asphalt sm:text-xl"
+        >
+          <Icon
+            className={cn("size-5 shrink-0", iconClassName)}
+            aria-hidden
+          />
+          <span className="min-w-0 truncate">{title}</span>
+        </h2>
+        <p className="mt-0.5 pl-7 text-xs text-muted-foreground">{subtitle}</p>
+      </div>
+      <span className="shrink-0 pt-1 text-xs font-medium tabular-nums text-muted-foreground">
+        {formatTripCount(tripCount)}
+      </span>
     </div>
+  );
+}
+
+function DirectionSection({
+  headingId,
+  title,
+  subtitle,
+  tripCount,
+  icon,
+  iconClassName,
+  children,
+}: {
+  headingId: string;
+  title: string;
+  subtitle: string;
+  tripCount: number;
+  icon: LucideIcon;
+  iconClassName?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      aria-labelledby={headingId}
+      className="min-w-0 rounded-xl border border-border/70 bg-card/90 p-3 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:p-4"
+    >
+      <SectionHeading
+        id={headingId}
+        title={title}
+        subtitle={subtitle}
+        tripCount={tripCount}
+        icon={icon}
+        iconClassName={iconClassName}
+      />
+      {children}
+    </section>
   );
 }
 
@@ -1249,24 +1355,26 @@ export function ScheduleBoard({
     </div>
   );
 
-  const filterSummary = (
+  const filterSummaryPrimary = (
     <>
       {place ? (
         <span className="font-medium text-foreground">{place}</span>
       ) : (
         "Wszystkie miejsca"
       )}
-      {" — "}
-      {directionLabel(direction)}
-      {matchActive ? " · plan" : null}
-      {sourceMode !== "school" ? ` · ${sourceModeLabel(sourceMode)}` : null}
       {" · "}
       {dateLabel(dateFilter)}
+      {" · "}
+      {directionLabel(direction)}
     </>
   );
 
-  const tripCountLabel =
-    tripCount === 1 ? "kurs" : tripCount >= 2 && tripCount <= 4 ? "kursy" : "kursów";
+  const filterSummarySecondaryParts = [
+    matchActive ? "plan" : null,
+    sourceMode !== "school" ? sourceModeLabel(sourceMode) : null,
+  ].filter(Boolean);
+
+  const tripCountLabel = formatTripCount(tripCount);
 
   return (
     <div className="space-y-10">
@@ -1283,9 +1391,12 @@ export function ScheduleBoard({
           </p>
         ) : null}
         <p className="mt-3 text-sm text-foreground">
-          {filterSummary}
+          {filterSummaryPrimary}
+          {filterSummarySecondaryParts.length > 0
+            ? ` · ${filterSummarySecondaryParts.join(" · ")}`
+            : null}
           {" · "}
-          {tripCount} {tripCountLabel}
+          {tripCountLabel}
         </p>
       </header>
 
@@ -1434,12 +1545,19 @@ export function ScheduleBoard({
           </div>
 
           <div className="flex flex-col gap-1.5 border-t border-border/60 px-3 py-2.5 sm:px-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="min-w-0 truncate text-xs text-muted-foreground sm:text-sm">
-                {filterSummary}
-              </p>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm text-foreground">
+                  {filterSummaryPrimary}
+                </p>
+                {filterSummarySecondaryParts.length > 0 ? (
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {filterSummarySecondaryParts.join(" · ")}
+                  </p>
+                ) : null}
+              </div>
               <span className="inline-flex shrink-0 items-center rounded-full bg-bus/15 px-2.5 py-0.5 text-[0.7rem] font-semibold text-bus-deep tabular-nums">
-                {tripCount} {tripCountLabel}
+                {tripCountLabel}
               </span>
             </div>
             {nextMerged ? (
@@ -1490,10 +1608,6 @@ export function ScheduleBoard({
                 {" · "}
                 {nextTrip.kind === "pickup" ? "dowóz" : "odwóz"}
                 {nextTrip.context ? ` (${nextTrip.context})` : null}
-              </p>
-            ) : dateFilter === "today" && !isEmpty ? (
-              <p className="text-xs text-muted-foreground sm:text-sm">
-                Brak kolejnych kursów na dziś w tym filtrze.
               </p>
             ) : null}
           </div>
@@ -1625,7 +1739,7 @@ export function ScheduleBoard({
           )}
         </p>
       ) : sourceMode === "school-mzk" && mergedTimeline ? (
-        <div className="animate-rise-delay-2 space-y-14 animate-in fade-in duration-300">
+        <div className="animate-rise-delay-2 space-y-6 animate-in fade-in duration-300">
           {!mzkRouteReady ? (
             <p className="border-l-2 border-mzk/40 bg-muted/40 px-4 py-3 text-sm text-muted-foreground print:hidden">
               Dodaj przystanki MZK, żeby zobaczyć też kursy miejskie razem ze
@@ -1676,41 +1790,55 @@ export function ScheduleBoard({
             </p>
           ) : null}
 
-          {mergedTimeline.pickups.length > 0 ? (
-            <section aria-labelledby="pickups-heading">
-              <SectionHeading
-                id="pickups-heading"
-                eyebrow="Rano / do szkoły"
-                title="Do szkoły"
-              />
-              <TimelineList
-                entries={mergedTimeline.pickups}
-                activePlace={deferredPlace}
-                onSelectPlace={selectPlace}
-                nextTripId={nextMerged?.id}
-              />
-            </section>
-          ) : null}
+          <div
+            className={cn(
+              "grid items-start gap-4 print:grid-cols-1",
+              mergedTimeline.pickups.length > 0 &&
+                mergedTimeline.dropoffs.length > 0
+                ? "lg:grid-cols-2"
+                : "grid-cols-1",
+            )}
+          >
+            {mergedTimeline.pickups.length > 0 ? (
+              <DirectionSection
+                headingId="pickups-heading"
+                title="Dowóz – rano"
+                subtitle="do szkoły"
+                tripCount={mergedTimeline.pickups.length}
+                icon={Sun}
+                iconClassName="fill-amber-400 text-amber-500"
+              >
+                <TimelineList
+                  entries={mergedTimeline.pickups}
+                  activePlace={deferredPlace}
+                  onSelectPlace={selectPlace}
+                  nextTripId={nextMerged?.id}
+                />
+              </DirectionSection>
+            ) : null}
 
-          {mergedTimeline.dropoffs.length > 0 ? (
-            <section aria-labelledby="dropoffs-heading">
-              <SectionHeading
-                id="dropoffs-heading"
-                eyebrow="Po lekcjach / do domu"
-                title="Ze szkoły"
-              />
-              <TimelineList
-                entries={mergedTimeline.dropoffs}
-                activePlace={deferredPlace}
-                onSelectPlace={selectPlace}
-                nextTripId={nextMerged?.id}
-                lessonEnd={planLessonEnd}
-              />
-            </section>
-          ) : null}
+            {mergedTimeline.dropoffs.length > 0 ? (
+              <DirectionSection
+                headingId="dropoffs-heading"
+                title="Odwóz – po lekcjach"
+                subtitle="do domu"
+                tripCount={mergedTimeline.dropoffs.length}
+                icon={Moon}
+                iconClassName="text-indigo-400"
+              >
+                <TimelineList
+                  entries={mergedTimeline.dropoffs}
+                  activePlace={deferredPlace}
+                  onSelectPlace={selectPlace}
+                  nextTripId={nextMerged?.id}
+                  lessonEnd={planLessonEnd}
+                />
+              </DirectionSection>
+            ) : null}
+          </div>
 
           {mzkRouteReady ? (
-            <p className="text-xs text-muted-foreground print:hidden">
+            <p className="text-center text-xs text-muted-foreground print:hidden">
               Kursy MZK (pon–pt, dni nauki) i szkolne są w jednej liście wg
               godziny.{" "}
               <Link
@@ -1723,149 +1851,173 @@ export function ScheduleBoard({
           ) : null}
         </div>
       ) : (
-        <div className="animate-rise-delay-2 space-y-14 animate-in fade-in duration-300">
-          {filtered.pickups.length > 0 ? (
-            <section aria-labelledby="pickups-heading">
-              <SectionHeading
-                id="pickups-heading"
-                eyebrow="Rano / do szkoły"
-                title="Do szkoły"
-              />
-              <div className="space-y-8">
-                {filtered.pickups.map((block) => (
-                  <article
-                    key={`${block.kind}-${block.name}`}
-                    className="space-y-4"
-                  >
-                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                      <h3 className="font-display text-xl font-semibold text-asphalt">
-                        {block.name}
-                      </h3>
-                      <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                        {block.kind === "vehicle" ? "pojazd" : "kierowca"}
-                      </span>
-                    </div>
-                    <div className="rounded-xl border border-border/70 bg-card/90 px-3 py-1 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:px-4">
-                      {block.courses.map((course, courseIndex) => (
-                        <div
-                          key={`${block.name}-${course.label}-${course.note ?? ""}`}
-                          className={cn(
-                            "pb-2",
-                            courseIndex > 0 && "border-t border-border/50",
-                          )}
-                        >
+        <div className="animate-rise-delay-2 animate-in fade-in duration-300">
+          <div
+            className={cn(
+              "grid items-start gap-4 print:grid-cols-1",
+              filtered.pickups.length > 0 &&
+                (filtered.dropoffsByDate.length > 0 ||
+                  filtered.dropoffsWeekday.length > 0)
+                ? "lg:grid-cols-2"
+                : "grid-cols-1",
+            )}
+          >
+            {filtered.pickups.length > 0 ? (
+              <DirectionSection
+                headingId="pickups-heading"
+                title="Dowóz – rano"
+                subtitle="do szkoły"
+                tripCount={filtered.pickups.reduce(
+                  (sum, block) =>
+                    sum +
+                    block.courses.reduce(
+                      (courseSum, course) => courseSum + course.stops.length,
+                      0,
+                    ),
+                  0,
+                )}
+                icon={Sun}
+                iconClassName="fill-amber-400 text-amber-500"
+              >
+                <div className="space-y-5">
+                  {filtered.pickups.map((block) => (
+                    <article
+                      key={`${block.kind}-${block.name}`}
+                      className="space-y-2.5"
+                    >
+                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                        <h3 className="font-display text-base font-semibold text-asphalt">
+                          {block.name}
+                        </h3>
+                        <span className="text-[0.65rem] font-medium tracking-wide text-muted-foreground uppercase">
+                          {block.kind === "vehicle" ? "pojazd" : "kierowca"}
+                        </span>
+                      </div>
+                      <div className="space-y-3">
+                        {block.courses.map((course) => (
                           <div
-                            className={cn(
-                              "flex flex-wrap items-baseline gap-x-2 gap-y-0.5 pt-3 pb-0.5",
-                              courseIndex === 0 && "pt-2",
-                            )}
+                            key={`${block.name}-${course.label}-${course.note ?? ""}`}
+                            className="space-y-2"
                           >
-                            <p className="text-sm font-medium text-foreground">
-                              {course.label}
-                            </p>
-                            {course.note ? (
-                              <p className="text-xs text-muted-foreground">
-                                {course.note}
+                            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                              <p className="text-sm font-medium text-foreground">
+                                {course.label}
                               </p>
-                            ) : null}
+                              {course.note ? (
+                                <p className="text-xs text-muted-foreground">
+                                  {course.note}
+                                </p>
+                              ) : null}
+                            </div>
+                            <ul className="flex flex-col gap-2">
+                              {course.stops.map((stop, index) => {
+                                const stopId = stopDomId("pickup", [
+                                  block.name,
+                                  course.label,
+                                  String(index),
+                                  stop.time,
+                                ]);
+                                return (
+                                  <StopRow
+                                    key={stopId}
+                                    stopId={stopId}
+                                    stop={stop}
+                                    activePlace={deferredPlace}
+                                    onSelectPlace={selectPlace}
+                                    isNext={nextTrip?.id === stopId}
+                                  />
+                                );
+                              })}
+                            </ul>
                           </div>
-                          <ul>
-                            {course.stops.map((stop, index) => {
-                              const stopId = stopDomId("pickup", [
-                                block.name,
-                                course.label,
-                                String(index),
-                                stop.time,
-                              ]);
-                              return (
-                                <StopRow
-                                  key={stopId}
-                                  stopId={stopId}
-                                  stop={stop}
-                                  activePlace={deferredPlace}
-                                  onSelectPlace={selectPlace}
-                                  isNext={nextTrip?.id === stopId}
-                                />
-                              );
-                            })}
-                          </ul>
-                        </div>
-                      ))}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-          ) : null}
+                        ))}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </DirectionSection>
+            ) : null}
 
-          {filtered.dropoffsByDate.length > 0 ||
-          filtered.dropoffsWeekday.length > 0 ? (
-            <section aria-labelledby="dropoffs-heading">
-              <SectionHeading
-                id="dropoffs-heading"
-                eyebrow="Po lekcjach / do domu"
-                title="Ze szkoły"
-              />
-              <div className="space-y-8">
-                {filtered.dropoffsByDate.map((day) => (
-                  <article key={day.dateLabel} className="space-y-3">
-                    <div>
-                      <h3 className="font-display text-xl font-semibold text-asphalt">
-                        {day.dateLabel}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {day.driver}
-                      </p>
-                    </div>
-                    <DropoffRunsList
-                      runs={day.runs}
-                      lessonEnd={planLessonEnd}
-                      activePlace={deferredPlace}
-                      onSelectPlace={selectPlace}
-                      nextTripId={nextTrip?.id}
-                      stopIdFor={(run, index) =>
-                        stopDomId("dropoff-date", [
-                          day.dateLabel,
-                          String(index),
-                          run.time,
-                        ])
-                      }
-                    />
-                  </article>
-                ))}
+            {filtered.dropoffsByDate.length > 0 ||
+            filtered.dropoffsWeekday.length > 0 ? (
+              <DirectionSection
+                headingId="dropoffs-heading"
+                title="Odwóz – po lekcjach"
+                subtitle="do domu"
+                tripCount={
+                  filtered.dropoffsByDate.reduce(
+                    (sum, day) => sum + day.runs.length,
+                    0,
+                  ) +
+                  filtered.dropoffsWeekday.reduce(
+                    (sum, block) => sum + block.runs.length,
+                    0,
+                  )
+                }
+                icon={Moon}
+                iconClassName="text-indigo-400"
+              >
+                <div className="space-y-5">
+                  {filtered.dropoffsByDate.map((day) => (
+                    <article key={day.dateLabel} className="space-y-2.5">
+                      <div>
+                        <h3 className="font-display text-base font-semibold text-asphalt">
+                          {day.dateLabel}
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          {day.driver}
+                        </p>
+                      </div>
+                      <DropoffRunsList
+                        runs={day.runs}
+                        lessonEnd={planLessonEnd}
+                        activePlace={deferredPlace}
+                        onSelectPlace={selectPlace}
+                        nextTripId={nextTrip?.id}
+                        stopIdFor={(run, index) =>
+                          stopDomId("dropoff-date", [
+                            day.dateLabel,
+                            String(index),
+                            run.time,
+                          ])
+                        }
+                      />
+                    </article>
+                  ))}
 
-                {filtered.dropoffsWeekday.map((block) => (
-                  <article
-                    key={`${block.title}-${block.driver}`}
-                    className="space-y-3"
-                  >
-                    <div>
-                      <h3 className="font-display text-xl font-semibold text-asphalt">
-                        {block.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {block.driver}
-                      </p>
-                    </div>
-                    <DropoffRunsList
-                      runs={block.runs}
-                      lessonEnd={planLessonEnd}
-                      activePlace={deferredPlace}
-                      onSelectPlace={selectPlace}
-                      nextTripId={nextTrip?.id}
-                      stopIdFor={(run, index) =>
-                        stopDomId("dropoff-weekday", [
-                          block.driver,
-                          String(index),
-                          run.time,
-                        ])
-                      }
-                    />
-                  </article>
-                ))}
-              </div>
-            </section>
-          ) : null}
+                  {filtered.dropoffsWeekday.map((block) => (
+                    <article
+                      key={`${block.title}-${block.driver}`}
+                      className="space-y-2.5"
+                    >
+                      <div>
+                        <h3 className="font-display text-base font-semibold text-asphalt">
+                          {block.title}
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          {block.driver}
+                        </p>
+                      </div>
+                      <DropoffRunsList
+                        runs={block.runs}
+                        lessonEnd={planLessonEnd}
+                        activePlace={deferredPlace}
+                        onSelectPlace={selectPlace}
+                        nextTripId={nextTrip?.id}
+                        stopIdFor={(run, index) =>
+                          stopDomId("dropoff-weekday", [
+                            block.driver,
+                            String(index),
+                            run.time,
+                          ])
+                        }
+                      />
+                    </article>
+                  ))}
+                </div>
+              </DirectionSection>
+            ) : null}
+          </div>
         </div>
       )}
     </div>

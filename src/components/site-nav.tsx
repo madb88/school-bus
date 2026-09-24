@@ -24,8 +24,8 @@ export function SiteNav({ current }: SiteNavProps) {
     cn(
       "relative rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors",
       active
-        ? "bg-muted text-asphalt"
-        : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+        ? "bg-bus text-bus-foreground shadow-none"
+        : "text-muted-foreground hover:bg-bus/10 hover:text-bus-deep",
     );
 
   return (

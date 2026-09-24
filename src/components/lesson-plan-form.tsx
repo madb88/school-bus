@@ -373,7 +373,6 @@ export function LessonPlanForm({
         <Button
           type="button"
           size="lg"
-          variant="secondary"
           disabled={pending || daysInvalidEnd.length > 0}
           onClick={handleSave}
         >
