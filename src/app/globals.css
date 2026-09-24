@@ -262,6 +262,12 @@
     color: #000;
   }
 
+  /* Only the selected print sheet is shown (set via body[data-print-mode]). */
+  body[data-print-mode="school"] .lesson-plan-print-school,
+  body[data-print-mode="school-mzk"] .lesson-plan-print-mzk {
+    display: block !important;
+  }
+
   .lesson-plan-print table,
   .lesson-plan-print th,
   .lesson-plan-print td {

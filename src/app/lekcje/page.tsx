@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 import { collectPlaces } from "@/lib/dowozy/filter-schedule";
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { DOWOZY_SOURCE_URL } from "@/lib/dowozy/types";
+import { loadMzkScheduleSnapshot } from "@/lib/mzk/load-schedule";
 import { buildPageMetadata } from "@/lib/site-metadata";
 
 export const metadata = buildPageMetadata({
@@ -14,7 +15,10 @@ export const metadata = buildPageMetadata({
 });
 
 export default async function LekcjePage() {
-  const schedule = await loadScheduleSnapshot();
+  const [schedule, mzkSchedule] = await Promise.all([
+    loadScheduleSnapshot(),
+    loadMzkScheduleSnapshot(),
+  ]);
   const places = schedule ? collectPlaces(schedule) : [];
 
   return (
@@ -35,7 +39,11 @@ export default async function LekcjePage() {
 
       <div className="animate-rise-delay-2">
         {schedule && places.length > 0 ? (
-          <LessonPlanForm places={places} schedule={schedule} />
+          <LessonPlanForm
+            places={places}
+            schedule={schedule}
+            mzkSchedule={mzkSchedule}
+          />
         ) : (
           <p className="text-muted-foreground">
             Lista miejsc jest chwilowo niedostępna — rozkład szkolny nie

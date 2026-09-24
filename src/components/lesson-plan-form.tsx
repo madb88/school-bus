@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { Printer } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { LessonPlanPrint } from "@/components/lesson-plan-print";
+import {
+  LessonPlanPrint,
+  type LessonPlanPrintMode,
+} from "@/components/lesson-plan-print";
 import { PlaceCombobox } from "@/components/place-combobox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,10 +32,14 @@ import {
 import { filtersHref } from "@/lib/dowozy/filter-url";
 import type { Schedule } from "@/lib/dowozy/types";
 import { useLessonPlan } from "@/lib/child-schedule/use-lesson-plan";
+import { hasConfiguredMzkRoute } from "@/lib/mzk/route-storage";
+import type { MzkSchedule } from "@/lib/mzk/types";
+import { useMzkRoutePreference } from "@/lib/mzk/use-mzk-route";
 
 type LessonPlanFormProps = {
   places: string[];
   schedule: Schedule;
+  mzkSchedule: MzkSchedule | null;
 };
 
 function dayHasEndBeforeStart(
@@ -46,8 +53,13 @@ function dayHasEndBeforeStart(
   return endMin < startMin;
 }
 
-export function LessonPlanForm({ places, schedule }: LessonPlanFormProps) {
+export function LessonPlanForm({
+  places,
+  schedule,
+  mzkSchedule,
+}: LessonPlanFormProps) {
   const stored = useLessonPlan();
+  const mzkRoute = useMzkRoutePreference();
   const [draft, setDraft] = useState<ChildLessonPlan | null>(null);
   const plan = draft ?? stored;
   const [pending, startTransition] = useTransition();
@@ -160,6 +172,21 @@ export function LessonPlanForm({ places, schedule }: LessonPlanFormProps) {
   }
 
   const canPrint = Boolean(plan.place) && hasConfiguredLessons(plan);
+  const canPrintMzk =
+    canPrint && Boolean(mzkSchedule) && hasConfiguredMzkRoute(mzkRoute);
+
+  useEffect(() => {
+    function clearPrintMode() {
+      delete document.body.dataset.printMode;
+    }
+    window.addEventListener("afterprint", clearPrintMode);
+    return () => window.removeEventListener("afterprint", clearPrintMode);
+  }, []);
+
+  function handlePrint(mode: LessonPlanPrintMode) {
+    document.body.dataset.printMode = mode;
+    window.print();
+  }
 
   return (
     <>
@@ -203,7 +230,7 @@ export function LessonPlanForm({ places, schedule }: LessonPlanFormProps) {
 
         <div
           className={
-            "flex flex-col gap-3 rounded-xl border border-border/70 bg-card/90 px-4 py-3 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:flex-row sm:items-center sm:justify-between sm:gap-4" +
+            "flex flex-col gap-3 rounded-xl border border-border/70 bg-card/90 px-4 py-3 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]" +
             (canPrint ? "" : " opacity-60")
           }
         >
@@ -212,25 +239,61 @@ export function LessonPlanForm({ places, schedule }: LessonPlanFormProps) {
               ? "Wydrukuj spersonalizowany plan dojazdów: tabela poniedziałek–piątek z godzinami wyjazdu i powrotu dopasowanymi do lekcji dziecka."
               : "Uzupełnij godziny lekcji (i wybierz przystanek), żeby wydrukować spersonalizowany plan dojazdów."}
           </p>
-          <Button
-            type="button"
-            size="lg"
-            variant="outline"
-            className="shrink-0"
-            disabled={!canPrint}
-            aria-label="Wydrukuj spersonalizowany plan dojazdów"
-            title={
-              canPrint
-                ? undefined
-                : "Wybierz przystanek i uzupełnij godziny lekcji"
-            }
-            onClick={() => {
-              window.print();
-            }}
-          >
-            <Printer aria-hidden />
-            Drukuj plan dojazdów
-          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <Button
+              type="button"
+              size="lg"
+              variant="outline"
+              className="shrink-0"
+              disabled={!canPrint}
+              aria-label="Wydrukuj plan dojazdów szkolnych"
+              title={
+                canPrint
+                  ? undefined
+                  : "Wybierz przystanek i uzupełnij godziny lekcji"
+              }
+              onClick={() => handlePrint("school")}
+            >
+              <Printer aria-hidden />
+              Drukuj szkolny
+            </Button>
+            <Button
+              type="button"
+              size="lg"
+              variant="outline"
+              className="shrink-0"
+              disabled={!canPrintMzk}
+              aria-label="Wydrukuj plan dojazdów szkolnych z najbliższym MZK"
+              title={
+                canPrintMzk
+                  ? undefined
+                  : canPrint
+                    ? "Najpierw ustaw trasę MZK w zakładce MZK"
+                    : "Wybierz przystanek, uzupełnij lekcje i ustaw trasę MZK"
+              }
+              onClick={() => handlePrint("school-mzk")}
+            >
+              <Printer aria-hidden />
+              Drukuj szkolny + MZK
+            </Button>
+          </div>
+          {canPrint && !canPrintMzk ? (
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Wydruk ze szkolnym + MZK wymaga zapisanej trasy w zakładce{" "}
+              <Link
+                href="/mzk"
+                className="font-medium text-asphalt underline underline-offset-2 hover:text-foreground"
+              >
+                MZK
+              </Link>
+              . Na kartce pojawi się tylko najbliższy kurs MZK do planu lekcji.
+            </p>
+          ) : canPrintMzk ? (
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Wariant ze szkolnym + MZK dodaje tylko najbliższy kurs MZK (wyjazd
+              i powrót), bez całego rozkładu linii.
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -339,7 +402,16 @@ export function LessonPlanForm({ places, schedule }: LessonPlanFormProps) {
         ) : null}
       </div>
     </div>
-    <LessonPlanPrint schedule={schedule} plan={plan} />
+    <LessonPlanPrint schedule={schedule} plan={plan} mode="school" />
+    {mzkSchedule ? (
+      <LessonPlanPrint
+        schedule={schedule}
+        plan={plan}
+        mode="school-mzk"
+        mzkSchedule={mzkSchedule}
+        mzkRoute={mzkRoute}
+      />
+    ) : null}
     </>
   );
 }
