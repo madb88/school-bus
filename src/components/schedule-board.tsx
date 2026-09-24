@@ -128,7 +128,7 @@ function formatTripCount(count: number): string {
 }
 
 const tripBadgeBaseClass =
-  "inline-flex shrink-0 items-center rounded-md px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-wide uppercase";
+  "trip-badge inline-flex shrink-0 items-center rounded-md px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-wide uppercase";
 
 function TripBadge({
   variant,
@@ -152,7 +152,7 @@ function TripBadge({
 }
 
 const tripRowCardClass =
-  "rounded-lg border border-border/60 bg-card/80 px-3 py-2.5 sm:px-3.5";
+  "rounded-lg border border-border/60 bg-card/80 px-3 py-2.5 sm:px-3.5 print:px-2 print:py-1.5";
 
 const timelineRailClass = "relative pl-3 sm:pl-3.5";
 
@@ -265,7 +265,7 @@ function DropoffRunsList({
   );
 
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="flex flex-col gap-2 print:gap-1.5">
       {runs.map((run, index) => {
         const stopId = stopIdFor(run, index);
         return (
@@ -305,11 +305,11 @@ function PlaceChip({
           : `Filtruj po miejscu: ${place}`
       }
       className={cn(
-        "inline-flex cursor-pointer! items-center rounded-md px-1.5 py-0.5 text-sm transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+        "inline-flex cursor-pointer! items-center rounded-md px-1.5 py-0.5 text-sm transition-colors print:cursor-default print:px-0 print:py-0",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 print:focus-visible:ring-0",
         highlight
-          ? "bg-foreground/8 font-semibold text-asphalt ring-1 ring-foreground/15 hover:bg-foreground/12"
-          : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+          ? "bg-foreground/8 font-semibold text-asphalt ring-1 ring-foreground/15 hover:bg-foreground/12 print:bg-transparent print:ring-0"
+          : "text-muted-foreground hover:bg-muted/60 hover:text-foreground print:text-foreground",
       )}
       style={{ cursor: "pointer" }}
     >
@@ -352,7 +352,7 @@ function StopRow({
           />
           <time
             className={cn(
-              "font-display text-lg font-bold tabular-nums tracking-tight text-asphalt sm:text-xl",
+              "font-display text-lg font-bold tabular-nums tracking-tight text-asphalt sm:text-xl print:text-base",
               isNext && "text-bus-deep",
             )}
           >
@@ -422,7 +422,7 @@ function MzkDepartureRow({
           />
           <time
             className={cn(
-              "font-display text-lg font-bold tabular-nums tracking-tight text-asphalt sm:text-xl",
+              "font-display text-lg font-bold tabular-nums tracking-tight text-asphalt sm:text-xl print:text-base",
               isNext && "text-mzk-deep",
             )}
           >
@@ -486,7 +486,7 @@ function SchoolTimelineRow({
           />
           <time
             className={cn(
-              "font-display text-lg font-bold tabular-nums tracking-tight text-asphalt sm:text-xl",
+              "font-display text-lg font-bold tabular-nums tracking-tight text-asphalt sm:text-xl print:text-base",
               isNext && "text-bus-deep",
             )}
           >
@@ -542,7 +542,7 @@ function TimelineList({
   );
 
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="flex flex-col gap-2 print:gap-1.5">
       {entries.map((entry, index) => {
         const showLessonsEnded = lessonsEndedAfterIndex === index;
 
@@ -591,19 +591,21 @@ function SectionHeading({
   iconClassName?: string;
 }) {
   return (
-    <div className="mb-4 flex items-start justify-between gap-3 border-b border-border/50 pb-3">
+    <div className="mb-4 flex items-start justify-between gap-3 border-b border-border/50 pb-3 print:mb-2 print:pb-2">
       <div className="min-w-0">
         <h2
           id={id}
-          className="flex items-center gap-2 font-display text-lg font-bold tracking-tight text-asphalt sm:text-xl"
+          className="flex items-center gap-2 font-display text-lg font-bold tracking-tight text-asphalt sm:text-xl print:text-base"
         >
           <Icon
-            className={cn("size-5 shrink-0", iconClassName)}
+            className={cn("size-5 shrink-0 print:size-4", iconClassName)}
             aria-hidden
           />
           <span className="min-w-0 truncate">{title}</span>
         </h2>
-        <p className="mt-0.5 pl-7 text-xs text-muted-foreground">{subtitle}</p>
+        <p className="mt-0.5 pl-7 text-xs text-muted-foreground print:pl-6">
+          {subtitle}
+        </p>
       </div>
       <span className="shrink-0 pt-1 text-xs font-medium tabular-nums text-muted-foreground">
         {formatTripCount(tripCount)}
@@ -632,7 +634,7 @@ function DirectionSection({
   return (
     <section
       aria-labelledby={headingId}
-      className="min-w-0 rounded-xl border border-border/70 bg-card/90 p-3 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:p-4"
+      className="schedule-direction-section min-w-0 rounded-xl border border-border/70 bg-card/90 p-3 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:p-4 print:break-inside-avoid print:p-2 print:shadow-none"
     >
       <SectionHeading
         id={headingId}
@@ -1792,10 +1794,10 @@ export function ScheduleBoard({
 
           <div
             className={cn(
-              "grid items-start gap-4 print:grid-cols-1",
+              "grid items-start gap-4 print:gap-2",
               mergedTimeline.pickups.length > 0 &&
                 mergedTimeline.dropoffs.length > 0
-                ? "lg:grid-cols-2"
+                ? "lg:grid-cols-2 print:grid-cols-2"
                 : "grid-cols-1",
             )}
           >
@@ -1854,11 +1856,11 @@ export function ScheduleBoard({
         <div className="animate-rise-delay-2 animate-in fade-in duration-300">
           <div
             className={cn(
-              "grid items-start gap-4 print:grid-cols-1",
+              "grid items-start gap-4 print:gap-2",
               filtered.pickups.length > 0 &&
                 (filtered.dropoffsByDate.length > 0 ||
                   filtered.dropoffsWeekday.length > 0)
-                ? "lg:grid-cols-2"
+                ? "lg:grid-cols-2 print:grid-cols-2"
                 : "grid-cols-1",
             )}
           >
@@ -1879,7 +1881,7 @@ export function ScheduleBoard({
                 icon={Sun}
                 iconClassName="fill-amber-400 text-amber-500"
               >
-                <div className="space-y-5">
+                <div className="space-y-5 print:space-y-3">
                   {filtered.pickups.map((block) => (
                     <article
                       key={`${block.kind}-${block.name}`}
@@ -1909,7 +1911,7 @@ export function ScheduleBoard({
                                 </p>
                               ) : null}
                             </div>
-                            <ul className="flex flex-col gap-2">
+                            <ul className="flex flex-col gap-2 print:gap-1.5">
                               {course.stops.map((stop, index) => {
                                 const stopId = stopDomId("pickup", [
                                   block.name,
@@ -1957,7 +1959,7 @@ export function ScheduleBoard({
                 icon={Moon}
                 iconClassName="text-indigo-400"
               >
-                <div className="space-y-5">
+                <div className="space-y-5 print:space-y-3">
                   {filtered.dropoffsByDate.map((day) => (
                     <article key={day.dateLabel} className="space-y-2.5">
                       <div>

@@ -246,7 +246,8 @@
 
   /* Keep individual trip blocks readable across page breaks */
   article,
-  li {
+  li,
+  .schedule-direction-section {
     break-inside: avoid;
   }
 
@@ -256,6 +257,13 @@
     print-color-adjust: exact;
     background-color: #0b1f3a !important;
     border-color: #0b1f3a !important;
+  }
+
+  /* Schedule badges / section cards keep light fills on color printers */
+  .trip-badge,
+  .schedule-direction-section {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .lesson-plan-print {
