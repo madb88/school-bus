@@ -1,8 +1,10 @@
 "use client";
 
+import { ArrowDown, ArrowRight, Bus, ChevronRight, Home, School } from "lucide-react";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { cn } from "cn";
 import { StopCombobox } from "@/components/stop-combobox";
 import { SettingsTransferSheet } from "@/components/settings-transfer-sheet";
 import { Button } from "@/components/ui/button";
@@ -160,164 +162,239 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
     setDraft({ ...EMPTY_MZK_ROUTE });
   }
 
+  const routeReady = Boolean(boardName) && Boolean(alightName);
+
   return (
     <div className="space-y-8">
       {suggestions.length > 0 ? (
-        <div className="space-y-2">
-          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            Sugestie
-            {hintPlace ? (
-              <span className="normal-case tracking-normal text-muted-foreground/80">
-                {" "}
-                z miejsca „{hintPlace}”
-              </span>
-            ) : null}
-          </p>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <h2 className="text-base font-semibold text-foreground">
+              Podpowiedzi dla Twojej lokalizacji
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Najczęściej wybierane trasy w Twojej okolicy.
+            </p>
+          </div>
           {nearestNote ? (
             <p className="text-sm text-muted-foreground">{nearestNote}</p>
           ) : null}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col gap-2">
             {suggestions.map((item) => {
               const active =
                 pref.boardStopId === item.boardStopId &&
                 pref.alightStopId === item.alightStopId;
               return (
-                <Button
+                <button
                   key={item.label}
                   type="button"
-                  size="sm"
-                  variant={active ? "secondary" : "outline"}
                   aria-pressed={active}
                   onClick={() =>
                     applySuggestion(item.boardStopId, item.alightStopId)
                   }
+                  className={cn(
+                    "flex w-full min-w-0 items-center gap-3 rounded-xl border border-border/70 bg-card px-4 py-3.5 text-left transition-colors outline-none",
+                    "hover:bg-muted/50 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+                    active && "border-bus/40 bg-muted/40",
+                  )}
                 >
-                  {item.label}
-                </Button>
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-background text-muted-foreground">
+                    <Bus aria-hidden className="size-4" />
+                  </span>
+                  <span className="min-w-0 flex-1 text-sm leading-snug text-foreground sm:text-base">
+                    <span className="break-words">{item.boardName}</span>
+                    <span className="text-muted-foreground"> → </span>
+                    <span className="break-words">{item.alightName}</span>
+                  </span>
+                  <ChevronRight
+                    aria-hidden
+                    className="size-4 shrink-0 text-muted-foreground"
+                  />
+                </button>
               );
             })}
           </div>
         </div>
       ) : null}
 
-      <div className="grid gap-6 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <Label
-            htmlFor="mzk-board-stop"
-            className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+      <div className="space-y-6">
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-end sm:gap-4">
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <Label
+              htmlFor="mzk-board-stop"
+              className="text-base font-semibold text-foreground"
+            >
+              Z domu
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Wybierz przystanek, z którego dziecko wsiada.
+            </p>
+            <StopCombobox
+              id="mzk-board-stop"
+              stops={stopOptions}
+              value={pref.boardStopId}
+              onChange={(stopId) => setStops("boardStopId", stopId)}
+              placeholder="Szukaj przystanku…"
+            />
+          </div>
+
+          <div
+            className="flex items-center justify-center text-muted-foreground sm:pb-3"
+            aria-hidden
           >
-            Wsiadam (do szkoły)
-          </Label>
-          <StopCombobox
-            id="mzk-board-stop"
-            stops={stopOptions}
-            value={pref.boardStopId}
-            onChange={(stopId) => setStops("boardStopId", stopId)}
-            placeholder="Szukaj przystanku wsiadania…"
-          />
+            <ArrowDown className="size-4 sm:hidden" />
+            <ArrowRight className="hidden size-4 sm:block" />
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <Label
+              htmlFor="mzk-alight-stop"
+              className="text-base font-semibold text-foreground"
+            >
+              Do szkoły
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Wybierz przystanek przy szkole.
+            </p>
+            <StopCombobox
+              id="mzk-alight-stop"
+              stops={stopOptions}
+              value={pref.alightStopId}
+              onChange={(stopId) => setStops("alightStopId", stopId)}
+              placeholder="Szukaj przystanku…"
+            />
+          </div>
         </div>
 
-        <div className="flex flex-col gap-1.5">
+        <div className="flex max-w-md flex-col gap-1.5">
           <Label
-            htmlFor="mzk-alight-stop"
-            className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+            htmlFor="mzk-route"
+            className="text-base font-semibold text-foreground"
           >
-            Wysiadam (przy szkole)
+            Numer linii (opcjonalnie)
           </Label>
-          <StopCombobox
-            id="mzk-alight-stop"
-            stops={stopOptions}
-            value={pref.alightStopId}
-            onChange={(stopId) => setStops("alightStopId", stopId)}
-            placeholder="Szukaj przystanku wysiadania…"
-          />
-        </div>
-      </div>
-
-      {weekdayTripCount !== null && !sameStop ? (
-        <p className="text-sm text-muted-foreground">
-          {weekdayTripCount === 0 ? (
-            <>Brak bezpośrednich kursów MZK na typowy dzień nauki między tymi przystankami.</>
-          ) : (
-            <>
-              Na typowy dzień nauki:{" "}
-              <span className="font-medium text-foreground">
-                {weekdayTripCount}{" "}
-                {weekdayTripCount === 1
-                  ? "kurs"
-                  : weekdayTripCount < 5
-                    ? "kursy"
-                    : "kursów"}
-              </span>
-              {selectedRoute ? ` (linia ${selectedRoute})` : null}.
-            </>
-          )}
-        </p>
-      ) : null}
-
-      <div className="flex max-w-md flex-col gap-1.5">
-        <Label
-          htmlFor="mzk-route"
-          className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
-        >
-          Numer linii{" "}
-          <span className="normal-case tracking-normal text-muted-foreground/80">
-            (opcjonalnie)
-          </span>
-        </Label>
-        <NativeSelect
-          id="mzk-route"
-          className="w-full max-w-full [&_select]:h-11 [&_select]:text-base"
-          value={selectedRoute}
-          onChange={(event) => setRoute(event.target.value)}
-          disabled={
-            !pref.boardStopId ||
-            !pref.alightStopId ||
-            sameStop ||
-            availableRoutes.length === 0
-          }
-        >
-          {availableRoutes.length === 0 ? (
-            <NativeSelectOption value="">
-              Najpierw wybierz przystanki
-            </NativeSelectOption>
-          ) : availableRoutes.length === 1 ? (
-            <NativeSelectOption value={availableRoutes[0]}>
-              Linia {availableRoutes[0]}
-            </NativeSelectOption>
-          ) : (
-            <>
+          <p className="text-sm text-muted-foreground">
+            Jeśli znasz numer linii, możesz zawęzić wyniki.
+          </p>
+          <NativeSelect
+            id="mzk-route"
+            className="w-full max-w-full [&_select]:h-11 [&_select]:text-base"
+            value={selectedRoute}
+            onChange={(event) => setRoute(event.target.value)}
+            disabled={
+              !pref.boardStopId ||
+              !pref.alightStopId ||
+              sameStop ||
+              availableRoutes.length === 0
+            }
+          >
+            {availableRoutes.length === 0 ? (
               <NativeSelectOption value="">
-                Wszystkie linie na trasie
+                Najpierw wybierz przystanki
               </NativeSelectOption>
-              {availableRoutes.map((route) => (
-                <NativeSelectOption key={route} value={route}>
-                  Linia {route}
+            ) : availableRoutes.length === 1 ? (
+              <NativeSelectOption value={availableRoutes[0]}>
+                Linia {availableRoutes[0]}
+              </NativeSelectOption>
+            ) : (
+              <>
+                <NativeSelectOption value="">
+                  Wszystkie linie na trasie
                 </NativeSelectOption>
-              ))}
-            </>
-          )}
-        </NativeSelect>
-        {availableRoutes.length === 1 ? (
-          <span className="text-sm text-muted-foreground">
-            Na tej trasie jeździ tylko linia {availableRoutes[0]} — ustawiona
-            automatycznie.
-          </span>
-        ) : availableRoutes.length > 1 ? (
-          <span className="text-sm text-muted-foreground">
-            Możesz zawęzić do jednej linii albo zostawić wszystkie.
-          </span>
-        ) : pref.boardStopId && pref.alightStopId && !sameStop ? (
-          <span className="text-sm text-muted-foreground">
-            Brak bezpośredniego kursu MZK między tymi przystankami.
-          </span>
+                {availableRoutes.map((route) => (
+                  <NativeSelectOption key={route} value={route}>
+                    Linia {route}
+                  </NativeSelectOption>
+                ))}
+              </>
+            )}
+          </NativeSelect>
+          {availableRoutes.length === 1 ? (
+            <span className="text-sm text-muted-foreground">
+              Na tej trasie jeździ tylko linia {availableRoutes[0]} — ustawiona
+              automatycznie.
+            </span>
+          ) : availableRoutes.length > 1 ? (
+            <span className="text-sm text-muted-foreground">
+              Możesz zawęzić do jednej linii albo zostawić wszystkie.
+            </span>
+          ) : pref.boardStopId && pref.alightStopId && !sameStop ? (
+            <span className="text-sm text-muted-foreground">
+              Brak bezpośredniego kursu MZK między tymi przystankami.
+            </span>
+          ) : null}
+        </div>
+
+        {weekdayTripCount !== null && !sameStop ? (
+          <p className="text-sm text-muted-foreground">
+            {weekdayTripCount === 0 ? (
+              <>
+                Brak bezpośrednich kursów MZK na typowy dzień nauki między tymi
+                przystankami.
+              </>
+            ) : (
+              <>
+                Na typowy dzień nauki:{" "}
+                <span className="font-medium text-foreground">
+                  {weekdayTripCount}{" "}
+                  {weekdayTripCount === 1
+                    ? "kurs"
+                    : weekdayTripCount < 5
+                      ? "kursy"
+                      : "kursów"}
+                </span>
+                {selectedRoute ? ` (linia ${selectedRoute})` : null}.
+              </>
+            )}
+          </p>
+        ) : null}
+
+        {sameStop ? (
+          <p className="text-sm text-muted-foreground">
+            Przystanek wsiadania i wysiadania musi się różnić.
+          </p>
         ) : null}
       </div>
 
-      {sameStop ? (
-        <p className="text-sm text-muted-foreground">
-          Przystanek wsiadania i wysiadania musi się różnić.
-        </p>
+      {routeReady ? (
+        <div className="rounded-xl border border-border/70 bg-muted/30 px-4 py-5 sm:px-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+            <div className="flex min-w-0 flex-1 items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-card text-muted-foreground">
+                <Home aria-hidden className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm text-muted-foreground">Z domu</p>
+                <p className="break-words font-medium text-foreground">
+                  {boardName}
+                </p>
+              </div>
+            </div>
+
+            <div
+              className="flex items-center justify-center text-muted-foreground"
+              aria-hidden
+            >
+              <ArrowDown className="size-4 sm:hidden" />
+              <ArrowRight className="hidden size-4 sm:block" />
+            </div>
+
+            <div className="flex min-w-0 flex-1 items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-card text-muted-foreground">
+                <School aria-hidden className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm text-muted-foreground">Do szkoły</p>
+                <p className="break-words font-medium text-foreground">
+                  {alightName}
+                </p>
+              </div>
+            </div>
+          </div>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Powrót ze szkoły zostanie ustawiony automatycznie.
+          </p>
+        </div>
       ) : null}
 
       <div className="flex flex-wrap items-center gap-3">
@@ -342,6 +419,7 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
           canTransfer={
             hasConfiguredLessons(lessonPlan) || hasConfiguredMzkRoute(stored)
           }
+          triggerLabel="Użyj na innym urządzeniu"
         />
         {hasConfiguredMzkRoute(pref) && !sameStop ? (
           <Link

@@ -29,11 +29,11 @@ export default async function LekcjePage() {
 
       <header className="animate-rise-delay mb-10 space-y-3 print:hidden">
         <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">
-          Plan lekcji dziecka
+          Plan lekcji
         </h1>
         <p className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-          Podaj godzinę startu (i opcjonalnie końca) lekcji w każdy dzień
-          tygodnia. Na rozkładzie włączysz dopasowanie kursów pod te godziny.
+          Ustaw godziny lekcji dziecka, a aplikacja dopasuje do nich dowóz do
+          szkoły i powrót do domu.
         </p>
       </header>
 

@@ -34,10 +34,13 @@ type CreateResponse = {
 type SettingsTransferSheetProps = {
   /** When false, trigger stays disabled with a hint. */
   canTransfer: boolean;
+  /** Visible label on the trigger. Behavior stays the same. */
+  triggerLabel?: string;
 };
 
 export function SettingsTransferSheet({
   canTransfer,
+  triggerLabel = "Przenieś na inne urządzenie",
 }: SettingsTransferSheetProps) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -145,7 +148,7 @@ export function SettingsTransferSheet({
         }
       >
         <Smartphone aria-hidden />
-        Przenieś na inne urządzenie
+        {triggerLabel}
       </SheetTrigger>
       <SheetContent side="right" className="gap-0 overflow-y-auto sm:max-w-md">
         <SheetHeader>
