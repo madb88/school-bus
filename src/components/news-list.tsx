@@ -8,12 +8,37 @@ export type NewsItem = {
   title: string;
   lead: string;
   body: string;
+  pointsTitle?: string;
+  points?: readonly string[];
+  afterTitle?: string;
+  after?: string;
+  closing?: string;
   href?: string;
   cta?: string;
 };
 
 /** Newest first — prepend new entries here. */
 export const NEWS_ITEMS: readonly NewsItem[] = [
+  {
+    id: "pwa-home-screen",
+    dateLabel: "25 września 2026",
+    title: "Autobus Szkolny teraz jako aplikacja!",
+    lead: "Od teraz możesz korzystać z Autobusu Szkolnego jeszcze wygodniej — prosto z ekranu telefonu.",
+    body: "Dodaj stronę do ekranu głównego, a zyskasz szybki dostęp do rozkładu dowozów i odwozów bez konieczności otwierania przeglądarki i wpisywania adresu strony.",
+    pointsTitle: "Co się zmienia?",
+    points: [
+      "📱 własna ikona na ekranie telefonu,",
+      "⚡ szybki dostęp do aplikacji,",
+      "🚌 rozkład zawsze pod ręką,",
+      "📴 aplikacja otwiera się jak zwykła aplikacja, bez paska przeglądarki.",
+    ],
+    afterTitle: "Jak zacząć?",
+    after:
+      "Otwórz autobusszkolny.pl na telefonie i wybierz opcję „Dodaj do ekranu głównego”.",
+    closing: "Autobus Szkolny — teraz zawsze pod ręką. 🚌",
+    href: "/instalacja",
+    cta: "Jak dodać aplikację",
+  },
   {
     id: "settings-transfer-qr",
     dateLabel: "24 września 2026",
@@ -57,6 +82,37 @@ export function NewsList({ items = NEWS_ITEMS }: { items?: readonly NewsItem[] }
           <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
             {item.body}
           </p>
+          {item.points && item.points.length > 0 ? (
+            <div className="max-w-2xl space-y-2">
+              {item.pointsTitle ? (
+                <h3 className="text-sm font-semibold text-foreground sm:text-base">
+                  {item.pointsTitle}
+                </h3>
+              ) : null}
+              <ul className="space-y-1.5 text-sm leading-relaxed text-muted-foreground sm:text-base">
+                {item.points.map((point) => (
+                  <li key={point}>{point}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {item.after ? (
+            <div className="max-w-2xl space-y-2">
+              {item.afterTitle ? (
+                <h3 className="text-sm font-semibold text-foreground sm:text-base">
+                  {item.afterTitle}
+                </h3>
+              ) : null}
+              <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+                {item.after}
+              </p>
+            </div>
+          ) : null}
+          {item.closing ? (
+            <p className="max-w-2xl text-sm leading-relaxed text-foreground/90 sm:text-base">
+              {item.closing}
+            </p>
+          ) : null}
           {item.href && item.cta ? (
             <div className="pt-1">
               <Link
