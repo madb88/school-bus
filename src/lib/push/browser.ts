@@ -25,21 +25,6 @@ export function isIosDevice(): boolean {
   return iOS || iPadOs;
 }
 
-/** Desktop Safari. iPhone, iPad, and Chromium-on-Mac are excluded. */
-export function isMacSafariUserAgent(userAgent: string): boolean {
-  if (/iPad|iPhone|iPod/.test(userAgent)) return false;
-  const isMac = /Macintosh|Mac OS X/.test(userAgent);
-  const isSafari =
-    /Safari\//.test(userAgent) &&
-    !/Chrome|Chromium|CriOS|Edg\/|OPR\/|FxiOS|Firefox/.test(userAgent);
-  return isMac && isSafari;
-}
-
-export function isMacSafari(): boolean {
-  if (typeof window === "undefined" || isIosDevice()) return false;
-  return isMacSafariUserAgent(window.navigator.userAgent);
-}
-
 export function isStandaloneDisplay(): boolean {
   const nav = window.navigator as Navigator & { standalone?: boolean };
   return (
@@ -80,19 +65,18 @@ export function subscribePwaUi(onStoreChange: () => void): () => void {
 
 /** Stable string for useSyncExternalStore. Hidden until the client snapshot arrives. */
 export function getPwaUiServerSnapshot(): string {
-  return "0|0|0|1|default|0";
+  return "0|0|1|default|0";
 }
 
 export function getPwaUiSnapshot(): string {
   ensureSubscriptionCheck();
   const ios = isIosDevice() ? "1" : "0";
-  const mac = isMacSafari() ? "1" : "0";
   const standalone = isStandaloneDisplay() ? "1" : "0";
   const dismissed = isPwaBannerDismissed() ? "1" : "0";
   const permission =
     "Notification" in window ? Notification.permission : "unsupported";
   const subscribed = pushSubscribed ? "1" : "0";
-  return `${ios}|${mac}|${standalone}|${dismissed}|${permission}|${subscribed}`;
+  return `${ios}|${standalone}|${dismissed}|${permission}|${subscribed}`;
 }
 
 function ensureSubscriptionCheck(): void {

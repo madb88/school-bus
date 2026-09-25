@@ -3,7 +3,7 @@
 import { cn } from "cn";
 import { X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useLessonPlan } from "@/lib/child-schedule/use-lesson-plan";
@@ -17,11 +17,6 @@ import {
   subscribePwaUi,
 } from "@/lib/push/browser";
 
-type BeforeInstallPromptEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-};
-
 export function PwaPrompt() {
   const plan = useLessonPlan();
   const ui = useSyncExternalStore(
@@ -29,33 +24,29 @@ export function PwaPrompt() {
     getPwaUiSnapshot,
     getPwaUiServerSnapshot,
   );
-  const [ios, mac, standalone, dismissed, permission, subscribed] = ui.split("|");
-  const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(
-    null,
-  );
+  const [ios, standalone, dismissed, permission, subscribed] = ui.split("|");
   const [pending, setPending] = useState(false);
-
-  useEffect(() => {
-    function onInstallPrompt(event: Event) {
-      event.preventDefault();
-      setInstallEvent(event as BeforeInstallPromptEvent);
-    }
-
-    window.addEventListener("beforeinstallprompt", onInstallPrompt);
-    return () => window.removeEventListener("beforeinstallprompt", onInstallPrompt);
-  }, []);
 
   if (dismissed === "1") return null;
   if (standalone === "1" && subscribed === "1") return null;
 
   const notificationsInBrowser = ios !== "1" || standalone === "1";
   const planReady = planReadyForPush(plan);
+  const showSubscribed = notificationsInBrowser && subscribed === "1";
+  const showDenied = notificationsInBrowser && permission === "denied";
+  const showEnable =
+    notificationsInBrowser &&
+    subscribed !== "1" &&
+    permission !== "denied" &&
+    planReady;
+  const showNeedPlan =
+    notificationsInBrowser &&
+    subscribed !== "1" &&
+    permission !== "denied" &&
+    !planReady;
 
-  async function install() {
-    if (!installEvent) return;
-    await installEvent.prompt();
-    const choice = await installEvent.userChoice;
-    if (choice.outcome === "accepted") setInstallEvent(null);
+  if (!showSubscribed && !showDenied && !showEnable && !showNeedPlan) {
+    return null;
   }
 
   async function enable() {
@@ -88,35 +79,8 @@ export function PwaPrompt() {
     <section className="mb-6 border-l-2 border-bus/40 bg-muted/40 px-4 py-3 text-sm leading-relaxed print:hidden">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-2">
-          <p className="font-medium text-foreground">
-            {mac === "1" && standalone !== "1"
-              ? "Aplikacja na Macu"
-              : "Aplikacja na telefonie"}
-          </p>
-          {installEvent ? (
-            <Button type="button" size="sm" variant="secondary" onClick={() => void install()}>
-              Zainstaluj
-            </Button>
-          ) : null}
-          {ios === "1" && standalone !== "1" ? (
-            <p className="text-foreground/80">
-              W Safari stuknij Udostępnij, a potem „Dodaj do ekranu początkowego”.
-              Powiadomienia włączysz dopiero w zainstalowanej aplikacji.
-            </p>
-          ) : null}
-          {mac === "1" && standalone !== "1" ? (
-            <p className="text-foreground/80">
-              Safari nie pokazuje przycisku instalacji w pasku adresu. W menu
-              wybierz{" "}
-              <span className="font-medium text-foreground">
-                Plik → Dodaj do Docka
-              </span>
-              , albo kliknij{" "}
-              <span className="font-medium text-foreground">Udostępnij</span> i
-              wybierz Dodaj do Docka.
-            </p>
-          ) : null}
-          {notificationsInBrowser && subscribed === "1" ? (
+          <p className="font-medium text-foreground">Przypomnienia o kursie</p>
+          {showSubscribed ? (
             <div className="flex flex-wrap items-center gap-3">
               <p className="text-foreground/80">
                 Powiadomienia są włączone. Przypomnienie dotyczy tylko Twojego planu.
@@ -132,12 +96,12 @@ export function PwaPrompt() {
               </Button>
             </div>
           ) : null}
-          {notificationsInBrowser && permission === "denied" ? (
+          {showDenied ? (
             <p className="text-foreground/80">
               Powiadomienia są zablokowane w ustawieniach przeglądarki.
             </p>
           ) : null}
-          {notificationsInBrowser && subscribed !== "1" && permission !== "denied" && planReady ? (
+          {showEnable ? (
             <Button
               type="button"
               size="sm"
@@ -148,7 +112,7 @@ export function PwaPrompt() {
               Włącz powiadomienia
             </Button>
           ) : null}
-          {notificationsInBrowser && subscribed !== "1" && permission !== "denied" && !planReady ? (
+          {showNeedPlan ? (
             <p className="text-foreground/80">
               Żeby dostawać przypomnienia o swoim kursie, najpierw{" "}
               <Link

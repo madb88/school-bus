@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { cn } from "cn";
 
-export type NavId = "rozklad" | "lekcje" | "mzk" | "nowosci" | "o-aplikacji";
+export type NavId =
+  | "rozklad"
+  | "lekcje"
+  | "mzk"
+  | "nowosci"
+  | "instalacja"
+  | "o-aplikacji";
 
 export const NAV_ITEMS: ReadonlyArray<{
   id: NavId;
@@ -12,6 +18,7 @@ export const NAV_ITEMS: ReadonlyArray<{
   { id: "lekcje", href: "/lekcje", label: "Plan lekcji" },
   { id: "mzk", href: "/mzk", label: "MZK" },
   { id: "nowosci", href: "/nowosci", label: "Nowości" },
+  { id: "instalacja", href: "/instalacja", label: "Instalacja" },
   { id: "o-aplikacji", href: "/o-aplikacji", label: "O aplikacji" },
 ];
 
