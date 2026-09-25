@@ -8,8 +8,6 @@ export type FreshnessInfo = {
   message: string;
 };
 
-/** GTFS fetch also runs once daily. */
-const MZK_STALE_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
 /** Warn when the published GTFS feed ends within this many days. */
 const MZK_FEED_END_WARN_DAYS = 14;
 
@@ -78,15 +76,6 @@ export function mzkScheduleFreshness(
     return {
       level: "stale",
       message: "Nie udało się odczytać daty aktualizacji rozkładu MZK.",
-    };
-  }
-
-  const age = now.getTime() - fetched.getTime();
-  if (age > MZK_STALE_AFTER_MS) {
-    return {
-      level: "stale",
-      message:
-        "Rozkład MZK może być nieaktualny — ostatnia aktualizacja była ponad 3 dni temu.",
     };
   }
 
