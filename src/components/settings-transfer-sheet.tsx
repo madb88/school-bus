@@ -157,9 +157,9 @@ export function SettingsTransferSheet({
             Przenieś ustawienia
           </SheetTitle>
           <SheetDescription>
-            Zeskanuj kod aparatem drugiego urządzenia albo wpisz kod na stronie
-            odbioru. Kod wygasa po kilku minutach; zużywa się dopiero po
-            potwierdzeniu przywrócenia.
+            Zeskanuj kod aparatem drugiego urządzenia albo wpisz go w aplikacji
+            PWA. Kod wygasa po kilku minutach i działa w jednym z tych miejsc.
+            Zużywa się dopiero po potwierdzeniu przywrócenia.
           </SheetDescription>
         </SheetHeader>
 
@@ -234,9 +234,9 @@ export function SettingsTransferSheet({
           ) : null}
 
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Na drugim urządzeniu otwórz zeskanowany link albo wejdź w{" "}
-            <span className="font-medium text-foreground">/przywroc</span> i
-            wpisz kod. Anulowanie podglądu nie zużywa kodu.
+            Skan zapisuje plan w przeglądarce telefonu. Żeby mieć go w aplikacji
+            PWA, otwórz ją i na planie lekcji wybierz „Wpisz kod”. Kod działa w
+            jednym z tych miejsc. Anulowanie podglądu nie zużywa kodu.
           </p>
         </div>
       </SheetContent>

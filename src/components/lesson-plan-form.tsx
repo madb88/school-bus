@@ -11,7 +11,7 @@ import {
 } from "@/components/lesson-plan-print";
 import { PlaceCombobox } from "@/components/place-combobox";
 import { SettingsTransferSheet } from "@/components/settings-transfer-sheet";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -390,13 +390,19 @@ export function LessonPlanForm({
                 Wyczyść
               </Button>
             </div>
-            <div className="max-sm:[&_button]:h-11 max-sm:[&_button]:w-full max-sm:[&_button]:px-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center max-sm:[&_a]:h-11 max-sm:[&_a]:w-full max-sm:[&_a]:px-4 max-sm:[&_button]:h-11 max-sm:[&_button]:w-full max-sm:[&_button]:px-4">
               <SettingsTransferSheet
                 canTransfer={
                   hasConfiguredLessons(stored) || hasConfiguredMzkRoute(mzkRoute)
                 }
                 triggerLabel="Użyj na innym urządzeniu"
               />
+              <Link
+                href="/przywroc"
+                className={buttonVariants({ size: "lg", variant: "outline" })}
+              >
+                Wpisz kod
+              </Link>
             </div>
           </div>
 
