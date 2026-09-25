@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { FeedbackFab } from "@/components/feedback-fab";
-import { PwaPrompt } from "@/components/pwa-prompt";
 import { SiteFooter } from "@/components/site-footer";
 import { cn } from "cn";
 
@@ -25,7 +24,6 @@ export function PageShell({
             wide ? "max-w-6xl" : "max-w-4xl",
           )}
         >
-          <PwaPrompt />
           {children}
         </div>
       </main>
