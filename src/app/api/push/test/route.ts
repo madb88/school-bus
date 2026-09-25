@@ -5,9 +5,9 @@ import { parseSubscription } from "@/lib/push/store";
 export const runtime = "nodejs";
 
 const TEST_PAYLOAD = {
-  title: "Dojazdy do szkoły",
-  body: "Powiadomienie testowe. Jeśli je widzisz, push działa.",
-  url: "/instalacja",
+  title: "Odjazd do szkoły za 20 min",
+  body: "Osiedle Słoneczne · 7:12",
+  url: "/",
 };
 
 export async function POST(request: Request) {

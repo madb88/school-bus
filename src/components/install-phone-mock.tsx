@@ -4,8 +4,8 @@ import Image from "next/image";
 export function InstallPhoneMock() {
   return (
     <div aria-hidden className="mx-auto w-[17.5rem] max-w-full">
-      <div className="rounded-[2.4rem] bg-[#1a2433] p-2.5 shadow-[0_24px_50px_-24px_color-mix(in_srgb,var(--asphalt)_55%,transparent)]">
-        <div className="overflow-hidden rounded-[1.85rem] bg-background">
+      <div className="flex aspect-[9/18] flex-col rounded-[2.6rem] bg-[#1a2433] p-2.5 shadow-[0_24px_50px_-24px_color-mix(in_srgb,var(--asphalt)_55%,transparent)]">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2rem] bg-background">
           <div className="flex items-center justify-between px-5 pt-2.5 pb-1 text-[0.6rem] font-medium text-muted-foreground">
             <span className="tabular-nums">7:12</span>
             <span className="h-4 w-16 rounded-full bg-[#1a2433]" />
@@ -68,15 +68,34 @@ export function InstallPhoneMock() {
             </div>
             <div className="grid grid-cols-[2.6rem_1fr] gap-2 border-l-2 border-bus/40 py-1.5 pl-2">
               <span className="font-display text-sm font-semibold tabular-nums text-asphalt">
+                7:31
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-xs font-medium text-foreground">
+                  Osiedle · pętla
+                </p>
+                <p className="text-[0.6rem] text-muted-foreground">bus szkolny</p>
+              </div>
+            </div>
+
+            <p className="pt-2 text-[0.6rem] font-semibold tracking-wide text-muted-foreground uppercase">
+              Odwozy
+            </p>
+            <div className="grid grid-cols-[2.6rem_1fr] gap-2 border-l-2 border-bus/40 py-1.5 pl-2">
+              <span className="font-display text-sm font-semibold tabular-nums text-asphalt">
                 14:45
               </span>
               <div className="min-w-0">
                 <p className="truncate text-xs font-medium text-foreground">
                   Szkoła → Osiedle
                 </p>
-                <p className="text-[0.6rem] text-muted-foreground">odwóz</p>
+                <p className="text-[0.6rem] text-muted-foreground">autobus powrotny</p>
               </div>
             </div>
+          </div>
+
+          <div className="mt-auto flex justify-center px-3 pt-3 pb-2.5">
+            <span className="h-1 w-24 rounded-full bg-[#1a2433]/75" />
           </div>
         </div>
       </div>
