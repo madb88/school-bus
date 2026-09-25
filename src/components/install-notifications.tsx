@@ -122,7 +122,7 @@ export function InstallNotifications() {
     <div className="space-y-4">
       <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
         Włącz przypomnienia na tym telefonie i wybierz, które wiadomości chcesz
-        dostawać.
+        dostawać. Na razie obejmują tylko autobus szkolny, nie autobus miejski.
       </p>
 
       <div className="space-y-4">
