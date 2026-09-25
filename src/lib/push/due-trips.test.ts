@@ -121,6 +121,53 @@ describe("dueTripsForPlan", () => {
     );
   });
 
+  it("skips a later return after the bus that matches the lesson end", () => {
+    const withLaterReturn: Schedule = {
+      ...schedule,
+      dropoffsByDate: [
+        {
+          dateLabel: "Poniedziałek, 7 września",
+          driver: "Kierowca A",
+          runs: [
+            { time: "14:00", places: ["Zatonie"] },
+            { time: "15:30", places: ["Zatonie"] },
+          ],
+        },
+      ],
+      dropoffsWeekday: [],
+    };
+
+    const trips = dueTripsForPlan(
+      withLaterReturn,
+      plan,
+      new Date("2026-09-07T15:12:00+02:00"),
+    );
+
+    expect(trips).toEqual([]);
+  });
+
+  it("does not notify about a return that leaves before lessons end", () => {
+    const earlyReturn: Schedule = {
+      ...schedule,
+      dropoffsByDate: [
+        {
+          dateLabel: "Poniedziałek, 7 września",
+          driver: "Kierowca A",
+          runs: [{ time: "12:45", places: ["Zatonie"] }],
+        },
+      ],
+      dropoffsWeekday: [],
+    };
+
+    const trips = dueTripsForPlan(
+      earlyReturn,
+      plan,
+      new Date("2026-09-07T12:30:00+02:00"),
+    );
+
+    expect(trips).toEqual([]);
+  });
+
   it("does not notify about dropoffs when the plan has no end time", () => {
     const trips = dueTripsForPlan(
       schedule,

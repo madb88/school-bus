@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { Redis } from "@upstash/redis";
 import { parseLessonPlan } from "@/lib/child-schedule/storage";
 import type { ChildLessonPlan } from "@/lib/child-schedule/types";
+import { parsePushKinds, type PushKinds } from "./kinds";
 
 const INDEX_KEY = "school-bus:push:index";
 const LOCK_KEY = "school-bus:push:lock";
@@ -22,6 +23,7 @@ export type PushRecord = {
   sent: string[];
   /** Timetable content last seen for this device. Empty until the first check. */
   scheduleFingerprint: string;
+  kinds: PushKinds;
 };
 
 let redisClient: Redis | null | undefined;
@@ -97,6 +99,9 @@ export async function getPushRecord(id: string): Promise<PushRecord | null> {
       typeof value.scheduleFingerprint === "string"
         ? value.scheduleFingerprint
         : "",
+    kinds: parsePushKinds(
+      "kinds" in value ? (value as { kinds?: unknown }).kinds : undefined,
+    ),
   };
 }
 

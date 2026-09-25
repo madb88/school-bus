@@ -1,5 +1,6 @@
 import { hasConfiguredLessons } from "@/lib/child-schedule/storage";
 import type { ChildLessonPlan } from "@/lib/child-schedule/types";
+import type { PushKinds } from "./kinds";
 
 const DISMISS_KEY = "school-bus.pwa-banner.v2";
 const UI_EVENT = "school-bus-pwa-banner";
@@ -119,6 +120,7 @@ export async function syncStoredPushPlan(plan: ChildLessonPlan): Promise<void> {
 
 export async function enablePush(
   plan: ChildLessonPlan,
+  kinds: PushKinds,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
     return { ok: false, message: "Ta przeglądarka nie obsługuje powiadomień." };
@@ -152,6 +154,7 @@ export async function enablePush(
     body: JSON.stringify({
       subscription: subscription.toJSON(),
       plan,
+      kinds,
     }),
   });
 
@@ -214,6 +217,32 @@ export async function sendTestPush(): Promise<
     return {
       ok: false,
       message: data?.error ?? "Nie udało się wysłać powiadomienia testowego.",
+    };
+  }
+
+  return { ok: true };
+}
+
+export async function syncStoredPushKinds(kinds: PushKinds): Promise<
+  { ok: true } | { ok: false; message: string }
+> {
+  const subscription = await currentSubscription();
+  if (!subscription) return { ok: true };
+
+  const response = await fetch("/api/push/kinds", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      subscription: subscription.toJSON(),
+      kinds,
+    }),
+  });
+
+  if (!response.ok) {
+    const data = (await response.json().catch(() => null)) as { error?: string } | null;
+    return {
+      ok: false,
+      message: data?.error ?? "Nie udało się zapisać wyboru powiadomień.",
     };
   }
 

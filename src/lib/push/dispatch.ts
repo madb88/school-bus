@@ -67,9 +67,11 @@ async function notifyRecord(
   let fingerprintDirty = false;
   const fingerprint = schoolScheduleFingerprint(schedule);
 
-  if (!next.scheduleFingerprint) {
-    next = { ...next, scheduleFingerprint: fingerprint };
-    fingerprintDirty = true;
+  if (!next.scheduleFingerprint || !next.kinds.schedule) {
+    if (next.scheduleFingerprint !== fingerprint) {
+      next = { ...next, scheduleFingerprint: fingerprint };
+      fingerprintDirty = true;
+    }
   } else if (next.scheduleFingerprint !== fingerprint) {
     const result = await sendPush(next.subscription, SCHEDULE_UPDATED);
     if (result === "gone") {
@@ -83,7 +85,9 @@ async function notifyRecord(
     }
   }
 
-  const due = dueTripsForPlan(schedule, next.plan, now);
+  const due = dueTripsForPlan(schedule, next.plan, now).filter((trip) =>
+    trip.kind === "pickup" ? next.kinds.departure : next.kinds.return,
+  );
   const already = new Set(next.sentOn === today ? next.sent : []);
   const pending = due.filter((trip) => !already.has(trip.id));
   let tripsSent = 0;

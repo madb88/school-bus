@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { hasConfiguredLessons } from "@/lib/child-schedule/storage";
 import type { ChildLessonPlan } from "@/lib/child-schedule/types";
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
+import { parsePushKinds } from "@/lib/push/kinds";
 import { schoolScheduleFingerprint } from "@/lib/push/schedule-fingerprint";
 import { sendPush } from "@/lib/push/send";
 import {
@@ -75,6 +76,10 @@ export async function POST(request: Request) {
     scheduleFingerprint:
       existing?.scheduleFingerprint ||
       (schedule ? schoolScheduleFingerprint(schedule) : ""),
+    kinds:
+      record.kinds !== undefined
+        ? parsePushKinds(record.kinds)
+        : (existing?.kinds ?? parsePushKinds(undefined)),
   });
 
   if (!existing) {

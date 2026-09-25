@@ -113,13 +113,32 @@ export function dueTripsForPlan(
   }
 
   if (day.end) {
-    for (const dropoff of filtered.dropoffsByDate) {
-      for (const run of dropoff.runs) consider("dropoff", run.time);
-    }
-    for (const block of filtered.dropoffsWeekday) {
-      for (const run of block.runs) consider("dropoff", run.time);
-    }
+    // Only the first return at or after lesson end. Later courses that
+    // afternoon are for other finish times and should not notify.
+    const firstReturn = earliestDropoffTime(filtered);
+    if (firstReturn) consider("dropoff", firstReturn);
   }
 
   return trips;
+}
+
+function earliestDropoffTime(schedule: Schedule): string | null {
+  let bestTime: string | null = null;
+  let bestMinutes = Number.POSITIVE_INFINITY;
+
+  function consider(time: string) {
+    const minutes = timeToMinutes(time);
+    if (minutes === null || minutes >= bestMinutes) return;
+    bestMinutes = minutes;
+    bestTime = time;
+  }
+
+  for (const dropoff of schedule.dropoffsByDate) {
+    for (const run of dropoff.runs) consider(run.time);
+  }
+  for (const block of schedule.dropoffsWeekday) {
+    for (const run of block.runs) consider(run.time);
+  }
+
+  return bestTime;
 }

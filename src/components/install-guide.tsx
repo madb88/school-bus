@@ -1,4 +1,13 @@
+"use client";
+
 import Link from "next/link";
+import { InstallNotifications } from "@/components/install-notifications";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { buttonVariants } from "@/components/ui/button";
 
 const platforms = [
@@ -32,39 +41,47 @@ const platforms = [
 
 export function InstallGuide() {
   return (
-    <div className="animate-rise-delay-2 space-y-12 sm:space-y-14">
-      {platforms.map((platform, index) => (
-        <section
-          key={platform.id}
-          className={
-            index > 0 ? "border-t border-border/50 pt-12 sm:pt-14" : undefined
-          }
-        >
-          <h2 className="font-display text-2xl font-semibold tracking-tight text-asphalt sm:text-3xl">
-            {platform.title}
-          </h2>
-          <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
-            {platform.intro}
-          </p>
-          <ol className="mt-6 max-w-2xl space-y-4">
-            {platform.steps.map((step, stepIndex) => (
-              <li key={step} className="grid grid-cols-[auto_1fr] gap-3">
-                <span
-                  aria-hidden
-                  className="font-display text-xl font-bold tabular-nums text-bus/80"
-                >
-                  {stepIndex + 1}
-                </span>
-                <p className="pt-0.5 text-base leading-relaxed text-foreground/85">
-                  {step}
-                </p>
-              </li>
-            ))}
-          </ol>
-        </section>
-      ))}
+    <div className="animate-rise-delay-2">
+      <Accordion
+        multiple
+        defaultValue={["powiadomienia"]}
+        className="overflow-hidden rounded-2xl border border-border/70 bg-card"
+      >
+        <AccordionItem value="powiadomienia">
+          <AccordionTrigger>Powiadomienia</AccordionTrigger>
+          <AccordionContent>
+            <InstallNotifications />
+          </AccordionContent>
+        </AccordionItem>
 
-      <div className="border-t border-border/50 pt-8">
+        {platforms.map((platform) => (
+          <AccordionItem key={platform.id} value={platform.id}>
+            <AccordionTrigger>{platform.title}</AccordionTrigger>
+            <AccordionContent>
+              <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
+                {platform.intro}
+              </p>
+              <ol className="mt-5 max-w-2xl space-y-4">
+                {platform.steps.map((step, stepIndex) => (
+                  <li key={step} className="grid grid-cols-[auto_1fr] gap-3">
+                    <span
+                      aria-hidden
+                      className="font-display text-xl font-bold tabular-nums text-bus/80"
+                    >
+                      {stepIndex + 1}
+                    </span>
+                    <p className="pt-0.5 text-base leading-relaxed text-foreground/85">
+                      {step}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
+
+      <div className="pt-8">
         <Link
           href="/lekcje"
           className={buttonVariants({ size: "lg", variant: "default" })}
