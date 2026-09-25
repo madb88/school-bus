@@ -1,5 +1,6 @@
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { dueTripsForPlan, warsawDateKey } from "./due-trips";
+import { schoolScheduleFingerprint } from "./schedule-fingerprint";
 import { sendPush } from "./send";
 import {
   acquireDispatchLock,
@@ -49,41 +50,67 @@ export async function dispatchReminders(
   }
 }
 
+const SCHEDULE_UPDATED = {
+  title: "Rozkład jazdy zaktualizowany",
+  body: "Godziny dowozów i odwozów się zmieniły. Sprawdź swój kurs.",
+  url: "/",
+};
+
 async function notifyRecord(
   record: PushRecord,
   schedule: NonNullable<Awaited<ReturnType<typeof loadScheduleSnapshot>>>,
   today: string,
   now: Date,
 ): Promise<{ sent: number; removed: boolean }> {
-  const due = dueTripsForPlan(schedule, record.plan, now);
-  const already = new Set(record.sentOn === today ? record.sent : []);
-  const pending = due.filter((trip) => !already.has(trip.id));
-  if (!pending.length) return { sent: 0, removed: false };
-
+  let next = record;
   let sent = 0;
+  let fingerprintDirty = false;
+  const fingerprint = schoolScheduleFingerprint(schedule);
+
+  if (!next.scheduleFingerprint) {
+    next = { ...next, scheduleFingerprint: fingerprint };
+    fingerprintDirty = true;
+  } else if (next.scheduleFingerprint !== fingerprint) {
+    const result = await sendPush(next.subscription, SCHEDULE_UPDATED);
+    if (result === "gone") {
+      await deletePushRecord(subscriptionId(next.subscription.endpoint));
+      return { sent, removed: true };
+    }
+    if (result === "ok") {
+      next = { ...next, scheduleFingerprint: fingerprint };
+      fingerprintDirty = true;
+      sent += 1;
+    }
+  }
+
+  const due = dueTripsForPlan(schedule, next.plan, now);
+  const already = new Set(next.sentOn === today ? next.sent : []);
+  const pending = due.filter((trip) => !already.has(trip.id));
+  let tripsSent = 0;
+
   for (const trip of pending) {
-    const result = await sendPush(record.subscription, {
+    const result = await sendPush(next.subscription, {
       title: trip.title,
       body: trip.body,
       url: trip.url,
     });
 
     if (result === "gone") {
-      await deletePushRecord(subscriptionId(record.subscription.endpoint));
+      await deletePushRecord(subscriptionId(next.subscription.endpoint));
       return { sent, removed: true };
     }
 
     if (result === "ok") {
       already.add(trip.id);
+      tripsSent += 1;
       sent += 1;
     }
   }
 
-  if (sent > 0) {
+  if (fingerprintDirty || tripsSent > 0) {
     await savePushRecord({
-      ...record,
-      sentOn: today,
-      sent: [...already],
+      ...next,
+      ...(tripsSent > 0 ? { sentOn: today, sent: [...already] } : {}),
     });
   }
 

@@ -55,7 +55,8 @@ export function InstallNotifications() {
         return;
       }
       toast.success("Powiadomienia włączone", {
-        description: "Przypomnienie przyjdzie około 15 minut przed Twoim kursem.",
+        description:
+          "Przypomnienie przyjdzie około 20 minut przed odjazdem do szkoły i przed powrotem. Gdy zmieni się rozkład, też dostaniesz wiadomość.",
       });
     } finally {
       setPending(false);

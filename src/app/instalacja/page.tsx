@@ -8,7 +8,7 @@ import { buildPageMetadata } from "@/lib/site-metadata";
 export const metadata = buildPageMetadata({
   title: "Instalacja",
   description:
-    "Co daje aplikacja na telefonie: ikona na ekranie początkowym i przypomnienie przed Twoim kursem. Instrukcja dla iPhone i Androida.",
+    "Co daje aplikacja na telefonie: ikona na ekranie początkowym, przypomnienie 20 minut przed odjazdem i powrotem oraz wiadomość, gdy zmieni się rozkład. Instrukcja dla iPhone i Androida.",
   path: "/instalacja",
 });
 
@@ -26,8 +26,9 @@ export default function InstalacjaPage() {
           </h1>
           <p className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
             Aplikacja dostaje własną ikonę i otwiera się bez paska przeglądarki.
-            Po ustawieniu planu lekcji możesz włączyć przypomnienie — przyjdzie
-            około 15 minut przed Twoim kursem, tylko na tym telefonie.
+            Po ustawieniu planu lekcji możesz włączyć przypomnienia: około 20
+            minut przed odjazdem do szkoły i przed autobusem powrotnym, tylko na
+            tym telefonie. Dostaniesz też wiadomość, gdy zaktualizuje się rozkład.
           </p>
           <InstallNotifications />
         </div>

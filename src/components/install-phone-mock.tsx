@@ -33,7 +33,7 @@ export function InstallPhoneMock() {
               Przypomnienie
             </p>
             <p className="mt-0.5 text-xs leading-snug font-medium text-foreground">
-              Za 15 min · 7:12, Osiedle Słoneczne
+              Za 20 min · 7:12, Osiedle Słoneczne
             </p>
           </div>
 

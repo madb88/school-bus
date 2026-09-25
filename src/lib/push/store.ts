@@ -20,6 +20,8 @@ export type PushRecord = {
   plan: ChildLessonPlan;
   sentOn: string;
   sent: string[];
+  /** Timetable content last seen for this device. Empty until the first check. */
+  scheduleFingerprint: string;
 };
 
 let redisClient: Redis | null | undefined;
@@ -91,6 +93,10 @@ export async function getPushRecord(id: string): Promise<PushRecord | null> {
     plan: parseStoredPlan(value.plan),
     sentOn: value.sentOn,
     sent: value.sent.filter((item): item is string => typeof item === "string"),
+    scheduleFingerprint:
+      typeof value.scheduleFingerprint === "string"
+        ? value.scheduleFingerprint
+        : "",
   };
 }
 

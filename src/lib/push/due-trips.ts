@@ -7,7 +7,7 @@ import { getWarsawParts } from "@/lib/dowozy/schedule-dates";
 import type { Schedule } from "@/lib/dowozy/types";
 
 /** Notify when the matched trip is this many minutes away, or closer. */
-export const PUSH_LEAD_MINUTES = 15;
+export const PUSH_LEAD_MINUTES = 20;
 
 export type DueTrip = {
   id: string;
@@ -90,8 +90,11 @@ export function dueTripsForPlan(
       kind,
       time: clock,
       place,
-      title: kind === "pickup" ? `Dowóz o ${clock}` : `Odwóz o ${clock}`,
-      body: place,
+      title:
+        kind === "pickup"
+          ? `Odjazd do szkoły za ${until} min`
+          : `Autobus powrotny za ${until} min`,
+      body: `${place} · ${clock}`,
       url: filtersHref({
         place,
         dateFilter: "today",

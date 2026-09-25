@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { hasConfiguredLessons } from "@/lib/child-schedule/storage";
 import type { ChildLessonPlan } from "@/lib/child-schedule/types";
+import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
+import { schoolScheduleFingerprint } from "@/lib/push/schedule-fingerprint";
 import { sendPush } from "@/lib/push/send";
 import {
   deletePushRecord,
@@ -16,7 +18,7 @@ export const runtime = "nodejs";
 
 const CONFIRMATION = {
   title: "Powiadomienia włączone",
-  body: "Przypomnienie przyjdzie około 15 minut przed Twoim kursem.",
+  body: "Przypomnienie przyjdzie około 20 minut przed odjazdem do szkoły i przed autobusem powrotnym. Dostaniesz też wiadomość, gdy zmieni się rozkład.",
   url: "/",
 };
 
@@ -62,11 +64,17 @@ export async function POST(request: Request) {
 
   const id = subscriptionId(subscription.endpoint);
   const existing = await getPushRecord(id);
+  const schedule = existing?.scheduleFingerprint
+    ? null
+    : await loadScheduleSnapshot();
   await savePushRecord({
     subscription,
     plan,
     sentOn: existing?.sentOn ?? "",
     sent: existing?.sent ?? [],
+    scheduleFingerprint:
+      existing?.scheduleFingerprint ||
+      (schedule ? schoolScheduleFingerprint(schedule) : ""),
   });
 
   if (!existing) {

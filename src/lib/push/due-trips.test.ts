@@ -50,7 +50,7 @@ const plan: ChildLessonPlan = {
 };
 
 describe("dueTripsForPlan", () => {
-  it("returns this person's pickup inside the 15 minute window", () => {
+  it("returns this person's pickup inside the 20 minute window", () => {
     const trips = dueTripsForPlan(
       schedule,
       plan,
@@ -62,13 +62,38 @@ describe("dueTripsForPlan", () => {
         kind: "pickup",
         time: "07:10",
         place: "Zatonie",
-        title: "Dowóz o 07:10",
+        title: "Odjazd do szkoły za 14 min",
+        body: "Zatonie · 07:10",
         id: "2026-09-07|pickup|07:10|Zatonie",
       }),
     ]);
   });
 
-  it("skips a pickup that is still more than 15 minutes away", () => {
+  it("includes a pickup exactly 20 minutes away", () => {
+    const trips = dueTripsForPlan(
+      schedule,
+      plan,
+      new Date("2026-09-07T06:50:00+02:00"),
+    );
+
+    expect(trips).toEqual([
+      expect.objectContaining({
+        kind: "pickup",
+        title: "Odjazd do szkoły za 20 min",
+      }),
+    ]);
+  });
+
+  it("skips a pickup that is still more than 20 minutes away", () => {
+    const trips = dueTripsForPlan(
+      schedule,
+      plan,
+      new Date("2026-09-07T06:49:00+02:00"),
+    );
+    expect(trips).toEqual([]);
+  });
+
+  it("skips a pickup that is still more than 20 minutes away by a wide margin", () => {
     const trips = dueTripsForPlan(
       schedule,
       plan,
@@ -90,6 +115,8 @@ describe("dueTripsForPlan", () => {
         kind: "dropoff",
         time: "14:00",
         place: "Zatonie",
+        title: "Autobus powrotny za 10 min",
+        body: "Zatonie · 14:00",
       }),
     );
   });
