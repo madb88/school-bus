@@ -29,7 +29,7 @@ export function PwaPrompt() {
     getPwaUiSnapshot,
     getPwaUiServerSnapshot,
   );
-  const [ios, standalone, dismissed, permission, subscribed] = ui.split("|");
+  const [ios, mac, standalone, dismissed, permission, subscribed] = ui.split("|");
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(
     null,
   );
@@ -88,7 +88,11 @@ export function PwaPrompt() {
     <section className="mb-6 border-l-2 border-bus/40 bg-muted/40 px-4 py-3 text-sm leading-relaxed print:hidden">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-2">
-          <p className="font-medium text-foreground">Aplikacja na telefonie</p>
+          <p className="font-medium text-foreground">
+            {mac === "1" && standalone !== "1"
+              ? "Aplikacja na Macu"
+              : "Aplikacja na telefonie"}
+          </p>
           {installEvent ? (
             <Button type="button" size="sm" variant="secondary" onClick={() => void install()}>
               Zainstaluj
@@ -98,6 +102,18 @@ export function PwaPrompt() {
             <p className="text-foreground/80">
               W Safari stuknij Udostępnij, a potem „Dodaj do ekranu początkowego”.
               Powiadomienia włączysz dopiero w zainstalowanej aplikacji.
+            </p>
+          ) : null}
+          {mac === "1" && standalone !== "1" ? (
+            <p className="text-foreground/80">
+              Safari nie pokazuje przycisku instalacji w pasku adresu. W menu
+              wybierz{" "}
+              <span className="font-medium text-foreground">
+                Plik → Dodaj do Docka
+              </span>
+              , albo kliknij{" "}
+              <span className="font-medium text-foreground">Udostępnij</span> i
+              wybierz Dodaj do Docka.
             </p>
           ) : null}
           {notificationsInBrowser && subscribed === "1" ? (
