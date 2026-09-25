@@ -22,7 +22,10 @@ export default function InstalacjaPage() {
         <header className="mb-10 grid items-center gap-10 lg:grid-cols-[minmax(0,1.15fr)_auto] lg:gap-14">
           <div className="space-y-4">
             <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">
-              Aplikacja na telefonie lub tablecie
+              Aplikacja na telefonie lub tablecie{" "}
+              <span className="inline-flex translate-y-[-0.12em] items-center rounded-md border border-border px-2 py-0.5 align-middle text-xs font-semibold leading-none tracking-wide text-muted-foreground">
+                Beta
+              </span>
             </h1>
             <div className="max-w-xl space-y-3 text-base leading-relaxed text-muted-foreground sm:text-lg">
               <p>
