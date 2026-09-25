@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { MobileNav } from "@/components/mobile-nav";
 import { SiteNav, type NavId } from "@/components/site-nav";
@@ -14,23 +15,14 @@ export function SiteHeader({ current }: SiteHeaderProps) {
         href="/"
         className="group inline-flex min-w-0 items-center gap-2.5 no-underline"
       >
-        <span
-          aria-hidden
-          className="grid size-8 shrink-0 place-items-center rounded-lg bg-bus text-bus-foreground shadow-[0_0_0_1px_color-mix(in_srgb,var(--bus)_40%,transparent)] transition-transform duration-300 group-hover:-rotate-3 group-hover:scale-105"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            className="size-4"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <rect x="3" y="6" width="18" height="11" rx="2" />
-            <path d="M7 17v2M17 17v2M3 12h18M7 9h2M15 9h2" />
-          </svg>
-        </span>
+        <Image
+          src="/icons/icon-192.png"
+          alt=""
+          width={64}
+          height={64}
+          priority
+          className="size-8 shrink-0 rounded-lg transition-transform duration-300 group-hover:-rotate-3 group-hover:scale-105"
+        />
         <span className="truncate font-display text-sm font-semibold tracking-tight text-asphalt sm:text-base">
           Dojazdy do szkoły
         </span>
