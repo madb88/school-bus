@@ -169,6 +169,57 @@ export async function enablePush(
   return { ok: true };
 }
 
+/** One-off push to this browser. Does not require a lesson plan. */
+export async function sendTestPush(): Promise<
+  { ok: true } | { ok: false; message: string }
+> {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+    return { ok: false, message: "Ta przeglądarka nie obsługuje powiadomień." };
+  }
+
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
+  if (!publicKey) {
+    return { ok: false, message: "Powiadomienia nie są jeszcze skonfigurowane." };
+  }
+
+  const permission = await Notification.requestPermission();
+  notifyPwaUi();
+  if (permission !== "granted") {
+    return { ok: false, message: "Brak zgody na powiadomienia." };
+  }
+
+  const registration = await navigator.serviceWorker.ready;
+  const existing = await registration.pushManager.getSubscription();
+  let subscription = existing;
+  try {
+    subscription =
+      existing ??
+      (await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      }));
+  } catch {
+    return { ok: false, message: "Nie udało się włączyć powiadomień w tej przeglądarce." };
+  }
+
+  const response = await fetch("/api/push/test", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ subscription: subscription.toJSON() }),
+  });
+
+  if (!response.ok) {
+    if (!existing) await subscription.unsubscribe();
+    const data = (await response.json().catch(() => null)) as { error?: string } | null;
+    return {
+      ok: false,
+      message: data?.error ?? "Nie udało się wysłać powiadomienia testowego.",
+    };
+  }
+
+  return { ok: true };
+}
+
 export async function disablePush(): Promise<void> {
   const subscription = await currentSubscription();
   if (subscription) {

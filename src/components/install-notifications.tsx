@@ -12,6 +12,7 @@ import {
   getPwaUiServerSnapshot,
   getPwaUiSnapshot,
   planReadyForPush,
+  sendTestPush,
   subscribePwaUi,
 } from "@/lib/push/browser";
 
@@ -39,8 +40,9 @@ export function InstallNotifications() {
     subscribed !== "1" &&
     permission !== "denied" &&
     !planReady;
+  const canTest = notificationsInBrowser && permission !== "denied";
 
-  if (!showSubscribed && !showDenied && !showEnable && !showNeedPlan) {
+  if (!canTest && !showSubscribed && !showDenied && !showEnable && !showNeedPlan) {
     return null;
   }
 
@@ -60,6 +62,22 @@ export function InstallNotifications() {
     }
   }
 
+  async function sendTest() {
+    setPending(true);
+    try {
+      const result = await sendTestPush();
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      toast.success("Wysłane", {
+        description: "Powiadomienie testowe powinno pojawić się za chwilę.",
+      });
+    } finally {
+      setPending(false);
+    }
+  }
+
   async function disable() {
     setPending(true);
     try {
@@ -72,6 +90,22 @@ export function InstallNotifications() {
 
   return (
     <div className="space-y-3 text-sm leading-relaxed">
+      {canTest ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={pending}
+            onClick={() => void sendTest()}
+          >
+            Wyślij powiadomienie testowe
+          </Button>
+          <p className="text-foreground/80">
+            Na Macu działa w Safari. Na iPhonie dopiero w zainstalowanej aplikacji.
+          </p>
+        </div>
+      ) : null}
       {showSubscribed ? (
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-foreground/80">
