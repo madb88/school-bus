@@ -10,7 +10,7 @@ type SiteHeaderProps = {
 
 export function SiteHeader({ current }: SiteHeaderProps) {
   return (
-    <header className="animate-rise flex items-center justify-between gap-4">
+    <header className="flex items-center justify-between gap-4">
       <Link
         href="/"
         className="group inline-flex min-w-0 items-center gap-2.5 no-underline"

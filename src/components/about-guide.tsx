@@ -99,7 +99,7 @@ const steps: GuideStep[] = [
 
 export function AboutGuide() {
   return (
-    <ol className="animate-rise-delay-2 space-y-10 sm:space-y-12">
+    <ol className="space-y-10 sm:space-y-12">
       {steps.map((step, index) => (
         <li
           key={step.number}

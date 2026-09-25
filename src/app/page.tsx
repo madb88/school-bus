@@ -37,45 +37,51 @@ export default async function Home({ searchParams }: HomeProps) {
   ].filter((item): item is NonNullable<typeof item> => item !== null);
 
   return (
-    <PageShell wide>
-      <div className="mb-8 print:hidden">
-        <SiteHeader current="rozklad" />
-      </div>
-      {schedule ? (
-        <>
-          <h1 className="sr-only">Rozkład dowozów</h1>
-          <ScheduleStatusBanner
-            items={freshness}
-            className="mb-6 print:hidden"
-          />
-          <ScheduleBoard
-            schedule={schedule}
-            mzkAvailable={Boolean(mzkMeta)}
-            initialFilters={initialFilters}
-          />
-        </>
-      ) : (
-        <div className="space-y-8">
-          <div className="animate-rise-delay space-y-3">
-            <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-4xl">
-              Rozkład dowozów
-            </h1>
-            <p className="text-muted-foreground">
-              Rozkład szkolny jest chwilowo niedostępny. Spróbuj ponownie
-              później albo sprawdź źródło na stronie{" "}
-              <a
-                href={DOWOZY_SOURCE_URL}
-                className="underline underline-offset-2 hover:text-foreground"
-                target="_blank"
-                rel="noreferrer"
-              >
-                szkoły
-              </a>
-              .
-            </p>
-          </div>
+    <PageShell
+      wide
+      header={
+        <div className="mb-8">
+          <SiteHeader current="rozklad" />
         </div>
-      )}
+      }
+    >
+      <div className="page-enter">
+        {schedule ? (
+          <>
+            <h1 className="sr-only">Rozkład dowozów</h1>
+            <ScheduleStatusBanner
+              items={freshness}
+              className="mb-6 print:hidden"
+            />
+            <ScheduleBoard
+              schedule={schedule}
+              mzkAvailable={Boolean(mzkMeta)}
+              initialFilters={initialFilters}
+            />
+          </>
+        ) : (
+          <div className="space-y-8">
+            <div className="space-y-3">
+              <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-4xl">
+                Rozkład dowozów
+              </h1>
+              <p className="text-muted-foreground">
+                Rozkład szkolny jest chwilowo niedostępny. Spróbuj ponownie
+                później albo sprawdź źródło na stronie{" "}
+                <a
+                  href={DOWOZY_SOURCE_URL}
+                  className="underline underline-offset-2 hover:text-foreground"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  szkoły
+                </a>
+                .
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
     </PageShell>
   );
 }

@@ -36,7 +36,7 @@ export const NEWS_ITEMS: readonly NewsItem[] = [
 
 export function NewsList({ items = NEWS_ITEMS }: { items?: readonly NewsItem[] }) {
   return (
-    <ol className="animate-rise-delay-2 space-y-10 sm:space-y-12">
+    <ol className="space-y-10 sm:space-y-12">
       {items.map((item, index) => (
         <li
           key={item.id}

@@ -25,17 +25,17 @@ export default async function PrzywrocPage({ searchParams }: PrzywrocPageProps) 
         <SiteHeader current="lekcje" />
       </div>
 
-      <header className="animate-rise-delay mb-10 space-y-3">
-        <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">
-          Przywróć ustawienia
-        </h1>
-        <p className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-          Odbierz plan lekcji i trasę MZK wygenerowane na innym urządzeniu.
-          Kod jest jednorazowy i działa przez krótki czas.
-        </p>
-      </header>
+      <div className="page-enter">
+        <header className="mb-10 space-y-3">
+          <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">
+            Przywróć ustawienia
+          </h1>
+          <p className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+            Odbierz plan lekcji i trasę MZK wygenerowane na innym urządzeniu.
+            Kod jest jednorazowy i działa przez krótki czas.
+          </p>
+        </header>
 
-      <div className="animate-rise-delay-2">
         <SettingsRestorePanel initialToken={initialToken} />
       </div>
     </PageShell>

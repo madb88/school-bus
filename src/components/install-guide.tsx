@@ -41,7 +41,7 @@ const platforms = [
 
 export function InstallGuide() {
   return (
-    <div className="animate-rise-delay-2">
+    <div>
       <Accordion
         multiple
         defaultValue={["powiadomienia"]}

@@ -18,8 +18,10 @@ export default function AboutPage() {
         <SiteHeader current="o-aplikacji" />
       </div>
 
-      <AboutIntro />
-      <AboutGuide />
+      <div className="page-enter">
+        <AboutIntro />
+        <AboutGuide />
+      </div>
     </PageShell>
   );
 }
