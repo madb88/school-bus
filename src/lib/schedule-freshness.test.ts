@@ -40,4 +40,15 @@ describe("mzkScheduleFreshness", () => {
       ).level,
     ).toBe("stale");
   });
+
+  it("is ok when the snapshot is older than three days but the feed is still valid", () => {
+    const now = new Date("2026-09-25T12:00:00.000Z");
+    expect(
+      mzkScheduleFreshness(
+        "2026-09-19T10:00:00.000Z",
+        "20261231",
+        now,
+      ).level,
+    ).toBe("ok");
+  });
 });
