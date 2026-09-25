@@ -6,7 +6,7 @@ import { buildPageMetadata } from "@/lib/site-metadata";
 export const metadata = buildPageMetadata({
   title: "Nowości",
   description:
-    "Co nowego w Dojazdach do szkoły — wydruk planu dojazdów i kolejne usprawnienia.",
+    "Co nowego w Dojazdach do szkoły — aplikacja na telefonie, wydruk planu dojazdów i kolejne usprawnienia.",
   path: "/nowosci",
 });
 

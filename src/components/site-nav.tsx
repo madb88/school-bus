@@ -18,7 +18,7 @@ export const NAV_ITEMS: ReadonlyArray<{
   { id: "lekcje", href: "/lekcje", label: "Plan lekcji" },
   { id: "mzk", href: "/mzk", label: "MZK" },
   { id: "nowosci", href: "/nowosci", label: "Nowości" },
-  { id: "instalacja", href: "/instalacja", label: "Instalacja" },
+  { id: "instalacja", href: "/instalacja", label: "PWA" },
   { id: "o-aplikacji", href: "/o-aplikacji", label: "O aplikacji" },
 ];
 
