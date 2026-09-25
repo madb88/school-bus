@@ -7,7 +7,7 @@ import { buildPageMetadata } from "@/lib/site-metadata";
 export const metadata = buildPageMetadata({
   title: "O aplikacji",
   description:
-    "Jak zacząć: ustaw plan lekcji i trasę MZK, potem korzystaj z dopasowanego rozkładu dowozów i odwozów.",
+    "Jak zacząć: ustaw plan lekcji i trasę MZK, wydrukuj spersonalizowany plan dojazdów, potem korzystaj z dopasowanego rozkładu.",
   path: "/o-aplikacji",
 });
 

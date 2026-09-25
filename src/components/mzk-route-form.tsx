@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { StopCombobox } from "@/components/stop-combobox";
+import { SettingsTransferSheet } from "@/components/settings-transfer-sheet";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   NativeSelect,
   NativeSelectOption,
 } from "@/components/ui/native-select";
+import { hasConfiguredLessons } from "@/lib/child-schedule/storage";
 import { useLessonPlan } from "@/lib/child-schedule/use-lesson-plan";
 import { usePreferredPlace } from "@/lib/child-schedule/use-preferred-place";
 import { filtersHref } from "@/lib/dowozy/filter-url";
@@ -336,6 +338,11 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
         >
           Wyczyść
         </Button>
+        <SettingsTransferSheet
+          canTransfer={
+            hasConfiguredLessons(lessonPlan) || hasConfiguredMzkRoute(stored)
+          }
+        />
         {hasConfiguredMzkRoute(pref) && !sameStop ? (
           <Link
             href={filtersHref({

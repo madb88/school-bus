@@ -11,8 +11,9 @@ export function AboutIntro() {
         </h1>
         <p className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
           Ustaw plan lekcji i trasę MZK — rozkład dopasuje dowozy, odwozy i
-          kursy miejskie do Twojego dnia. Plan i trasa zostają w tej
-          przeglądarce. Po włączeniu powiadomień kopia planu jest też na
+          kursy miejskie do Twojego dnia. Możesz też wydrukować
+          spersonalizowany plan dojazdów na cały tydzień. Plan i trasa zostają
+          w tej przeglądarce. Po włączeniu powiadomień kopia planu jest też na
           serwerze.
         </p>
         <div className="pt-1">

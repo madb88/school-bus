@@ -51,8 +51,8 @@ export function MobileNav({ current }: MobileNavProps) {
                 className={cn(
                   "rounded-lg px-3 py-3 text-base font-medium transition-colors",
                   active
-                    ? "bg-muted text-asphalt"
-                    : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                    ? "bg-bus text-bus-foreground"
+                    : "text-muted-foreground hover:bg-bus/10 hover:text-bus-deep",
                 )}
                 aria-current={active ? "page" : undefined}
               >

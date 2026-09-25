@@ -37,7 +37,7 @@ export default async function Home({ searchParams }: HomeProps) {
   ].filter((item): item is NonNullable<typeof item> => item !== null);
 
   return (
-    <PageShell>
+    <PageShell wide>
       <div className="mb-8 print:hidden">
         <SiteHeader current="rozklad" />
       </div>

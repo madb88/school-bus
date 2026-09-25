@@ -25,5 +25,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.5,
     },
+    {
+      url: `${base}/nowosci`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.6,
+    },
+    {
+      url: `${base}/przywroc`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.3,
+    },
   ];
 }

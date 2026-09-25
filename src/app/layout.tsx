@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Bricolage_Grotesque, Manrope } from "next/font/google";
 import { PwaRegister } from "@/components/pwa-register";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -76,6 +77,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Toaster position="top-center" richColors closeButton />
         </ThemeProvider>
         <Analytics />
+        <SpeedInsights />
         <PwaRegister />
       </body>
     </html>

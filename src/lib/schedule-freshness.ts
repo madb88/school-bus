@@ -8,8 +8,6 @@ export type FreshnessInfo = {
   message: string;
 };
 
-/** School scrape runs once daily — older than this means the pipeline likely stalled. */
-const SCHOOL_STALE_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
 /** GTFS fetch also runs once daily. */
 const MZK_STALE_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
 /** Warn when the published GTFS feed ends within this many days. */
@@ -25,24 +23,12 @@ function parseFetchedAt(iso: string): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-export function schoolScheduleFreshness(
-  fetchedAt: string,
-  now: Date = new Date(),
-): FreshnessInfo {
+export function schoolScheduleFreshness(fetchedAt: string): FreshnessInfo {
   const fetched = parseFetchedAt(fetchedAt);
   if (!fetched) {
     return {
       level: "stale",
       message: "Nie udało się odczytać daty aktualizacji rozkładu szkolnego.",
-    };
-  }
-
-  const age = now.getTime() - fetched.getTime();
-  if (age > SCHOOL_STALE_AFTER_MS) {
-    return {
-      level: "stale",
-      message:
-        "Rozkład szkolny może być nieaktualny — ostatnia aktualizacja była ponad 3 dni temu.",
     };
   }
 

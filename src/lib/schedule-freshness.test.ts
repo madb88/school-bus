@@ -6,17 +6,15 @@ import {
 
 describe("schoolScheduleFreshness", () => {
   it("is ok when fetched recently", () => {
-    const now = new Date("2026-09-23T12:00:00.000Z");
-    expect(
-      schoolScheduleFreshness("2026-09-22T10:00:00.000Z", now).level,
-    ).toBe("ok");
+    expect(schoolScheduleFreshness("2026-09-22T10:00:00.000Z").level).toBe(
+      "ok",
+    );
   });
 
-  it("is stale after three days", () => {
-    const now = new Date("2026-09-26T12:00:00.000Z");
-    expect(
-      schoolScheduleFreshness("2026-09-22T10:00:00.000Z", now).level,
-    ).toBe("stale");
+  it("is ok when the snapshot is older than three days", () => {
+    expect(schoolScheduleFreshness("2026-09-19T10:00:00.000Z").level).toBe(
+      "ok",
+    );
   });
 });
 
