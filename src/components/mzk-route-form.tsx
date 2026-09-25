@@ -193,12 +193,20 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
                     applySuggestion(item.boardStopId, item.alightStopId)
                   }
                   className={cn(
-                    "flex w-full min-w-0 items-center gap-3 rounded-xl border border-border/70 bg-card px-4 py-3.5 text-left transition-colors outline-none",
-                    "hover:bg-muted/50 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-                    active && "border-bus/40 bg-muted/40",
+                    "flex w-full min-w-0 items-center gap-3 rounded-xl border bg-card px-4 py-3.5 text-left transition-colors outline-none",
+                    "border-border/70 hover:border-bus hover:bg-card focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+                    active &&
+                      "border-bus bg-card shadow-[0_0_0_3px_color-mix(in_srgb,var(--bus)_22%,transparent)] hover:border-bus-deep hover:bg-card",
                   )}
                 >
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-background text-muted-foreground">
+                  <span
+                    className={cn(
+                      "flex size-10 shrink-0 items-center justify-center rounded-lg border bg-card",
+                      active
+                        ? "border-bus/50 text-bus"
+                        : "border-border/70 text-muted-foreground",
+                    )}
+                  >
                     <Bus aria-hidden className="size-4" />
                   </span>
                   <span className="min-w-0 flex-1 text-sm leading-snug text-foreground sm:text-base">
@@ -208,7 +216,10 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
                   </span>
                   <ChevronRight
                     aria-hidden
-                    className="size-4 shrink-0 text-muted-foreground"
+                    className={cn(
+                      "size-4 shrink-0",
+                      active ? "text-bus" : "text-muted-foreground",
+                    )}
                   />
                 </button>
               );
@@ -278,7 +289,7 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
           </p>
           <NativeSelect
             id="mzk-route"
-            className="w-full max-w-full [&_select]:h-11 [&_select]:text-base"
+            className="w-full max-w-full [&_select]:h-11 [&_select]:bg-card [&_select]:text-base dark:[&_select]:bg-card"
             value={selectedRoute}
             onChange={(event) => setRoute(event.target.value)}
             disabled={
@@ -357,7 +368,7 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
       </div>
 
       {routeReady ? (
-        <div className="rounded-xl border border-border/70 bg-muted/30 px-4 py-5 sm:px-6">
+        <div className="rounded-xl border border-border/70 bg-card px-4 py-5 sm:px-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
             <div className="flex min-w-0 flex-1 items-start gap-3">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-card text-muted-foreground">
