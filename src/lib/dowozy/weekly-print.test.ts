@@ -6,6 +6,8 @@ import {
   buildWeeklyLessonPrint,
   nearestAfternoonMzk,
   nearestMorningMzk,
+  nearestSchoolDeparture,
+  nearestSchoolReturn,
 } from "./weekly-print";
 
 const schedule: Schedule = {
@@ -178,6 +180,18 @@ describe("nearest MZK helpers", () => {
       time: "14:10",
       route: "12",
     });
+  });
+});
+
+describe("nearest school helpers", () => {
+  it("picks the latest departure and earliest return from sorted lists", () => {
+    expect(nearestSchoolDeparture(["06:40", "07:05", "07:20"])).toBe("07:20");
+    expect(nearestSchoolReturn(["14:45", "15:30", "16:20"])).toBe("14:45");
+  });
+
+  it("returns null for empty lists", () => {
+    expect(nearestSchoolDeparture([])).toBeNull();
+    expect(nearestSchoolReturn([])).toBeNull();
   });
 });
 

@@ -222,7 +222,8 @@ export function LessonPlanForm({
   const canPrint = Boolean(plan.place) && hasConfiguredLessons(plan);
   const canPrintMzk =
     canPrint && Boolean(mzkSchedule) && hasConfiguredMzkRoute(mzkRoute);
-  const selectedPrintReady = printMode === "school-mzk" ? canPrintMzk : canPrint;
+  const selectedPrintReady =
+    printMode === "school-mzk" ? canPrintMzk : canPrint;
 
   useEffect(() => {
     function clearPrintMode() {
@@ -512,6 +513,37 @@ export function LessonPlanForm({
                 </span>
               </span>
             </label>
+            <label
+              className={cn(
+                "flex w-full items-start gap-3 rounded-xl border border-border/70 bg-card px-4 py-3.5 text-left transition-colors",
+                "has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
+                printMode === "compact" && "border-bus/40 bg-muted/40",
+                !canPrint && "cursor-not-allowed opacity-60",
+              )}
+            >
+              <input
+                type="radio"
+                name="lesson-print-mode"
+                value="compact"
+                checked={printMode === "compact"}
+                disabled={!canPrint}
+                onChange={() => setPrintMode("compact")}
+                title={
+                  canPrint
+                    ? undefined
+                    : "Wybierz przystanek i uzupełnij godziny lekcji"
+                }
+                className="mt-1 size-4 accent-bus"
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-foreground sm:text-base">
+                  Kompaktowa · do kieszeni
+                </span>
+                <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">
+                  Zbity pasek do wycięcia i kieszeni (tylko szkolny)
+                </span>
+              </span>
+            </label>
           </fieldset>
 
           {!canPrint ? (
@@ -547,7 +579,9 @@ export function LessonPlanForm({
             aria-label={
               printMode === "school"
                 ? "Wydrukuj plan dojazdów szkolnych"
-                : "Wydrukuj plan dojazdów szkolnych z najbliższym MZK"
+                : printMode === "school-mzk"
+                  ? "Wydrukuj plan dojazdów szkolnych z najbliższym MZK"
+                  : "Wydrukuj kompaktowy plan dojazdów do kieszeni"
             }
             title={
               selectedPrintReady
@@ -566,6 +600,7 @@ export function LessonPlanForm({
         </section>
       </div>
       <LessonPlanPrint schedule={schedule} plan={plan} mode="school" />
+      <LessonPlanPrint schedule={schedule} plan={plan} mode="compact" />
       {mzkSchedule ? (
         <LessonPlanPrint
           schedule={schedule}

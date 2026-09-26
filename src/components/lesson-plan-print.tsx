@@ -11,6 +11,8 @@ import {
 import type { ChildLessonPlan } from "@/lib/child-schedule/types";
 import {
   buildWeeklyLessonPrint,
+  nearestSchoolDeparture,
+  nearestSchoolReturn,
   type WeeklyPrintDay,
   type WeeklyPrintMzkTrip,
 } from "@/lib/dowozy/weekly-print";
@@ -21,7 +23,7 @@ import { siteName } from "@/lib/site-metadata";
 
 const PRINT_LESSONS_URL = "https://autobusszkolny.pl/lekcje";
 
-export type LessonPlanPrintMode = "school" | "school-mzk";
+export type LessonPlanPrintMode = "school" | "school-mzk" | "compact";
 
 type LessonPlanPrintProps = {
   schedule: Schedule;
@@ -192,6 +194,76 @@ function PrintTable({
   );
 }
 
+function CompactTime({ time }: { time: string | null }) {
+  if (!time) {
+    return <span className="text-neutral-500">—</span>;
+  }
+  return <span className="tabular-nums">{time}</span>;
+}
+
+function CompactStrip({
+  days,
+  place,
+}: {
+  days: WeeklyPrintDay[];
+  place: string;
+}) {
+  return (
+    <div className="lesson-plan-print-compact-inner break-inside-avoid">
+      <div className="lesson-plan-print-compact-strip w-[70mm] border border-dashed border-black px-2.5 py-2.5 text-black">
+        <header className="border-b border-black pb-1.5">
+          <p className="text-[0.55rem] font-medium tracking-[0.12em] uppercase">
+            Plan · do kieszeni
+          </p>
+          <p className="mt-0.5 font-display text-sm font-bold leading-tight tracking-tight">
+            {place}
+          </p>
+        </header>
+
+        <ul className="mt-1.5 divide-y divide-black/40">
+          {days.map((day) => {
+            const departure = nearestSchoolDeparture(day.departures);
+            const returnTime = nearestSchoolReturn(day.returns);
+            return (
+              <li
+                key={day.weekday}
+                className="grid grid-cols-[2.1rem_1fr_1fr] items-center gap-1 py-1.5 text-[0.8rem] leading-none"
+              >
+                <span className="font-semibold">{day.label}</span>
+                <span className="flex items-baseline gap-0.5">
+                  <span className="text-[0.65rem] text-neutral-600" aria-hidden>
+                    →
+                  </span>
+                  <CompactTime time={departure} />
+                </span>
+                <span className="flex items-baseline gap-0.5">
+                  <span className="text-[0.65rem] text-neutral-600" aria-hidden>
+                    ←
+                  </span>
+                  <CompactTime time={returnTime} />
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+
+        <p className="mt-1.5 border-t border-black pt-1 text-[0.5rem] tracking-wide text-neutral-600">
+          {siteName}
+        </p>
+      </div>
+      <p className="mt-2 w-[70mm] text-center text-[0.65rem] text-neutral-600">
+        Wytnij wzdłuż linii i złóż
+      </p>
+    </div>
+  );
+}
+
+function printModeClass(mode: LessonPlanPrintMode): string {
+  if (mode === "school-mzk") return "lesson-plan-print lesson-plan-print-mzk";
+  if (mode === "compact") return "lesson-plan-print lesson-plan-print-compact";
+  return "lesson-plan-print lesson-plan-print-school";
+}
+
 export function LessonPlanPrint({
   schedule,
   plan,
@@ -218,13 +290,16 @@ export function LessonPlanPrint({
       : undefined,
   );
 
-  const modeClass =
-    mode === "school-mzk"
-      ? "lesson-plan-print lesson-plan-print-mzk"
-      : "lesson-plan-print lesson-plan-print-school";
+  if (mode === "compact") {
+    return (
+      <section className={`${printModeClass(mode)} hidden`}>
+        <CompactStrip days={days} place={plan.place} />
+      </section>
+    );
+  }
 
   return (
-    <section className={`${modeClass} hidden`}>
+    <section className={`${printModeClass(mode)} hidden`}>
       <header className="flex items-start justify-between gap-4">
         <div>
           <p className="text-[0.65rem] font-medium tracking-[0.14em] text-black uppercase">

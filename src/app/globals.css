@@ -274,8 +274,14 @@
 
   /* Only the selected print sheet is shown (set via body[data-print-mode]). */
   body[data-print-mode="school"] .lesson-plan-print-school,
-  body[data-print-mode="school-mzk"] .lesson-plan-print-mzk {
+  body[data-print-mode="school-mzk"] .lesson-plan-print-mzk,
+  body[data-print-mode="compact"] .lesson-plan-print-compact {
     display: block !important;
+  }
+
+  .lesson-plan-print-compact-strip {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .lesson-plan-print table,
