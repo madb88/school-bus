@@ -40,7 +40,7 @@ import { useMzkRoutePreference } from "@/lib/mzk/use-mzk-route";
 import { syncStoredPushPlan } from "@/lib/push/browser";
 
 const cardClass =
-  "min-w-0 space-y-5 overflow-x-clip rounded-xl border border-border/70 bg-card/90 p-4 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:p-6";
+  "space-y-5 rounded-xl border border-border/70 bg-card/90 p-4 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:p-6";
 
 const actionButtonClass = "h-11 w-full px-4 sm:w-auto";
 
@@ -61,7 +61,6 @@ function dayHasEndBeforeStart(
   return endMin < startMin;
 }
 
-/** Native `type="time"` overflows on real iOS/Android; text stays in-bounds. */
 function LessonTimeInput({
   id,
   label,
@@ -77,48 +76,24 @@ function LessonTimeInput({
   invalid?: boolean;
   onChange: (value: string) => void;
 }) {
-  function commit(raw: string) {
-    const trimmed = raw.trim();
-    if (!trimmed) {
-      onChange("");
-      return;
-    }
-    const formatted = formatTimeInput(trimmed);
-    onChange(timeToMinutes(formatted) === null ? trimmed : formatted);
-  }
-
   return (
-    <>
+    <div className="flex min-w-0 flex-col gap-1.5">
       <Label
         htmlFor={id}
-        className="text-xs font-medium tracking-wide text-muted-foreground uppercase md:hidden"
+        className="text-xs font-medium tracking-wide text-muted-foreground uppercase md:sr-only"
       >
         {label}
       </Label>
       <Input
         id={id}
-        type="text"
-        inputMode="numeric"
-        autoComplete="off"
-        placeholder="08:00"
-        value={value}
-        disabled={disabled}
-        aria-invalid={invalid || undefined}
-        onChange={(event) => onChange(event.target.value)}
-        onBlur={(event) => commit(event.target.value)}
-        className="h-11 w-full min-w-0 max-w-full bg-background px-2.5 tabular-nums md:hidden"
-      />
-      <Input
-        id={`${id}-desktop`}
         type="time"
         value={value}
         disabled={disabled}
-        aria-label={label}
         aria-invalid={invalid || undefined}
         onChange={(event) => onChange(event.target.value)}
-        className="lesson-time-input hidden h-10 w-full min-w-0 max-w-full bg-background px-2 tabular-nums md:block"
+        className="h-11 w-full bg-background tabular-nums md:h-10"
       />
-    </>
+    </div>
   );
 }
 
@@ -335,24 +310,20 @@ export function LessonPlanForm({
                     className="grid min-w-0 grid-cols-1 gap-3 px-3 py-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)] md:items-center md:gap-4 md:px-4 md:py-3"
                   >
                     <div className="font-medium text-asphalt">{label}</div>
-                    <div className="flex min-w-0 flex-col gap-1.5">
-                      <LessonTimeInput
-                        id={`lesson-start-${key}`}
-                        label="Start lekcji"
-                        value={day?.start ?? ""}
-                        onChange={(next) => updateDay(key, "start", next)}
-                      />
-                    </div>
-                    <div className="flex min-w-0 flex-col gap-1.5">
-                      <LessonTimeInput
-                        id={`lesson-end-${key}`}
-                        label="Koniec lekcji"
-                        value={day?.end ?? ""}
-                        disabled={!day?.start}
-                        invalid={invalidEnd}
-                        onChange={(next) => updateDay(key, "end", next)}
-                      />
-                    </div>
+                    <LessonTimeInput
+                      id={`lesson-start-${key}`}
+                      label="Start lekcji"
+                      value={day?.start ?? ""}
+                      onChange={(next) => updateDay(key, "start", next)}
+                    />
+                    <LessonTimeInput
+                      id={`lesson-end-${key}`}
+                      label="Koniec lekcji"
+                      value={day?.end ?? ""}
+                      disabled={!day?.start}
+                      invalid={invalidEnd}
+                      onChange={(next) => updateDay(key, "end", next)}
+                    />
                   </div>
                 );
               })}
@@ -444,7 +415,7 @@ export function LessonPlanForm({
                 href="/przywroc"
                 className={buttonVariants({ size: "lg", variant: "outline" })}
               >
-                Wpisz kod
+                Wpisz kod z kodu QR
               </Link>
             </div>
           </div>

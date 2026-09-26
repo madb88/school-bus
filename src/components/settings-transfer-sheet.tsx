@@ -235,7 +235,7 @@ export function SettingsTransferSheet({
 
           <p className="text-xs leading-relaxed text-muted-foreground">
             Skan zapisuje plan w przeglądarce telefonu. Żeby mieć go w aplikacji
-            PWA, otwórz ją i na planie lekcji wybierz „Wpisz kod”. Kod działa w
+            PWA, otwórz ją i na planie lekcji wybierz „Wpisz kod z kodu QR”. Kod działa w
             jednym z tych miejsc. Anulowanie podglądu nie zużywa kodu.
           </p>
         </div>
