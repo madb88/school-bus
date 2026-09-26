@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import { cn } from "cn";
 
 export type NewsItem = {
   id: string;
@@ -61,14 +60,11 @@ export const NEWS_ITEMS: readonly NewsItem[] = [
 
 export function NewsList({ items = NEWS_ITEMS }: { items?: readonly NewsItem[] }) {
   return (
-    <ol className="space-y-10 sm:space-y-12">
-      {items.map((item, index) => (
+    <ol className="space-y-4 sm:space-y-5">
+      {items.map((item) => (
         <li
           key={item.id}
-          className={cn(
-            "space-y-3",
-            index > 0 && "border-t border-border/50 pt-10 sm:pt-12",
-          )}
+          className="space-y-3 rounded-2xl border border-border/70 bg-card/70 p-4 shadow-[0_12px_40px_-24px_color-mix(in_srgb,var(--asphalt)_40%,transparent)] backdrop-blur-sm sm:p-6"
         >
           <time className="block text-xs font-medium tracking-wide text-muted-foreground uppercase">
             {item.dateLabel}

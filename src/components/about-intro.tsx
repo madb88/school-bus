@@ -9,13 +9,22 @@ export function AboutIntro() {
         <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">
           Jak zacząć
         </h1>
-        <p className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-          Ustaw plan lekcji i trasę MZK — rozkład dopasuje dowozy, odwozy i
-          kursy miejskie do Twojego dnia. Możesz też wydrukować
-          spersonalizowany plan dojazdów na cały tydzień. Plan i trasa zostają
-          w tej przeglądarce. Po włączeniu powiadomień kopia planu jest też na
-          serwerze.
-        </p>
+        <div className="max-w-xl space-y-3 text-base leading-relaxed text-muted-foreground sm:text-lg">
+          <p>
+            Podaj plan lekcji, a my pokażemy Ci, którym autobusem dziecko może
+            pojechać do szkoły i czym wrócić do domu.
+          </p>
+          <p>
+            Możesz też dodać trasę MZK, jeśli dziecko korzysta z komunikacji
+            miejskiej. Na koniec możesz wydrukować gotowy, tygodniowy plan
+            dojazdów.
+          </p>
+          <p>
+            Plan pozostaje zapisany w tej przeglądarce. Jeśli włączysz
+            powiadomienia, zapisujemy go również na serwerze, aby wysyłać
+            przypomnienia dotyczące właściwych kursów.
+          </p>
+        </div>
         <div className="pt-1">
           <Link
             href="/lekcje"

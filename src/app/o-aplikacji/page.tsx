@@ -7,7 +7,7 @@ import { buildPageMetadata } from "@/lib/site-metadata";
 export const metadata = buildPageMetadata({
   title: "O projekcie",
   description:
-    "Jak zacząć: ustaw plan lekcji i trasę MZK, wydrukuj spersonalizowany plan dojazdów, potem korzystaj z dopasowanego rozkładu.",
+    "Podaj plan lekcji, a pokażemy którym autobusem dziecko pojedzie do szkoły i czym wróci. Możesz dodać MZK, wydrukować plan dojazdów i włączyć przypomnienia.",
   path: "/o-aplikacji",
 });
 
