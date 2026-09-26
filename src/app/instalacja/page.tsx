@@ -35,6 +35,10 @@ export default function InstalacjaPage() {
                 dziecko będzie musiało wyjść z domu lub szkoły.
               </p>
               <p>Raz ustawiasz plan. Aplikacja pamięta za Ciebie.</p>
+              <p>
+                Aplikacja wymaga połączenia z internetem — nie działa w trybie
+                offline.
+              </p>
             </div>
           </div>
           <InstallPhoneMock />
