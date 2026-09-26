@@ -121,6 +121,15 @@ describe("resolveSchoolServiceIds", () => {
     );
     expect([...ids].sort()).toEqual(["2_RW", "30_RO"]);
   });
+
+  it("resolves services for an absolute YYYY-MM-DD", () => {
+    const ids = resolveSchoolServiceIds(
+      schedule,
+      "2026-09-08",
+      new Date("2026-09-05T06:00:00+02:00"),
+    );
+    expect([...ids].sort()).toEqual(["2_RW", "30_RO"]);
+  });
 });
 
 describe("formatTravelDuration", () => {

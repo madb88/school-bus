@@ -82,10 +82,15 @@ import {
 } from "@/lib/dowozy/filter-url";
 import { findNextTrip, stopDomId } from "@/lib/dowozy/next-trip";
 import {
+  formatDayOptionLabel,
+  isAbsoluteDateFilter,
   isSchoolDay,
+  listUpcomingSchoolDays,
+  partsFromYmd,
   resolveTargetDay,
 } from "@/lib/dowozy/schedule-dates";
 import type { Schedule, Stop } from "@/lib/dowozy/types";
+import { buildNextMondayPreview } from "@/lib/dowozy/weekend-preview";
 import { formatTravelDuration } from "@/lib/mzk/filter-departures";
 import {
   buildMergedTimeline,
@@ -114,6 +119,11 @@ type ScheduleBoardProps = {
 function dateLabel(value: ScheduleDateFilter): string {
   if (value === "today") return "Dziś";
   if (value === "tomorrow") return "Jutro";
+  if (value === "all") return "Wszystkie dni";
+  if (isAbsoluteDateFilter(value)) {
+    const parts = partsFromYmd(value);
+    return parts ? formatDayOptionLabel(parts) : value;
+  }
   return "Wszystkie dni";
 }
 
@@ -965,10 +975,43 @@ export function ScheduleBoard({
     ...places.map((item) => ({ label: item, value: item })),
   ];
 
+  const schoolDayOptions = listUpcomingSchoolDays(now, 5);
+  const dayPickerItems = schoolDayOptions.map((day) => ({
+    label: day.label,
+    value: day.ymd,
+  }));
+  const absoluteDateSelected = isAbsoluteDateFilter(dateFilter);
+  if (
+    absoluteDateSelected &&
+    !dayPickerItems.some((item) => item.value === dateFilter)
+  ) {
+    const parts = partsFromYmd(dateFilter);
+    if (parts) {
+      dayPickerItems.push({
+        label: formatDayOptionLabel(parts),
+        value: dateFilter,
+      });
+    }
+  }
+  const dayPickerValue = absoluteDateSelected ? dateFilter : null;
+
   const mobileDateItems = [
     { label: "Dziś", value: "today" as const },
     { label: "Jutro", value: "tomorrow" as const },
+    ...dayPickerItems.map((item) => ({
+      label: item.label,
+      value: item.value as ScheduleDateFilter,
+    })),
   ];
+
+  const mondayPreview =
+    isWeekendView && planReady
+      ? buildNextMondayPreview(schedule, lessonPlan, {
+          place,
+          windowMin: lessonMatchWindowMin,
+          now,
+        })
+      : null;
 
   const mobileDirectionItems = [
     { label: "Wszystkie", value: "all" as const },
@@ -1174,27 +1217,54 @@ export function ScheduleBoard({
         <FilterFieldLabel id="schedule-date-filter-label" icon={CalendarDays}>
           Kiedy?
         </FilterFieldLabel>
-        <ButtonGroup aria-labelledby="schedule-date-filter-label">
-          {(
-            [
-              ["today", "Dziś"],
-              ["tomorrow", "Jutro"],
-            ] as const
-          ).map(([value, label]) => (
-            <Button
-              key={value}
-              type="button"
-              variant="outline"
-              aria-pressed={dateFilter === value}
-              className={cn(dateFilter === value && filterToggleActiveClass)}
-              onClick={() => {
-                startTransition(() => setDateFilter(value));
-              }}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <ButtonGroup aria-labelledby="schedule-date-filter-label">
+            {(
+              [
+                ["today", "Dziś"],
+                ["tomorrow", "Jutro"],
+              ] as const
+            ).map(([value, label]) => (
+              <Button
+                key={value}
+                type="button"
+                variant="outline"
+                aria-pressed={dateFilter === value}
+                className={cn(dateFilter === value && filterToggleActiveClass)}
+                onClick={() => {
+                  startTransition(() => setDateFilter(value));
+                }}
+              >
+                {label}
+              </Button>
+            ))}
+          </ButtonGroup>
+          <Select
+            items={dayPickerItems}
+            value={dayPickerValue}
+            onValueChange={(next) => {
+              if (!next) return;
+              startTransition(() => setDateFilter(next));
+            }}
+          >
+            <SelectTrigger
+              aria-labelledby="schedule-date-filter-label"
+              className={cn(
+                "border-border bg-card",
+                absoluteDateSelected && filterToggleActiveClass,
+              )}
             >
-              {label}
-            </Button>
-          ))}
-        </ButtonGroup>
+              <SelectValue placeholder="Wybierz dzień" />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              {dayPickerItems.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="flex shrink-0 flex-col gap-1.5 md:px-4">
@@ -1738,7 +1808,21 @@ export function ScheduleBoard({
         </div>
       ) : isWeekendView ? (
         <WeekendPlaceholder
-          day={deferredDateFilter === "tomorrow" ? "tomorrow" : "today"}
+          mondayPreview={
+            mondayPreview
+              ? {
+                  weekdayName: mondayPreview.weekdayName,
+                  lessonStart: mondayPreview.lessonStart,
+                  busTime: mondayPreview.busTime,
+                  onViewDay: () => {
+                    startTransition(() => {
+                      setDateFilter(mondayPreview.ymd);
+                      setMatchLessonPlan(true);
+                    });
+                  },
+                }
+              : null
+          }
         />
       ) : isEmpty ? (
         <p className="border-l-2 border-border bg-muted/30 px-4 py-8 text-center text-muted-foreground">
