@@ -28,6 +28,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
+import { WeekendPlaceholder } from "@/components/weekend-placeholder";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Label } from "@/components/ui/label";
@@ -910,6 +911,7 @@ export function ScheduleBoard({
   const tripCount = schoolTripCount + mzkDeparturesCount;
   const schoolEmpty = schoolTripCount === 0;
   const isEmpty = schoolEmpty && mzkDeparturesCount === 0;
+  const isWeekendView = target !== null && !isSchoolDay(target.weekday);
 
   const nextTrip =
     deferredDateFilter === "today" &&
@@ -1406,8 +1408,12 @@ export function ScheduleBoard({
           {filterSummarySecondaryParts.length > 0
             ? ` · ${filterSummarySecondaryParts.join(" · ")}`
             : null}
-          {" · "}
-          {tripCountLabel}
+          {isWeekendView ? null : (
+            <>
+              {" · "}
+              {tripCountLabel}
+            </>
+          )}
         </p>
       </header>
 
@@ -1567,9 +1573,11 @@ export function ScheduleBoard({
                   </p>
                 ) : null}
               </div>
-              <span className="inline-flex shrink-0 items-center rounded-full bg-bus/15 px-2.5 py-0.5 text-[0.7rem] font-semibold text-bus-deep tabular-nums">
-                {tripCountLabel}
-              </span>
+              {isWeekendView ? null : (
+                <span className="inline-flex shrink-0 items-center rounded-full bg-bus/15 px-2.5 py-0.5 text-[0.7rem] font-semibold text-bus-deep tabular-nums">
+                  {tripCountLabel}
+                </span>
+              )}
             </div>
             {nextMerged ? (
               <p className="text-xs text-foreground sm:text-sm">
@@ -1698,6 +1706,10 @@ export function ScheduleBoard({
             Ładowanie rozkładu…
           </span>
         </div>
+      ) : isWeekendView ? (
+        <WeekendPlaceholder
+          day={deferredDateFilter === "tomorrow" ? "tomorrow" : "today"}
+        />
       ) : isEmpty ? (
         <p className="border-l-2 border-border bg-muted/30 px-4 py-8 text-center text-muted-foreground">
           {sourceMode === "school-mzk" && !mzkAvailable ? (
