@@ -214,7 +214,7 @@ export function LessonPlanForm({
               Wybierz przystanek, z którego dziecko jedzie do szkoły.
             </p>
           </div>
-          <div className="flex max-w-md flex-col gap-1.5">
+          <div className="flex w-full min-w-0 max-w-md flex-col gap-1.5">
             <Label id="lesson-place-label" htmlFor="lesson-place" className="sr-only">
               Przystanek
             </Label>
@@ -234,7 +234,7 @@ export function LessonPlanForm({
                 </NativeSelectOption>
               ))}
             </NativeSelect>
-            <div className="hidden w-full md:block">
+            <div className="hidden w-full min-w-0 md:block">
               <PlaceCombobox
                 id="lesson-place-desktop"
                 places={places}
@@ -258,8 +258,8 @@ export function LessonPlanForm({
             </p>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-border/60">
-            <div className="hidden border-b border-border/60 px-4 py-3 text-xs font-medium tracking-wide text-muted-foreground uppercase md:grid md:grid-cols-[minmax(8rem,1.1fr)_1fr_1fr] md:gap-4">
+          <div className="min-w-0 overflow-hidden rounded-xl border border-border/60">
+            <div className="hidden border-b border-border/60 px-4 py-3 text-xs font-medium tracking-wide text-muted-foreground uppercase md:grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)] md:gap-4">
               <span>Dzień</span>
               <span>Start lekcji</span>
               <span>Koniec lekcji</span>
@@ -271,7 +271,7 @@ export function LessonPlanForm({
                 return (
                   <div
                     key={key}
-                    className="grid grid-cols-1 gap-3 px-4 py-4 md:grid-cols-[minmax(8rem,1.1fr)_1fr_1fr] md:items-center md:gap-4 md:py-3"
+                    className="grid min-w-0 grid-cols-1 gap-3 px-3 py-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)] md:items-center md:gap-4 md:px-4 md:py-3"
                   >
                     <div className="font-medium text-asphalt">{label}</div>
                     <div className="flex min-w-0 flex-col gap-1.5">
@@ -288,7 +288,7 @@ export function LessonPlanForm({
                         onChange={(event) =>
                           updateDay(key, "start", event.target.value)
                         }
-                        className="h-11 w-full bg-background tabular-nums md:h-10"
+                        className="h-11 w-full max-w-full bg-background tabular-nums md:h-10"
                       />
                     </div>
                     <div className="flex min-w-0 flex-col gap-1.5">
@@ -307,7 +307,7 @@ export function LessonPlanForm({
                         onChange={(event) =>
                           updateDay(key, "end", event.target.value)
                         }
-                        className="h-11 w-full bg-background tabular-nums aria-invalid:border-destructive md:h-10"
+                        className="h-11 w-full max-w-full bg-background tabular-nums aria-invalid:border-destructive md:h-10"
                       />
                     </div>
                   </div>

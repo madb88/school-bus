@@ -202,6 +202,17 @@
   animation: page-enter 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Native time controls on iOS/Android keep a large intrinsic min-width;
+   DevTools desktop preview does not reproduce that. */
+input[type="time"] {
+  max-width: 100%;
+}
+
+input[type="time"]::-webkit-datetime-edit {
+  min-width: 0;
+  width: 100%;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .page-enter {
     animation: none;

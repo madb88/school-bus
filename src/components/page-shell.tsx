@@ -22,7 +22,7 @@ export function PageShell({
           className="page-atmosphere pointer-events-none absolute inset-0 print:hidden"
         />
         {header ? (
-          <div className="relative mx-auto mb-8 w-full max-w-6xl px-6 pt-10 sm:px-10 sm:pt-14 print:hidden">
+          <div className="relative mx-auto mb-4 w-full max-w-6xl px-6 pt-10 sm:px-10 sm:pt-14 md:mb-8 print:hidden">
             {header}
           </div>
         ) : null}

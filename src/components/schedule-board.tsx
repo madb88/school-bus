@@ -1507,18 +1507,19 @@ export function ScheduleBoard({
         </p>
       </header>
 
-      <div
-        ref={filtersSentinelRef}
-        aria-hidden
-        className="pointer-events-none h-px w-full print:hidden"
-      />
-      <div className="sticky top-0 z-10 -mx-6 pb-2 print:hidden sm:-mx-10 md:py-2.5">
+      <div>
         <div
-          className={cn(
-            "overflow-hidden rounded-b-xl border border-border/70 bg-card shadow-[0_10px_28px_-18px_color-mix(in_srgb,var(--foreground)_45%,transparent)] transition-[border-top-left-radius,border-top-right-radius] duration-300 ease-out motion-reduce:transition-none md:rounded-t-xl",
-            filtersStuck ? "rounded-t-none" : "rounded-t-xl",
-          )}
-        >
+          ref={filtersSentinelRef}
+          aria-hidden
+          className="pointer-events-none h-px w-full print:hidden"
+        />
+        <div className="sticky top-0 z-10 -mx-6 pb-2 print:hidden sm:-mx-10 md:py-2.5">
+          <div
+            className={cn(
+              "overflow-hidden rounded-b-xl border border-border/70 bg-card shadow-[0_10px_28px_-18px_color-mix(in_srgb,var(--foreground)_45%,transparent)] transition-[border-top-left-radius,border-top-right-radius] duration-300 ease-out motion-reduce:transition-none md:rounded-t-xl",
+              filtersStuck ? "rounded-t-none" : "rounded-t-xl",
+            )}
+          >
           {/* Mobile: compact bar + place / day / direction */}
           <div className="flex flex-col gap-2 border-b border-border/60 p-3 md:hidden">
             <div className="flex flex-wrap items-center gap-2">
@@ -1729,6 +1730,7 @@ export function ScheduleBoard({
                 {nextTrip.context ? ` (${nextTrip.context})` : null}
               </p>
             ) : null}
+          </div>
           </div>
         </div>
       </div>
