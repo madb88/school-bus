@@ -28,6 +28,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
+import { WeekendPlaceholder } from "@/components/weekend-placeholder";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Label } from "@/components/ui/label";
@@ -81,10 +82,15 @@ import {
 } from "@/lib/dowozy/filter-url";
 import { findNextTrip, stopDomId } from "@/lib/dowozy/next-trip";
 import {
+  formatDayOptionLabel,
+  isAbsoluteDateFilter,
   isSchoolDay,
+  listUpcomingSchoolDays,
+  partsFromYmd,
   resolveTargetDay,
 } from "@/lib/dowozy/schedule-dates";
 import type { Schedule, Stop } from "@/lib/dowozy/types";
+import { buildNextMondayPreview } from "@/lib/dowozy/weekend-preview";
 import { formatTravelDuration } from "@/lib/mzk/filter-departures";
 import {
   buildMergedTimeline,
@@ -113,6 +119,11 @@ type ScheduleBoardProps = {
 function dateLabel(value: ScheduleDateFilter): string {
   if (value === "today") return "Dziś";
   if (value === "tomorrow") return "Jutro";
+  if (value === "all") return "Wszystkie dni";
+  if (isAbsoluteDateFilter(value)) {
+    const parts = partsFromYmd(value);
+    return parts ? formatDayOptionLabel(parts) : value;
+  }
   return "Wszystkie dni";
 }
 
@@ -307,7 +318,7 @@ function PlaceChip({
       }
       className={cn(
         "inline-flex cursor-pointer! items-center rounded-md px-1.5 py-0.5 text-sm transition-colors print:cursor-default print:px-0 print:py-0",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 print:focus-visible:ring-0",
+        "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/50 print:focus-visible:ring-0",
         highlight
           ? "bg-foreground/8 font-semibold text-asphalt ring-1 ring-foreground/15 hover:bg-foreground/12 print:bg-transparent print:ring-0"
           : "text-muted-foreground hover:bg-muted/60 hover:text-foreground print:text-foreground",
@@ -635,7 +646,7 @@ function DirectionSection({
   return (
     <section
       aria-labelledby={headingId}
-      className="schedule-direction-section min-w-0 rounded-xl border border-border/70 bg-card/90 p-3 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:p-4 print:break-inside-avoid print:p-2 print:shadow-none"
+      className="schedule-direction-section min-w-0 rounded-xl border border-border/70 bg-card/90 p-3 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:p-4 print:break-inside-avoid print:p-2 print:shadow-none dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]"
     >
       <SectionHeading
         id={headingId}
@@ -702,6 +713,8 @@ export function ScheduleBoard({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [extraOptionsOpen, setExtraOptionsOpen] = useState(false);
   const [copiedFlash, setCopiedFlash] = useState(false);
+  const [filtersStuck, setFiltersStuck] = useState(false);
+  const filtersSentinelRef = useRef<HTMLDivElement>(null);
   // Wait for localStorage prefs (plan / miejsce / MZK) before painting trips —
   // otherwise SSR empty defaults flash into filtered client content.
   // useSyncExternalStore avoids setState-in-effect (server=false, client=true).
@@ -738,6 +751,20 @@ export function ScheduleBoard({
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", onVisible);
     };
+  }, []);
+
+  useEffect(() => {
+    const sentinel = filtersSentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setFiltersStuck(!entry.isIntersecting);
+      },
+      { threshold: 0 },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
   }, []);
 
   // Keep address bar in sync so filters are shareable.
@@ -910,6 +937,7 @@ export function ScheduleBoard({
   const tripCount = schoolTripCount + mzkDeparturesCount;
   const schoolEmpty = schoolTripCount === 0;
   const isEmpty = schoolEmpty && mzkDeparturesCount === 0;
+  const isWeekendView = target !== null && !isSchoolDay(target.weekday);
 
   const nextTrip =
     deferredDateFilter === "today" &&
@@ -947,10 +975,43 @@ export function ScheduleBoard({
     ...places.map((item) => ({ label: item, value: item })),
   ];
 
+  const schoolDayOptions = listUpcomingSchoolDays(now, 5);
+  const dayPickerItems = schoolDayOptions.map((day) => ({
+    label: day.label,
+    value: day.ymd,
+  }));
+  const absoluteDateSelected = isAbsoluteDateFilter(dateFilter);
+  if (
+    absoluteDateSelected &&
+    !dayPickerItems.some((item) => item.value === dateFilter)
+  ) {
+    const parts = partsFromYmd(dateFilter);
+    if (parts) {
+      dayPickerItems.push({
+        label: formatDayOptionLabel(parts),
+        value: dateFilter,
+      });
+    }
+  }
+  const dayPickerValue = absoluteDateSelected ? dateFilter : null;
+
   const mobileDateItems = [
     { label: "Dziś", value: "today" as const },
     { label: "Jutro", value: "tomorrow" as const },
+    ...dayPickerItems.map((item) => ({
+      label: item.label,
+      value: item.value as ScheduleDateFilter,
+    })),
   ];
+
+  const mondayPreview =
+    isWeekendView && planReady
+      ? buildNextMondayPreview(schedule, lessonPlan, {
+          place,
+          windowMin: lessonMatchWindowMin,
+          now,
+        })
+      : null;
 
   const mobileDirectionItems = [
     { label: "Wszystkie", value: "all" as const },
@@ -1060,13 +1121,13 @@ export function ScheduleBoard({
     (hiddenMzkCount > 0 || showAllMzkConnections);
 
   const hoursFilterBody = matchActive && dayTimes ? (
-    <div className="flex flex-nowrap items-center gap-x-1.5 whitespace-nowrap">
+    <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
       <FilterTimeDisplay value={dayTimes.start} emptyLabel="—" />
       <span className="text-muted-foreground" aria-hidden>
         –
       </span>
       <FilterTimeDisplay value={dayTimes.end} emptyLabel="—" />
-      <label className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+      <label className="inline-flex min-w-0 shrink items-center gap-1 text-xs text-muted-foreground">
         <span>obejmuje</span>
         <input
           type="number"
@@ -1083,11 +1144,15 @@ export function ScheduleBoard({
               event.currentTarget.blur();
             }
           }}
-          className="h-8 w-12 rounded-lg border border-border bg-card px-1 text-center text-sm tabular-nums text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="h-8 w-12 min-w-0 max-w-full rounded-lg border border-border bg-card px-1 text-center text-sm tabular-nums text-foreground outline-hidden focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
         />
         <span>min</span>
       </label>
     </div>
+  ) : matchActive && isWeekendView ? (
+    <p className="text-xs text-muted-foreground">
+      Weekend — autobusy szkolne nie kursują.
+    </p>
   ) : matchActive && target && !dayTimes ? (
     <p className="text-xs text-muted-foreground">
       Brak godzin —{" "}
@@ -1152,27 +1217,54 @@ export function ScheduleBoard({
         <FilterFieldLabel id="schedule-date-filter-label" icon={CalendarDays}>
           Kiedy?
         </FilterFieldLabel>
-        <ButtonGroup aria-labelledby="schedule-date-filter-label">
-          {(
-            [
-              ["today", "Dziś"],
-              ["tomorrow", "Jutro"],
-            ] as const
-          ).map(([value, label]) => (
-            <Button
-              key={value}
-              type="button"
-              variant="outline"
-              aria-pressed={dateFilter === value}
-              className={cn(dateFilter === value && filterToggleActiveClass)}
-              onClick={() => {
-                startTransition(() => setDateFilter(value));
-              }}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <ButtonGroup aria-labelledby="schedule-date-filter-label">
+            {(
+              [
+                ["today", "Dziś"],
+                ["tomorrow", "Jutro"],
+              ] as const
+            ).map(([value, label]) => (
+              <Button
+                key={value}
+                type="button"
+                variant="outline"
+                aria-pressed={dateFilter === value}
+                className={cn(dateFilter === value && filterToggleActiveClass)}
+                onClick={() => {
+                  startTransition(() => setDateFilter(value));
+                }}
+              >
+                {label}
+              </Button>
+            ))}
+          </ButtonGroup>
+          <Select
+            items={dayPickerItems}
+            value={dayPickerValue}
+            onValueChange={(next) => {
+              if (!next) return;
+              startTransition(() => setDateFilter(next));
+            }}
+          >
+            <SelectTrigger
+              aria-labelledby="schedule-date-filter-label"
+              className={cn(
+                "border-border bg-card",
+                absoluteDateSelected && filterToggleActiveClass,
+              )}
             >
-              {label}
-            </Button>
-          ))}
-        </ButtonGroup>
+              <SelectValue placeholder="Wybierz dzień" />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              {dayPickerItems.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="flex shrink-0 flex-col gap-1.5 md:px-4">
@@ -1406,13 +1498,27 @@ export function ScheduleBoard({
           {filterSummarySecondaryParts.length > 0
             ? ` · ${filterSummarySecondaryParts.join(" · ")}`
             : null}
-          {" · "}
-          {tripCountLabel}
+          {isWeekendView ? null : (
+            <>
+              {" · "}
+              {tripCountLabel}
+            </>
+          )}
         </p>
       </header>
 
-      <div className="sticky top-0 z-10 -mx-6 py-2 print:hidden sm:-mx-10 md:py-2.5">
-        <div className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-[0_10px_28px_-18px_color-mix(in_srgb,var(--foreground)_45%,transparent)]">
+      <div
+        ref={filtersSentinelRef}
+        aria-hidden
+        className="pointer-events-none mb-0! h-px w-full print:hidden"
+      />
+      <div className="sticky top-0 z-10 -mx-6 pb-2 print:hidden sm:-mx-10 md:py-2.5">
+        <div
+          className={cn(
+            "overflow-hidden rounded-b-xl border border-border/70 bg-card shadow-[0_10px_28px_-18px_color-mix(in_srgb,var(--foreground)_45%,transparent)] transition-[border-top-left-radius,border-top-right-radius] duration-300 ease-out motion-reduce:transition-none dark:shadow-[0_8px_22px_-16px_rgba(0,0,0,0.55)] md:rounded-t-xl",
+            filtersStuck ? "rounded-t-none" : "rounded-t-xl",
+          )}
+        >
           {/* Mobile: compact bar + place / day / direction */}
           <div className="flex flex-col gap-2 border-b border-border/60 p-3 md:hidden">
             <div className="flex flex-wrap items-center gap-2">
@@ -1567,9 +1673,11 @@ export function ScheduleBoard({
                   </p>
                 ) : null}
               </div>
-              <span className="inline-flex shrink-0 items-center rounded-full bg-bus/15 px-2.5 py-0.5 text-[0.7rem] font-semibold text-bus-deep tabular-nums">
-                {tripCountLabel}
-              </span>
+              {isWeekendView ? null : (
+                <span className="inline-flex shrink-0 items-center rounded-full bg-bus/15 px-2.5 py-0.5 text-[0.7rem] font-semibold text-bus-deep tabular-nums">
+                  {tripCountLabel}
+                </span>
+              )}
             </div>
             {nextMerged ? (
               <p className="text-xs text-foreground sm:text-sm">
@@ -1628,7 +1736,7 @@ export function ScheduleBoard({
       {showPlanHint || showMzkHint ? (
         <div className="grid gap-2 print:hidden">
           {showPlanHint ? (
-            <div className="rounded-xl border border-border/70 border-l-2 border-l-bus/50 bg-card px-4 py-3 text-sm text-muted-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]">
+            <div className="rounded-xl border border-border/70 border-l-2 border-l-bus/50 bg-card px-4 py-3 text-sm text-muted-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]">
               <p className="font-medium text-foreground">Ustaw plan lekcji</p>
               <p className="mt-1 leading-relaxed">
                 Dodaj godziny zajęć, żeby rozkład dopasował kursy do startu i
@@ -1655,7 +1763,7 @@ export function ScheduleBoard({
             </div>
           ) : null}
           {showMzkHint ? (
-            <div className="rounded-xl border border-border/70 border-l-2 border-l-mzk/50 bg-card px-4 py-3 text-sm text-muted-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]">
+            <div className="rounded-xl border border-border/70 border-l-2 border-l-mzk/50 bg-card px-4 py-3 text-sm text-muted-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]">
               <p className="font-medium text-foreground">
                 Ustaw przystanek MZK
               </p>
@@ -1698,6 +1806,25 @@ export function ScheduleBoard({
             Ładowanie rozkładu…
           </span>
         </div>
+      ) : isWeekendView ? (
+        <WeekendPlaceholder
+          mondayPreview={
+            mondayPreview
+              ? {
+                  ymd: mondayPreview.ymd,
+                  weekdayName: mondayPreview.weekdayName,
+                  lessonStart: mondayPreview.lessonStart,
+                  busTime: mondayPreview.busTime,
+                  onViewDay: () => {
+                    startTransition(() => {
+                      setDateFilter(mondayPreview.ymd);
+                      setMatchLessonPlan(true);
+                    });
+                  },
+                }
+              : null
+          }
+        />
       ) : isEmpty ? (
         <p className="border-l-2 border-border bg-muted/30 px-4 py-8 text-center text-muted-foreground">
           {sourceMode === "school-mzk" && !mzkAvailable ? (
@@ -1815,7 +1942,7 @@ export function ScheduleBoard({
                 subtitle="do szkoły"
                 tripCount={mergedTimeline.pickups.length}
                 icon={Sun}
-                iconClassName="fill-amber-400 text-amber-500"
+                iconClassName="fill-amber-400 text-amber-500 dark:fill-amber-400/45 dark:text-amber-400/70"
               >
                 <TimelineList
                   entries={mergedTimeline.pickups}
@@ -1833,7 +1960,7 @@ export function ScheduleBoard({
                 subtitle="do domu"
                 tripCount={mergedTimeline.dropoffs.length}
                 icon={Moon}
-                iconClassName="text-indigo-400"
+                iconClassName="text-indigo-400 dark:text-bus-deep"
               >
                 <TimelineList
                   entries={mergedTimeline.dropoffs}
@@ -1886,7 +2013,7 @@ export function ScheduleBoard({
                   0,
                 )}
                 icon={Sun}
-                iconClassName="fill-amber-400 text-amber-500"
+                iconClassName="fill-amber-400 text-amber-500 dark:fill-amber-400/45 dark:text-amber-400/70"
               >
                 <div className="space-y-5 print:space-y-3">
                   {filtered.pickups.map((block) => (
@@ -1964,7 +2091,7 @@ export function ScheduleBoard({
                   )
                 }
                 icon={Moon}
-                iconClassName="text-indigo-400"
+                iconClassName="text-indigo-400 dark:text-bus-deep"
               >
                 <div className="space-y-5 print:space-y-3">
                   {filtered.dropoffsByDate.map((day) => (

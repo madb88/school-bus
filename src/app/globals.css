@@ -102,47 +102,47 @@
 }
 
 .dark {
-  --background: #0c1420;
-  --foreground: #e8eef6;
-  --card: #141e2e;
-  --card-foreground: #e8eef6;
-  --popover: #141e2e;
-  --popover-foreground: #e8eef6;
-  --primary: #6eb6e8;
-  --primary-foreground: #061525;
-  --secondary: #1a3548;
-  --secondary-foreground: #c5e4f7;
-  --muted: #1a2638;
-  --muted-foreground: #93a7bd;
-  --accent: #5b7aef;
-  --accent-foreground: #061525;
+  --background: #111821;
+  --foreground: #e5eaf0;
+  --card: #19222d;
+  --card-foreground: #e5eaf0;
+  --popover: #19222d;
+  --popover-foreground: #e5eaf0;
+  --primary: #6d8fe8;
+  --primary-foreground: #0d1420;
+  --secondary: #202c3a;
+  --secondary-foreground: #b8c8ef;
+  --muted: #1c2733;
+  --muted-foreground: #9aa8b8;
+  --accent: #526fcb;
+  --accent-foreground: #eef2f7;
   --destructive: oklch(0.65 0.2 25);
-  --border: #2a3b52;
-  --input: #2a3b52;
-  --ring: #7b93f5;
-  --bus: #5b7aef;
-  --bus-deep: #9aadf7;
-  --bus-foreground: #061525;
-  --mzk: #2bb8a6;
-  --mzk-deep: #7dd9cc;
-  --asphalt: #f0f5fb;
-  --sky-mist: #1a2a3f;
-  --page-glow: #2b54e333;
-  --page-mid: #101a28;
-  --page-deep: #0a1018;
-  --chart-1: #5b7aef;
-  --chart-2: #7b93f5;
-  --chart-3: #93a7bd;
-  --chart-4: #4a63d4;
-  --chart-5: #9aadf7;
-  --sidebar: #141e2e;
-  --sidebar-foreground: #e8eef6;
-  --sidebar-primary: #7b93f5;
-  --sidebar-primary-foreground: #061525;
-  --sidebar-accent: #1a3548;
-  --sidebar-accent-foreground: #c5e4f7;
-  --sidebar-border: #2a3b52;
-  --sidebar-ring: #7b93f5;
+  --border: #293746;
+  --input: #293746;
+  --ring: #6d86d9;
+  --bus: #526fcb;
+  --bus-deep: #6f89d5;
+  --bus-foreground: #f3f6fa;
+  --mzk: #279d8e;
+  --mzk-deep: #4db9aa;
+  --asphalt: #e5eaf0;
+  --sky-mist: #1d2a38;
+  --page-glow: #3855a01c;
+  --page-mid: #121c27;
+  --page-deep: #0f161e;
+  --chart-1: #526fcb;
+  --chart-2: #6d8fe8;
+  --chart-3: #9aa8b8;
+  --chart-4: #6d86d9;
+  --chart-5: #6f89d5;
+  --sidebar: #19222d;
+  --sidebar-foreground: #e5eaf0;
+  --sidebar-primary: #6d8fe8;
+  --sidebar-primary-foreground: #0d1420;
+  --sidebar-accent: #202c3a;
+  --sidebar-accent-foreground: #b8c8ef;
+  --sidebar-border: #293746;
+  --sidebar-ring: #6d86d9;
   color-scheme: dark;
 }
 
@@ -187,10 +187,14 @@
   opacity: 0.55;
 }
 
-@keyframes rise-in {
+.dark .page-atmosphere::before {
+  display: none;
+}
+
+@keyframes page-enter {
   from {
     opacity: 0;
-    transform: translateY(1.25rem);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -198,16 +202,14 @@
   }
 }
 
-.animate-rise {
-  animation: rise-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+.page-enter {
+  animation: page-enter 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.animate-rise-delay {
-  animation: rise-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
-}
-
-.animate-rise-delay-2 {
-  animation: rise-in 0.95s cubic-bezier(0.22, 1, 0.36, 1) 0.24s both;
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
+  }
 }
 
 @media print {
@@ -232,6 +234,10 @@
   .page-atmosphere,
   .page-atmosphere::before {
     display: none !important;
+  }
+
+  .page-enter {
+    animation: none !important;
   }
 
   a {
@@ -272,8 +278,14 @@
 
   /* Only the selected print sheet is shown (set via body[data-print-mode]). */
   body[data-print-mode="school"] .lesson-plan-print-school,
-  body[data-print-mode="school-mzk"] .lesson-plan-print-mzk {
+  body[data-print-mode="school-mzk"] .lesson-plan-print-mzk,
+  body[data-print-mode="compact"] .lesson-plan-print-compact {
     display: block !important;
+  }
+
+  .lesson-plan-print-compact-strip {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .lesson-plan-print table,

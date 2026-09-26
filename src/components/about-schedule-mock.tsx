@@ -3,7 +3,7 @@ export function AboutScheduleMock() {
   return (
     <div
       aria-hidden
-      className="overflow-hidden rounded-xl border border-border/70 bg-card/80 shadow-[0_12px_40px_-20px_color-mix(in_srgb,var(--asphalt)_35%,transparent)] backdrop-blur-sm"
+      className="overflow-hidden rounded-xl border border-border/70 bg-card/80 shadow-[0_12px_40px_-20px_color-mix(in_srgb,var(--foreground)_35%,transparent)] dark:shadow-[0_10px_28px_-20px_rgba(0,0,0,0.5)] backdrop-blur-sm"
     >
       <div className="flex flex-wrap gap-1.5 border-b border-border/60 bg-muted/40 px-3 py-2.5">
         <span className="rounded-md bg-background px-2 py-1 text-[0.65rem] font-medium text-asphalt ring-1 ring-border/80">
@@ -16,14 +16,14 @@ export function AboutScheduleMock() {
           Dziś
         </span>
         <span className="rounded-md bg-background/70 px-2 py-1 text-[0.65rem] text-muted-foreground ring-1 ring-border/50">
-          Dowozy
+          Do szkoły
         </span>
       </div>
 
       <div className="space-y-4 p-3 sm:p-4">
         <div>
           <p className="mb-2 text-[0.65rem] font-semibold tracking-wide text-muted-foreground uppercase">
-            Dowozy · Rano / do szkoły
+            Do szkoły · Rano
           </p>
           <ul className="space-y-2">
             <li className="relative grid grid-cols-[3.25rem_1fr] gap-2 border-l-2 border-bus bg-bus/12 py-2 pr-2 pl-2.5 -ml-px rounded-r-md">
@@ -36,7 +36,7 @@ export function AboutScheduleMock() {
                   Osiedle Słoneczne
                 </p>
                 <p className="mt-0.5 text-[0.65rem] text-muted-foreground">
-                  Najbliższy · bus szkolny
+                  Najbliższy · autobus szkolny
                 </p>
               </div>
             </li>
@@ -58,7 +58,7 @@ export function AboutScheduleMock() {
 
         <div>
           <p className="mb-2 text-[0.65rem] font-semibold tracking-wide text-muted-foreground uppercase">
-            Odwozy · Po lekcjach
+            Ze szkoły · Po lekcjach
           </p>
           <ul className="space-y-2">
             <li className="grid grid-cols-[3.25rem_1fr] gap-2 border-l-2 border-bus/45 bg-bus/3 py-2 pl-2.5">
@@ -70,7 +70,7 @@ export function AboutScheduleMock() {
                   Szkoła → Osiedle Słoneczne
                 </p>
                 <p className="mt-0.5 text-[0.65rem] text-muted-foreground">
-                  bus szkolny
+                  autobus szkolny
                 </p>
               </div>
             </li>

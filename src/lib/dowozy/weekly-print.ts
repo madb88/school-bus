@@ -105,6 +105,21 @@ export function nearestAfternoonMzk(
   return nearest ? toMzkTrip(nearest) : null;
 }
 
+/**
+ * Latest matching school departure from a sorted ascending time list
+ * (pocket/compact print shows one recommended trip).
+ */
+export function nearestSchoolDeparture(times: string[]): string | null {
+  return times.at(-1) ?? null;
+}
+
+/**
+ * Earliest matching school return from a sorted ascending time list.
+ */
+export function nearestSchoolReturn(times: string[]): string | null {
+  return times.at(0) ?? null;
+}
+
 export function buildWeeklyLessonPrint(
   schedule: Schedule,
   plan: ChildLessonPlan,

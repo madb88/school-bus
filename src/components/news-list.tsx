@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import { cn } from "cn";
 
 export type NewsItem = {
   id: string;
@@ -8,12 +7,52 @@ export type NewsItem = {
   title: string;
   lead: string;
   body: string;
+  pointsTitle?: string;
+  points?: readonly string[];
+  afterTitle?: string;
+  after?: string;
+  closing?: string;
   href?: string;
   cta?: string;
 };
 
 /** Newest first — prepend new entries here. */
 export const NEWS_ITEMS: readonly NewsItem[] = [
+  {
+    id: "compact-print-and-week-days",
+    dateLabel: "26 września 2026",
+    title: "Kompaktowy wydruk i rozkład na każdy dzień",
+    lead: "Jeszcze łatwiej sprawdzisz, kiedy dziecko ma autobus — i możesz wydrukować mu rozkład do kieszeni.",
+    body: "W planie lekcji możesz teraz wydrukować kompaktowy rozkład z najbliższym odjazdem do szkoły i powrotem do domu. Wystarczy go wyciąć wzdłuż zaznaczonej linii i schować dziecku do kieszeni lub plecaka.\n\nNa stronie rozkładu możesz również wybrać dowolny dzień tygodnia, aby od razu sprawdzić godziny odjazdów w poniedziałek, wtorek, środę i kolejne dni nauki.",
+    pointsTitle: "Co nowego?",
+    points: [
+      "🎒 Rozkład do kieszeni — mały, skrócony wydruk z godziną wyjazdu do szkoły i powrotu do domu.",
+      "🚌 Trzy warianty wydruku — pełny rozkład autobusu szkolnego, autobus szkolny + najbliższe kursy MZK oraz wersja kompaktowa.",
+      "📅 Rozkład na każdy dzień tygodnia — wybierz konkretny dzień i sprawdź wszystkie potrzebne kursy, nie tylko dzisiejsze i jutrzejsze.",
+    ],
+    href: "/lekcje",
+    cta: "Otwórz plan lekcji",
+  },
+  {
+    id: "pwa-home-screen",
+    dateLabel: "25 września 2026",
+    title: "Autobus Szkolny teraz jako aplikacja!",
+    lead: "Od teraz możesz korzystać z Autobusu Szkolnego jeszcze wygodniej — prosto z ekranu telefonu.",
+    body: "Dodaj stronę do ekranu głównego, a zyskasz szybki dostęp do rozkładu dowozów i odwozów bez konieczności otwierania przeglądarki i wpisywania adresu strony.",
+    pointsTitle: "Co się zmienia?",
+    points: [
+      "📱 własna ikona na ekranie telefonu,",
+      "⚡ szybki dostęp do aplikacji,",
+      "🚌 rozkład zawsze pod ręką,",
+      "📴 aplikacja otwiera się jak zwykła aplikacja, bez paska przeglądarki.",
+    ],
+    afterTitle: "Jak zacząć?",
+    after:
+      "Otwórz autobusszkolny.pl na telefonie i wybierz opcję „Dodaj do ekranu głównego”.",
+    closing: "Autobus Szkolny — teraz zawsze pod ręką. 🚌",
+    href: "/instalacja",
+    cta: "Jak dodać aplikację",
+  },
   {
     id: "settings-transfer-qr",
     dateLabel: "24 września 2026",
@@ -36,14 +75,11 @@ export const NEWS_ITEMS: readonly NewsItem[] = [
 
 export function NewsList({ items = NEWS_ITEMS }: { items?: readonly NewsItem[] }) {
   return (
-    <ol className="animate-rise-delay-2 space-y-10 sm:space-y-12">
-      {items.map((item, index) => (
+    <ol className="space-y-4 sm:space-y-5">
+      {items.map((item) => (
         <li
           key={item.id}
-          className={cn(
-            "space-y-3",
-            index > 0 && "border-t border-border/50 pt-10 sm:pt-12",
-          )}
+          className="space-y-3 rounded-2xl border border-border/70 bg-card/70 p-4 shadow-[0_12px_40px_-24px_color-mix(in_srgb,var(--foreground)_40%,transparent)] dark:shadow-[0_10px_28px_-22px_rgba(0,0,0,0.55)] backdrop-blur-sm sm:p-6"
         >
           <time className="block text-xs font-medium tracking-wide text-muted-foreground uppercase">
             {item.dateLabel}
@@ -54,9 +90,45 @@ export function NewsList({ items = NEWS_ITEMS }: { items?: readonly NewsItem[] }
           <p className="max-w-2xl text-base leading-relaxed text-foreground/90">
             {item.lead}
           </p>
-          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            {item.body}
-          </p>
+          {item.body.split(/\n\n+/).map((paragraph) => (
+            <p
+              key={paragraph}
+              className="max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base"
+            >
+              {paragraph}
+            </p>
+          ))}
+          {item.points && item.points.length > 0 ? (
+            <div className="max-w-2xl space-y-2">
+              {item.pointsTitle ? (
+                <h3 className="text-sm font-semibold text-foreground sm:text-base">
+                  {item.pointsTitle}
+                </h3>
+              ) : null}
+              <ul className="space-y-1.5 text-sm leading-relaxed text-muted-foreground sm:text-base">
+                {item.points.map((point) => (
+                  <li key={point}>{point}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {item.after ? (
+            <div className="max-w-2xl space-y-2">
+              {item.afterTitle ? (
+                <h3 className="text-sm font-semibold text-foreground sm:text-base">
+                  {item.afterTitle}
+                </h3>
+              ) : null}
+              <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+                {item.after}
+              </p>
+            </div>
+          ) : null}
+          {item.closing ? (
+            <p className="max-w-2xl text-sm leading-relaxed text-foreground/90 sm:text-base">
+              {item.closing}
+            </p>
+          ) : null}
           {item.href && item.cta ? (
             <div className="pt-1">
               <Link

@@ -3,8 +3,15 @@ import {
   courseAllowedOnWeekday,
   dateLabelMatchesTarget,
   extractYearFromPeriod,
+  formatDayOptionLabel,
+  isAbsoluteDateFilter,
   isSchoolDay,
+  listUpcomingSchoolDays,
+  nextMonday,
+  parseAbsoluteYmd,
   parsePolishDateLabel,
+  resolveTargetDay,
+  toAbsoluteYmd,
 } from "./schedule-dates";
 
 describe("extractYearFromPeriod", () => {
@@ -80,5 +87,44 @@ describe("isSchoolDay", () => {
     expect(isSchoolDay(5)).toBe(true);
     expect(isSchoolDay(0)).toBe(false);
     expect(isSchoolDay(6)).toBe(false);
+  });
+});
+
+describe("absolute date filters", () => {
+  it("parses and validates YYYY-MM-DD", () => {
+    expect(parseAbsoluteYmd("2026-09-28")).toBe("2026-09-28");
+    expect(parseAbsoluteYmd("2026-02-30")).toBeNull();
+    expect(isAbsoluteDateFilter("2026-09-28")).toBe(true);
+    expect(isAbsoluteDateFilter("tomorrow")).toBe(false);
+  });
+
+  it("resolves an absolute filter to calendar parts", () => {
+    expect(resolveTargetDay("2026-09-28")).toEqual({
+      year: 2026,
+      month: 8,
+      day: 28,
+      weekday: 1,
+    });
+  });
+
+  it("finds next Monday from Saturday", () => {
+    const monday = nextMonday(new Date("2026-09-26T12:00:00+02:00"));
+    expect(toAbsoluteYmd(monday)).toBe("2026-09-28");
+    expect(formatDayOptionLabel(monday)).toBe("Poniedziałek (28.09)");
+  });
+
+  it("lists upcoming school days skipping the weekend", () => {
+    const days = listUpcomingSchoolDays(
+      new Date("2026-09-26T12:00:00+02:00"),
+      5,
+    );
+    expect(days.map((d) => d.ymd)).toEqual([
+      "2026-09-28",
+      "2026-09-29",
+      "2026-09-30",
+      "2026-10-01",
+      "2026-10-02",
+    ]);
+    expect(days[0]?.label).toBe("Poniedziałek (28.09)");
   });
 });

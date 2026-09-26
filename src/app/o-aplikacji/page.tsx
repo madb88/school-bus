@@ -5,21 +5,19 @@ import { SiteHeader } from "@/components/site-header";
 import { buildPageMetadata } from "@/lib/site-metadata";
 
 export const metadata = buildPageMetadata({
-  title: "O aplikacji",
+  title: "O projekcie",
   description:
-    "Jak zacząć: ustaw plan lekcji i trasę MZK, wydrukuj spersonalizowany plan dojazdów, potem korzystaj z dopasowanego rozkładu.",
+    "Podaj plan lekcji, a pokażemy którym autobusem dziecko pojedzie do szkoły i czym wróci. Możesz dodać MZK, wydrukować plan dojazdów i włączyć przypomnienia.",
   path: "/o-aplikacji",
 });
 
 export default function AboutPage() {
   return (
-    <PageShell>
-      <div className="mb-8">
-        <SiteHeader current="o-aplikacji" />
+    <PageShell header={<SiteHeader current="o-aplikacji" />}>
+      <div className="page-enter">
+        <AboutIntro />
+        <AboutGuide />
       </div>
-
-      <AboutIntro />
-      <AboutGuide />
     </PageShell>
   );
 }

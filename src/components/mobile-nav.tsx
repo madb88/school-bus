@@ -43,19 +43,21 @@ export function MobileNav({ current }: MobileNavProps) {
         <nav className="flex flex-col gap-1 px-4 pb-6" aria-label="Główne">
           {NAV_ITEMS.map((item) => {
             const active = current === item.id;
+            const Icon = item.icon;
             return (
               <Link
                 key={item.id}
                 href={item.href}
                 onClick={() => setOpen(false)}
                 className={cn(
-                  "rounded-lg px-3 py-3 text-base font-medium transition-colors",
+                  "inline-flex items-center gap-2 rounded-lg px-3 py-3 text-base font-medium transition-colors",
                   active
                     ? "bg-bus text-bus-foreground"
                     : "text-muted-foreground hover:bg-bus/10 hover:text-bus-deep",
                 )}
                 aria-current={active ? "page" : undefined}
               >
+                <Icon aria-hidden className="size-4 shrink-0" />
                 {item.label}
               </Link>
             );

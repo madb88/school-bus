@@ -1,17 +1,21 @@
 import { NextResponse } from "next/server";
 import type { ScheduleDateFilter } from "@/lib/dowozy/filter-schedule";
+import { parseAbsoluteYmd } from "@/lib/dowozy/schedule-dates";
 import { findOdDepartures } from "@/lib/mzk/filter-departures";
 import { loadMzkScheduleSnapshot } from "@/lib/mzk/load-schedule";
 
-const DATE_FILTERS = new Set<ScheduleDateFilter>([
+const RELATIVE_DATE_FILTERS = new Set<ScheduleDateFilter>([
   "today",
   "tomorrow",
   "all",
 ]);
 
 function parseDateFilter(value: string | null): ScheduleDateFilter | null {
-  if (!value || !DATE_FILTERS.has(value as ScheduleDateFilter)) return null;
-  return value as ScheduleDateFilter;
+  if (!value) return null;
+  if (RELATIVE_DATE_FILTERS.has(value as ScheduleDateFilter)) {
+    return value as ScheduleDateFilter;
+  }
+  return parseAbsoluteYmd(value);
 }
 
 export async function GET(request: Request) {

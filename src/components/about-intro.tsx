@@ -4,17 +4,27 @@ import { buttonVariants } from "@/components/ui/button";
 
 export function AboutIntro() {
   return (
-    <header className="animate-rise-delay mb-12 grid gap-8 sm:mb-14 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-end lg:gap-10">
+    <header className="mb-12 grid gap-8 sm:mb-14 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-end lg:gap-10">
       <div className="space-y-4">
         <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">
           Jak zacząć
         </h1>
-        <p className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-          Ustaw plan lekcji i trasę MZK — rozkład dopasuje dowozy, odwozy i
-          kursy miejskie do Twojego dnia. Możesz też wydrukować
-          spersonalizowany plan dojazdów na cały tydzień. Plan i trasa zapisują
-          się tylko w tej przeglądarce.
-        </p>
+        <div className="max-w-xl space-y-3 text-base leading-relaxed text-muted-foreground sm:text-lg">
+          <p>
+            Podaj plan lekcji, a my pokażemy Ci, którym autobusem dziecko może
+            pojechać do szkoły i czym wrócić do domu.
+          </p>
+          <p>
+            Możesz też dodać trasę MZK, jeśli dziecko korzysta z komunikacji
+            miejskiej. Na koniec możesz wydrukować gotowy, tygodniowy plan
+            dojazdów.
+          </p>
+          <p>
+            Plan pozostaje zapisany w tej przeglądarce. Jeśli włączysz
+            powiadomienia, zapisujemy go również na serwerze, aby wysyłać
+            przypomnienia dotyczące właściwych kursów.
+          </p>
+        </div>
         <div className="pt-1">
           <Link
             href="/lekcje"
@@ -25,7 +35,7 @@ export function AboutIntro() {
         </div>
       </div>
 
-      <div className="animate-rise-delay-2 mx-auto w-full max-w-sm lg:mx-0 lg:max-w-none">
+      <div className="mx-auto w-full max-w-sm lg:mx-0 lg:max-w-none">
         <AboutScheduleMock />
       </div>
     </header>

@@ -1,20 +1,13 @@
 import {
   addCalendarDays,
   getWarsawParts,
+  isAbsoluteDateFilter,
   isSchoolDay,
+  partsFromYmd,
+  toCompactYmd,
   type ScheduleDateFilter,
 } from "@/lib/dowozy/schedule-dates";
 import type { MzkOdDeparture, MzkSchedule, MzkStop } from "./types";
-
-function ymdFromParts(parts: {
-  year: number;
-  month: number;
-  day: number;
-}): string {
-  const m = String(parts.month + 1).padStart(2, "0");
-  const d = String(parts.day).padStart(2, "0");
-  return `${parts.year}${m}${d}`;
-}
 
 function servicesOnDate(
   schedule: MzkSchedule,
@@ -39,18 +32,26 @@ export function resolveSchoolServiceIds(
 ): Set<string> {
   const today = getWarsawParts(now);
 
-  if (dateFilter === "today" || dateFilter === "tomorrow") {
+  if (
+    dateFilter === "today" ||
+    dateFilter === "tomorrow" ||
+    isAbsoluteDateFilter(dateFilter)
+  ) {
     const target =
-      dateFilter === "today" ? today : addCalendarDays(today, 1);
-    if (!isSchoolDay(target.weekday)) return new Set();
-    return servicesOnDate(schedule, ymdFromParts(target));
+      dateFilter === "today"
+        ? today
+        : dateFilter === "tomorrow"
+          ? addCalendarDays(today, 1)
+          : partsFromYmd(dateFilter);
+    if (!target || !isSchoolDay(target.weekday)) return new Set();
+    return servicesOnDate(schedule, toCompactYmd(target));
   }
 
   // "Wszystkie dni" → one coherent school-day timetable (nearest Mon–Fri with services).
   let cursor = today;
   for (let i = 0; i < 21; i++) {
     if (isSchoolDay(cursor.weekday)) {
-      const ids = servicesOnDate(schedule, ymdFromParts(cursor));
+      const ids = servicesOnDate(schedule, toCompactYmd(cursor));
       if (ids.size > 0) return ids;
     }
     cursor = addCalendarDays(cursor, 1);

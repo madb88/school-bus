@@ -2,6 +2,7 @@ import type {
   ScheduleDateFilter,
   ScheduleDirection,
 } from "./filter-schedule";
+import { parseAbsoluteYmd } from "./schedule-dates";
 
 export type ScheduleSourceMode = "school" | "school-mzk";
 
@@ -25,12 +26,12 @@ export type ParsedFilterParams = {
   hasExplicit: boolean;
 };
 
-const DAY_TO_PARAM: Record<Exclude<ScheduleDateFilter, "all">, string> = {
+const DAY_TO_PARAM: Record<"today" | "tomorrow", string> = {
   today: "dzisiaj",
   tomorrow: "jutro",
 };
 
-const PARAM_TO_DAY: Record<string, ScheduleDateFilter> = {
+const PARAM_TO_DAY: Record<string, "today" | "tomorrow"> = {
   dzisiaj: "today",
   dzis: "today",
   today: "today",
@@ -123,11 +124,13 @@ export function parseFilterParams(
   let dateFilter: ScheduleDateFilter | undefined;
   const dzien = readParam(source, "dzien") ?? readParam(source, "day");
   if (dzien !== null) {
-    const normalized = dzien.trim().toLowerCase();
+    const trimmed = dzien.trim();
+    const normalized = trimmed.toLowerCase();
     if (!normalized || normalized === "wszystkie" || normalized === "all") {
       dateFilter = "all";
     } else {
-      dateFilter = PARAM_TO_DAY[normalized] ?? "today";
+      const absolute = parseAbsoluteYmd(trimmed);
+      dateFilter = absolute ?? PARAM_TO_DAY[normalized] ?? "today";
     }
   }
 
@@ -188,8 +191,12 @@ export function serializeFilterParams(filters: {
 
   if (filters.dateFilter === "all") {
     params.set("dzien", "wszystkie");
-  } else if (filters.dateFilter !== "today") {
-    params.set("dzien", DAY_TO_PARAM[filters.dateFilter]);
+  } else if (filters.dateFilter === "today") {
+    // default — omit
+  } else if (filters.dateFilter === "tomorrow") {
+    params.set("dzien", DAY_TO_PARAM.tomorrow);
+  } else {
+    params.set("dzien", filters.dateFilter);
   }
 
   if (filters.place) {

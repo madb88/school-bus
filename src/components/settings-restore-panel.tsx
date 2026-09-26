@@ -4,8 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { REGEXP_ONLY_DIGITS_AND_CHARS } from "input-otp";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSeparator,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import {
   hasConfiguredLessons,
@@ -16,10 +22,7 @@ import {
   loadMzkRoutePreference,
 } from "@/lib/mzk/route-storage";
 import { applySettingsTransferPayload } from "@/lib/settings-transfer/apply";
-import {
-  formatTransferCode,
-  normalizeTransferToken,
-} from "@/lib/settings-transfer/token";
+import { normalizeTransferToken } from "@/lib/settings-transfer/token";
 import type {
   SettingsTransferPayload,
   SettingsTransferSummary,
@@ -54,9 +57,7 @@ export function SettingsRestorePanel({
 }: SettingsRestorePanelProps) {
   const router = useRouter();
   const normalizedInitial = normalizeTransferToken(initialToken);
-  const [codeInput, setCodeInput] = useState(
-    normalizedInitial ? formatTransferCode(normalizedInitial) : "",
-  );
+  const [codeInput, setCodeInput] = useState(normalizedInitial);
   const [token, setToken] = useState(normalizedInitial);
   const [pending, startTransition] = useTransition();
   const [applying, startApply] = useTransition();
@@ -87,7 +88,7 @@ export function SettingsRestorePanel({
         setError(null);
         setSummary(data.summary);
         setToken(nextToken);
-        setCodeInput(formatTransferCode(nextToken));
+        setCodeInput(nextToken);
         // Drop token from the address bar so cancel/history is cleaner.
         if (typeof window !== "undefined") {
           const url = new URL(window.location.href);
@@ -146,22 +147,37 @@ export function SettingsRestorePanel({
   return (
     <div className="mx-auto max-w-lg space-y-6">
       {!summary ? (
-        <div className="space-y-4">
+        <div className="space-y-4 rounded-xl border border-border/70 bg-card/90 p-5 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]">
           <div className="space-y-2">
             <Label htmlFor="transfer-code">Kod z QR / drugiego urządzenia</Label>
-            <Input
+            <InputOTP
               id="transfer-code"
+              maxLength={8}
+              pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
               value={codeInput}
-              onChange={(event) => {
-                setCodeInput(event.target.value.toUpperCase());
+              onChange={(value) => {
+                setCodeInput(value.toUpperCase());
                 setError(null);
               }}
-              placeholder="AB7K-9M2Q"
               autoComplete="off"
-              spellCheck={false}
-              className="h-11 font-mono tracking-widest uppercase"
               disabled={busy}
-            />
+              containerClassName="font-mono uppercase"
+              aria-invalid={error ? true : undefined}
+            >
+              <InputOTPGroup>
+                <InputOTPSlot index={0} aria-invalid={error ? true : undefined} />
+                <InputOTPSlot index={1} aria-invalid={error ? true : undefined} />
+                <InputOTPSlot index={2} aria-invalid={error ? true : undefined} />
+                <InputOTPSlot index={3} aria-invalid={error ? true : undefined} />
+              </InputOTPGroup>
+              <InputOTPSeparator />
+              <InputOTPGroup>
+                <InputOTPSlot index={4} aria-invalid={error ? true : undefined} />
+                <InputOTPSlot index={5} aria-invalid={error ? true : undefined} />
+                <InputOTPSlot index={6} aria-invalid={error ? true : undefined} />
+                <InputOTPSlot index={7} aria-invalid={error ? true : undefined} />
+              </InputOTPGroup>
+            </InputOTP>
           </div>
           {error ? (
             <p className="text-sm text-destructive" role="alert">
@@ -182,7 +198,7 @@ export function SettingsRestorePanel({
           </p>
         </div>
       ) : (
-        <div className="space-y-4 rounded-xl border border-border/70 bg-card/90 p-5 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]">
+        <div className="space-y-4 rounded-xl border border-border/70 bg-card/90 p-5 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]">
           <h2 className="font-display text-lg font-semibold text-asphalt">
             Znaleziono ustawienia
           </h2>

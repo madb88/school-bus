@@ -34,10 +34,13 @@ type CreateResponse = {
 type SettingsTransferSheetProps = {
   /** When false, trigger stays disabled with a hint. */
   canTransfer: boolean;
+  /** Visible label on the trigger. Behavior stays the same. */
+  triggerLabel?: string;
 };
 
 export function SettingsTransferSheet({
   canTransfer,
+  triggerLabel = "Przenieś na inne urządzenie",
 }: SettingsTransferSheetProps) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -145,7 +148,7 @@ export function SettingsTransferSheet({
         }
       >
         <Smartphone aria-hidden />
-        Przenieś na inne urządzenie
+        {triggerLabel}
       </SheetTrigger>
       <SheetContent side="right" className="gap-0 overflow-y-auto sm:max-w-md">
         <SheetHeader>
@@ -154,9 +157,9 @@ export function SettingsTransferSheet({
             Przenieś ustawienia
           </SheetTitle>
           <SheetDescription>
-            Zeskanuj kod aparatem drugiego urządzenia albo wpisz kod na stronie
-            odbioru. Kod wygasa po kilku minutach; zużywa się dopiero po
-            potwierdzeniu przywrócenia.
+            Zeskanuj kod aparatem drugiego urządzenia albo wpisz go w aplikacji
+            PWA. Kod wygasa po kilku minutach i działa w jednym z tych miejsc.
+            Zużywa się dopiero po potwierdzeniu przywrócenia.
           </SheetDescription>
         </SheetHeader>
 
@@ -183,7 +186,7 @@ export function SettingsTransferSheet({
           ) : null}
 
           {qrDataUrl ? (
-            <div className="mx-auto rounded-xl border border-border/70 bg-white p-3 shadow-sm">
+            <div className="mx-auto rounded-xl border border-border/70 bg-white p-3 shadow-xs">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={qrDataUrl}
@@ -231,9 +234,9 @@ export function SettingsTransferSheet({
           ) : null}
 
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Na drugim urządzeniu otwórz zeskanowany link albo wejdź w{" "}
-            <span className="font-medium text-foreground">/przywroc</span> i
-            wpisz kod. Anulowanie podglądu nie zużywa kodu.
+            Skan zapisuje plan w przeglądarce telefonu. Żeby mieć go w aplikacji
+            PWA, otwórz ją i na planie lekcji wybierz „Wpisz kod z kodu QR”. Kod działa w
+            jednym z tych miejsc. Anulowanie podglądu nie zużywa kodu.
           </p>
         </div>
       </SheetContent>

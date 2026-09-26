@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Bricolage_Grotesque, Manrope } from "next/font/google";
+import { AppSplash } from "@/components/app-splash";
+import { PwaRegister } from "@/components/pwa-register";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import {
@@ -29,6 +31,14 @@ export const metadata: Metadata = {
   },
   description: rootDescription,
   applicationName: siteName,
+  appleWebApp: {
+    capable: true,
+    title: siteName,
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
   openGraph: {
     type: "website",
     locale: "pl_PL",
@@ -51,7 +61,7 @@ export const viewport: Viewport = {
   colorScheme: "light dark",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f2f6fb" },
-    { media: "(prefers-color-scheme: dark)", color: "#0c1420" },
+    { media: "(prefers-color-scheme: dark)", color: "#111821" },
   ],
 };
 
@@ -63,12 +73,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col font-sans">
+        <AppSplash />
         <ThemeProvider>
           {children}
           <Toaster position="top-center" richColors closeButton />
         </ThemeProvider>
         <Analytics />
         <SpeedInsights />
+        <PwaRegister />
       </body>
     </html>
   );
