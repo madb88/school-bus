@@ -318,7 +318,7 @@ function PlaceChip({
       }
       className={cn(
         "inline-flex cursor-pointer! items-center rounded-md px-1.5 py-0.5 text-sm transition-colors print:cursor-default print:px-0 print:py-0",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 print:focus-visible:ring-0",
+        "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/50 print:focus-visible:ring-0",
         highlight
           ? "bg-foreground/8 font-semibold text-asphalt ring-1 ring-foreground/15 hover:bg-foreground/12 print:bg-transparent print:ring-0"
           : "text-muted-foreground hover:bg-muted/60 hover:text-foreground print:text-foreground",
@@ -1144,7 +1144,7 @@ export function ScheduleBoard({
               event.currentTarget.blur();
             }
           }}
-          className="h-8 w-12 min-w-0 max-w-full rounded-lg border border-border bg-card px-1 text-center text-sm tabular-nums text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="h-8 w-12 min-w-0 max-w-full rounded-lg border border-border bg-card px-1 text-center text-sm tabular-nums text-foreground outline-hidden focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
         />
         <span>min</span>
       </label>

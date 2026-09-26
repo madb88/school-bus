@@ -186,7 +186,7 @@ export function SettingsTransferSheet({
           ) : null}
 
           {qrDataUrl ? (
-            <div className="mx-auto rounded-xl border border-border/70 bg-white p-3 shadow-sm">
+            <div className="mx-auto rounded-xl border border-border/70 bg-white p-3 shadow-xs">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={qrDataUrl}

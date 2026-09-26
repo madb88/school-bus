@@ -15,7 +15,7 @@ export function AboutPrintMock() {
       aria-hidden
       className="overflow-hidden rounded-xl border border-bus/30 bg-card shadow-[0_12px_40px_-18px_color-mix(in_srgb,var(--bus)_45%,transparent)]"
     >
-      <div className="flex items-start justify-between gap-3 border-b border-bus/25 bg-gradient-to-br from-bus/18 via-bus/8 to-transparent px-3 py-2.5 sm:px-4">
+      <div className="flex items-start justify-between gap-3 border-b border-bus/25 bg-linear-to-br from-bus/18 via-bus/8 to-transparent px-3 py-2.5 sm:px-4">
         <div className="min-w-0">
           <p className="text-[0.55rem] font-medium tracking-[0.14em] text-bus-deep uppercase">
             Plan dojazdów · szkolny
@@ -24,7 +24,7 @@ export function AboutPrintMock() {
             Osiedle Słoneczne
           </p>
         </div>
-        <span className="grid size-8 shrink-0 place-items-center rounded-md border border-bus/40 bg-bus text-bus-foreground shadow-sm">
+        <span className="grid size-8 shrink-0 place-items-center rounded-md border border-bus/40 bg-bus text-bus-foreground shadow-xs">
           <svg
             viewBox="0 0 24 24"
             className="size-3.5"
@@ -95,8 +95,8 @@ export function AboutPrintMock() {
           </tbody>
         </table>
 
-        <div className="mt-3 flex items-center justify-center gap-2.5 rounded-md bg-gradient-to-r from-bus/5 via-mzk/5 to-bus/5 px-2 py-2">
-          <span className="grid size-8 place-items-center rounded-md border border-bus/30 bg-background shadow-sm">
+        <div className="mt-3 flex items-center justify-center gap-2.5 rounded-md bg-linear-to-r from-bus/5 via-mzk/5 to-bus/5 px-2 py-2">
+          <span className="grid size-8 place-items-center rounded-md border border-bus/30 bg-background shadow-xs">
             <span className="size-5 bg-[repeating-linear-gradient(90deg,var(--bus)_0_1px,transparent_1px_3px),repeating-linear-gradient(0deg,var(--bus)_0_1px,transparent_1px_3px)]" />
           </span>
           <span className="text-[0.55rem] font-medium tracking-wide text-bus-deep">

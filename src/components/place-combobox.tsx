@@ -52,7 +52,7 @@ export function PlaceCombobox({
           id={inputId}
           aria-labelledby={ariaLabelledBy}
           placeholder={placeholder}
-          className="h-full w-full min-w-0 rounded-lg border-0 bg-transparent px-3 text-base text-foreground outline-none placeholder:text-muted-foreground"
+          className="h-full w-full min-w-0 rounded-lg border-0 bg-transparent px-3 text-base text-foreground outline-hidden placeholder:text-muted-foreground"
         />
         <div className="absolute inset-y-0 right-0 flex items-center text-muted-foreground">
           <Combobox.Clear
@@ -71,7 +71,7 @@ export function PlaceCombobox({
       </Combobox.InputGroup>
 
       <Combobox.Portal>
-        <Combobox.Positioner className="z-50 outline-none" sideOffset={4}>
+        <Combobox.Positioner className="z-50 outline-hidden" sideOffset={4}>
           <Combobox.Popup
             className={cn(
               "w-(--anchor-width) max-w-(--available-width) overflow-hidden rounded-lg border border-border bg-card text-foreground shadow-lg",
@@ -85,13 +85,13 @@ export function PlaceCombobox({
                 Brak pasujących miejsc.
               </div>
             </Combobox.Empty>
-            <Combobox.List className="max-h-[min(18rem,var(--available-height))] overflow-y-auto overscroll-contain py-1 outline-none data-empty:p-0">
+            <Combobox.List className="max-h-[min(18rem,var(--available-height))] overflow-y-auto overscroll-contain py-1 outline-hidden data-empty:p-0">
               {(place: string) => (
                 <Combobox.Item
                   key={place}
                   value={place}
                   className={cn(
-                    "grid cursor-default grid-cols-[1rem_1fr] items-center gap-2 px-3 py-2 text-sm outline-none select-none",
+                    "grid cursor-default grid-cols-[1rem_1fr] items-center gap-2 px-3 py-2 text-sm outline-hidden select-none",
                     "data-highlighted:bg-muted data-highlighted:text-foreground",
                     "data-selected:font-medium",
                   )}

@@ -28,7 +28,7 @@ export function InstallPhoneMock() {
             </div>
           </div>
 
-          <div className="mx-3 mb-3 rounded-xl border border-border/70 bg-card px-2.5 py-2 shadow-sm">
+          <div className="mx-3 mb-3 rounded-xl border border-border/70 bg-card px-2.5 py-2 shadow-xs">
             <p className="text-[0.6rem] font-medium text-muted-foreground">
               Przypomnienie
             </p>
