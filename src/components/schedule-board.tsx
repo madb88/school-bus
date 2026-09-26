@@ -646,7 +646,7 @@ function DirectionSection({
   return (
     <section
       aria-labelledby={headingId}
-      className="schedule-direction-section min-w-0 rounded-xl border border-border/70 bg-card/90 p-3 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:p-4 print:break-inside-avoid print:p-2 print:shadow-none"
+      className="schedule-direction-section min-w-0 rounded-xl border border-border/70 bg-card/90 p-3 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:p-4 print:break-inside-avoid print:p-2 print:shadow-none dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]"
     >
       <SectionHeading
         id={headingId}
@@ -1515,7 +1515,7 @@ export function ScheduleBoard({
       <div className="sticky top-0 z-10 -mx-6 pb-2 print:hidden sm:-mx-10 md:py-2.5">
         <div
           className={cn(
-            "overflow-hidden rounded-b-xl border border-border/70 bg-card shadow-[0_10px_28px_-18px_color-mix(in_srgb,var(--foreground)_45%,transparent)] transition-[border-top-left-radius,border-top-right-radius] duration-300 ease-out motion-reduce:transition-none md:rounded-t-xl",
+            "overflow-hidden rounded-b-xl border border-border/70 bg-card shadow-[0_10px_28px_-18px_color-mix(in_srgb,var(--foreground)_45%,transparent)] transition-[border-top-left-radius,border-top-right-radius] duration-300 ease-out motion-reduce:transition-none dark:shadow-[0_8px_22px_-16px_rgba(0,0,0,0.55)] md:rounded-t-xl",
             filtersStuck ? "rounded-t-none" : "rounded-t-xl",
           )}
         >
@@ -1736,7 +1736,7 @@ export function ScheduleBoard({
       {showPlanHint || showMzkHint ? (
         <div className="grid gap-2 print:hidden">
           {showPlanHint ? (
-            <div className="rounded-xl border border-border/70 border-l-2 border-l-bus/50 bg-card px-4 py-3 text-sm text-muted-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]">
+            <div className="rounded-xl border border-border/70 border-l-2 border-l-bus/50 bg-card px-4 py-3 text-sm text-muted-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]">
               <p className="font-medium text-foreground">Ustaw plan lekcji</p>
               <p className="mt-1 leading-relaxed">
                 Dodaj godziny zajęć, żeby rozkład dopasował kursy do startu i
@@ -1763,7 +1763,7 @@ export function ScheduleBoard({
             </div>
           ) : null}
           {showMzkHint ? (
-            <div className="rounded-xl border border-border/70 border-l-2 border-l-mzk/50 bg-card px-4 py-3 text-sm text-muted-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]">
+            <div className="rounded-xl border border-border/70 border-l-2 border-l-mzk/50 bg-card px-4 py-3 text-sm text-muted-foreground shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]">
               <p className="font-medium text-foreground">
                 Ustaw przystanek MZK
               </p>
@@ -1942,7 +1942,7 @@ export function ScheduleBoard({
                 subtitle="do szkoły"
                 tripCount={mergedTimeline.pickups.length}
                 icon={Sun}
-                iconClassName="fill-amber-400 text-amber-500"
+                iconClassName="fill-amber-400 text-amber-500 dark:fill-amber-400/45 dark:text-amber-400/70"
               >
                 <TimelineList
                   entries={mergedTimeline.pickups}
@@ -1960,7 +1960,7 @@ export function ScheduleBoard({
                 subtitle="do domu"
                 tripCount={mergedTimeline.dropoffs.length}
                 icon={Moon}
-                iconClassName="text-indigo-400"
+                iconClassName="text-indigo-400 dark:text-bus-deep"
               >
                 <TimelineList
                   entries={mergedTimeline.dropoffs}
@@ -2013,7 +2013,7 @@ export function ScheduleBoard({
                   0,
                 )}
                 icon={Sun}
-                iconClassName="fill-amber-400 text-amber-500"
+                iconClassName="fill-amber-400 text-amber-500 dark:fill-amber-400/45 dark:text-amber-400/70"
               >
                 <div className="space-y-5 print:space-y-3">
                   {filtered.pickups.map((block) => (
@@ -2091,7 +2091,7 @@ export function ScheduleBoard({
                   )
                 }
                 icon={Moon}
-                iconClassName="text-indigo-400"
+                iconClassName="text-indigo-400 dark:text-bus-deep"
               >
                 <div className="space-y-5 print:space-y-3">
                   {filtered.dropoffsByDate.map((day) => (

@@ -3,7 +3,7 @@ export function AboutScheduleMock() {
   return (
     <div
       aria-hidden
-      className="overflow-hidden rounded-xl border border-border/70 bg-card/80 shadow-[0_12px_40px_-20px_color-mix(in_srgb,var(--asphalt)_35%,transparent)] backdrop-blur-sm"
+      className="overflow-hidden rounded-xl border border-border/70 bg-card/80 shadow-[0_12px_40px_-20px_color-mix(in_srgb,var(--foreground)_35%,transparent)] dark:shadow-[0_10px_28px_-20px_rgba(0,0,0,0.5)] backdrop-blur-sm"
     >
       <div className="flex flex-wrap gap-1.5 border-b border-border/60 bg-muted/40 px-3 py-2.5">
         <span className="rounded-md bg-background px-2 py-1 text-[0.65rem] font-medium text-asphalt ring-1 ring-border/80">

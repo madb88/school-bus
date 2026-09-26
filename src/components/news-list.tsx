@@ -79,7 +79,7 @@ export function NewsList({ items = NEWS_ITEMS }: { items?: readonly NewsItem[] }
       {items.map((item) => (
         <li
           key={item.id}
-          className="space-y-3 rounded-2xl border border-border/70 bg-card/70 p-4 shadow-[0_12px_40px_-24px_color-mix(in_srgb,var(--asphalt)_40%,transparent)] backdrop-blur-sm sm:p-6"
+          className="space-y-3 rounded-2xl border border-border/70 bg-card/70 p-4 shadow-[0_12px_40px_-24px_color-mix(in_srgb,var(--foreground)_40%,transparent)] dark:shadow-[0_10px_28px_-22px_rgba(0,0,0,0.55)] backdrop-blur-sm sm:p-6"
         >
           <time className="block text-xs font-medium tracking-wide text-muted-foreground uppercase">
             {item.dateLabel}

@@ -196,7 +196,7 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
                     "flex w-full min-w-0 items-center gap-3 rounded-xl border bg-card px-4 py-3.5 text-left transition-colors outline-hidden",
                     "border-border/70 hover:border-bus hover:bg-card focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
                     active &&
-                      "border-bus bg-card shadow-[0_0_0_3px_color-mix(in_srgb,var(--bus)_22%,transparent)] hover:border-bus-deep hover:bg-card",
+                      "border-bus bg-card shadow-[0_0_0_3px_color-mix(in_srgb,var(--bus)_22%,transparent)] hover:border-bus-deep hover:bg-card dark:shadow-[0_0_0_3px_color-mix(in_srgb,var(--bus)_14%,transparent)]",
                   )}
                 >
                   <span

@@ -69,7 +69,7 @@ export function AppSplash() {
       <style
         dangerouslySetInnerHTML={{
           __html: `
-#app-splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.75rem;background:#0c1420;color:#f2f6fb;opacity:1;transition:opacity ${FADE_MS}ms ease;pointer-events:none}
+#app-splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.75rem;background:#111821;color:#f2f6fb;opacity:1;transition:opacity ${FADE_MS}ms ease;pointer-events:none}
 #app-splash[data-hidden]{opacity:0}
 #app-splash .app-splash__logo{width:5rem;height:5rem;border-radius:1rem}
 #app-splash .app-splash__title{margin:0;font-family:var(--font-display),ui-sans-serif,system-ui,sans-serif;font-size:1.125rem;font-weight:600;letter-spacing:-.02em;text-align:center}

@@ -100,7 +100,7 @@ export function WeekendBusIllustration({
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="stroke-[#7aa8c9]/55 dark:stroke-[#9ec4e0]/70"
+        className="stroke-[#7aa8c9]/55 dark:stroke-[#4a6478]/70"
       >
         <path d="M168 62h18L172 78h16" strokeWidth="4.5" />
         <path d="M204 38h24L208 60h22" strokeWidth="5.5" />
@@ -129,7 +129,7 @@ export function WeekendBusIllustration({
         width="48"
         height="44"
         rx="10"
-        className="fill-[#C9E4F8] dark:fill-[#b8d8f0]"
+        className="fill-[#C9E4F8] dark:fill-[#2a3d55]"
       />
       <rect
         x="186"
@@ -137,7 +137,7 @@ export function WeekendBusIllustration({
         width="48"
         height="44"
         rx="10"
-        className="fill-[#C9E4F8] dark:fill-[#b8d8f0]"
+        className="fill-[#C9E4F8] dark:fill-[#2a3d55]"
       />
       <rect
         x="260"
@@ -145,7 +145,7 @@ export function WeekendBusIllustration({
         width="48"
         height="44"
         rx="10"
-        className="fill-[#C9E4F8] dark:fill-[#b8d8f0]"
+        className="fill-[#C9E4F8] dark:fill-[#2a3d55]"
       />
       <circle cx="148" cy="258" r="22" className="fill-[#381808] dark:fill-[#1a0c04]" />
       <circle cx="148" cy="258" r="8" className="fill-[#C9D6E6] dark:fill-[#9eb0c4]" />

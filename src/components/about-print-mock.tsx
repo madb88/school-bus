@@ -13,9 +13,9 @@ export function AboutPrintMock() {
   return (
     <div
       aria-hidden
-      className="overflow-hidden rounded-xl border border-bus/30 bg-card shadow-[0_12px_40px_-18px_color-mix(in_srgb,var(--bus)_45%,transparent)]"
+      className="overflow-hidden rounded-xl border border-bus/30 bg-card shadow-[0_12px_40px_-18px_color-mix(in_srgb,var(--foreground)_28%,transparent)] dark:shadow-[0_10px_28px_-18px_rgba(0,0,0,0.45)]"
     >
-      <div className="flex items-start justify-between gap-3 border-b border-bus/25 bg-linear-to-br from-bus/18 via-bus/8 to-transparent px-3 py-2.5 sm:px-4">
+      <div className="flex items-start justify-between gap-3 border-b border-bus/25 bg-linear-to-br from-bus/18 via-bus/8 to-transparent px-3 py-2.5 sm:px-4 dark:from-bus/10 dark:via-bus/5">
         <div className="min-w-0">
           <p className="text-[0.55rem] font-medium tracking-[0.14em] text-bus-deep uppercase">
             Plan dojazdów · szkolny

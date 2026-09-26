@@ -4,7 +4,7 @@ import Image from "next/image";
 export function InstallPhoneMock() {
   return (
     <div aria-hidden className="mx-auto w-[17.5rem] max-w-full">
-      <div className="flex aspect-[9/18] flex-col rounded-[2.6rem] bg-[#1a2433] p-2.5 shadow-[0_24px_50px_-24px_color-mix(in_srgb,var(--asphalt)_55%,transparent)]">
+      <div className="flex aspect-[9/18] flex-col rounded-[2.6rem] bg-[#1a2433] p-2.5 shadow-[0_24px_50px_-24px_color-mix(in_srgb,var(--foreground)_55%,transparent)] dark:shadow-[0_20px_40px_-28px_rgba(0,0,0,0.65)]">
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2rem] bg-background">
           <div className="flex items-center justify-between px-5 pt-2.5 pb-1 text-[0.6rem] font-medium text-muted-foreground">
             <span className="tabular-nums">7:12</span>

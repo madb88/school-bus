@@ -84,7 +84,7 @@ export function WeekendPlaceholder({
       </div>
 
       {mondayPreview ? (
-        <div className="mt-8 w-full max-w-[min(100%,28rem)] rounded-[28px] border border-[#dce6f4]/80 bg-white p-5 text-left shadow-[0_12px_40px_rgba(43,84,227,0.10)] sm:mt-10 sm:max-w-[500px] sm:p-6 dark:border-border/40 dark:bg-card dark:shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
+        <div className="mt-8 w-full max-w-[min(100%,28rem)] rounded-[28px] border border-[#dce6f4]/80 bg-white p-5 text-left shadow-[0_12px_40px_rgba(43,84,227,0.10)] sm:mt-10 sm:max-w-[500px] sm:p-6 dark:border-border/40 dark:bg-card dark:shadow-[0_10px_28px_rgba(0,0,0,0.5)]">
           {/* Mobile: stacked layout */}
           <div className="flex flex-col gap-5 sm:hidden">
             <div className="flex items-start gap-3">
@@ -116,7 +116,7 @@ export function WeekendPlaceholder({
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#F07820]/15 text-[#F07820]">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#F07820]/15 text-[#F07820] dark:bg-[#F07820]/10 dark:text-[#F07820]/85">
                 <Bus className="size-5" aria-hidden />
               </span>
               <div>
@@ -162,7 +162,7 @@ export function WeekendPlaceholder({
                 />
 
                 <div className="flex flex-1 items-center gap-3">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#F07820]/15 text-[#F07820]">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#F07820]/15 text-[#F07820] dark:bg-[#F07820]/10 dark:text-[#F07820]/85">
                     <Bus className="size-4" aria-hidden />
                   </span>
                   <div>

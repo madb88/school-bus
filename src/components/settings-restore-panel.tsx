@@ -147,7 +147,7 @@ export function SettingsRestorePanel({
   return (
     <div className="mx-auto max-w-lg space-y-6">
       {!summary ? (
-        <div className="space-y-4 rounded-xl border border-border/70 bg-card/90 p-5 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]">
+        <div className="space-y-4 rounded-xl border border-border/70 bg-card/90 p-5 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]">
           <div className="space-y-2">
             <Label htmlFor="transfer-code">Kod z QR / drugiego urządzenia</Label>
             <InputOTP
@@ -198,7 +198,7 @@ export function SettingsRestorePanel({
           </p>
         </div>
       ) : (
-        <div className="space-y-4 rounded-xl border border-border/70 bg-card/90 p-5 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)]">
+        <div className="space-y-4 rounded-xl border border-border/70 bg-card/90 p-5 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]">
           <h2 className="font-display text-lg font-semibold text-asphalt">
             Znaleziono ustawienia
           </h2>
