@@ -1811,6 +1811,7 @@ export function ScheduleBoard({
           mondayPreview={
             mondayPreview
               ? {
+                  ymd: mondayPreview.ymd,
                   weekdayName: mondayPreview.weekdayName,
                   lessonStart: mondayPreview.lessonStart,
                   busTime: mondayPreview.busTime,
