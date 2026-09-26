@@ -37,14 +37,7 @@ export default async function Home({ searchParams }: HomeProps) {
   ].filter((item): item is NonNullable<typeof item> => item !== null);
 
   return (
-    <PageShell
-      wide
-      header={
-        <div className="mb-8">
-          <SiteHeader current="rozklad" />
-        </div>
-      }
-    >
+    <PageShell wide header={<SiteHeader current="rozklad" />}>
       <div className="page-enter">
         {schedule ? (
           <>

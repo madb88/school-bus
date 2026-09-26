@@ -13,11 +13,7 @@ export const metadata = buildPageMetadata({
 
 export default function InstalacjaPage() {
   return (
-    <PageShell>
-      <div className="mb-8">
-        <SiteHeader current="instalacja" />
-      </div>
-
+    <PageShell header={<SiteHeader current="instalacja" />}>
       <div className="page-enter">
         <header className="mb-10 grid items-center gap-10 lg:grid-cols-[minmax(0,1.15fr)_auto] lg:gap-14">
           <div className="space-y-4">

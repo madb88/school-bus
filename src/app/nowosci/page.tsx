@@ -12,11 +12,7 @@ export const metadata = buildPageMetadata({
 
 export default function NowosciPage() {
   return (
-    <PageShell>
-      <div className="mb-8">
-        <SiteHeader current="nowosci" />
-      </div>
-
+    <PageShell header={<SiteHeader current="nowosci" />}>
       <div className="page-enter">
         <header className="mb-10 space-y-3">
           <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">

@@ -703,6 +703,8 @@ export function ScheduleBoard({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [extraOptionsOpen, setExtraOptionsOpen] = useState(false);
   const [copiedFlash, setCopiedFlash] = useState(false);
+  const [filtersStuck, setFiltersStuck] = useState(false);
+  const filtersSentinelRef = useRef<HTMLDivElement>(null);
   // Wait for localStorage prefs (plan / miejsce / MZK) before painting trips —
   // otherwise SSR empty defaults flash into filtered client content.
   // useSyncExternalStore avoids setState-in-effect (server=false, client=true).
@@ -739,6 +741,20 @@ export function ScheduleBoard({
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", onVisible);
     };
+  }, []);
+
+  useEffect(() => {
+    const sentinel = filtersSentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setFiltersStuck(!entry.isIntersecting);
+      },
+      { threshold: 0 },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
   }, []);
 
   // Keep address bar in sync so filters are shareable.
@@ -1417,8 +1433,18 @@ export function ScheduleBoard({
         </p>
       </header>
 
-      <div className="sticky top-0 z-10 -mx-6 py-2 print:hidden sm:-mx-10 md:py-2.5">
-        <div className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-[0_10px_28px_-18px_color-mix(in_srgb,var(--foreground)_45%,transparent)]">
+      <div
+        ref={filtersSentinelRef}
+        aria-hidden
+        className="pointer-events-none h-px w-full print:hidden"
+      />
+      <div className="sticky top-0 z-10 -mx-6 pb-2 print:hidden sm:-mx-10 md:py-2.5">
+        <div
+          className={cn(
+            "overflow-hidden rounded-b-xl border border-border/70 bg-card shadow-[0_10px_28px_-18px_color-mix(in_srgb,var(--foreground)_45%,transparent)] transition-[border-top-left-radius,border-top-right-radius] duration-300 ease-out motion-reduce:transition-none md:rounded-t-xl",
+            filtersStuck ? "rounded-t-none" : "rounded-t-xl",
+          )}
+        >
           {/* Mobile: compact bar + place / day / direction */}
           <div className="flex flex-col gap-2 border-b border-border/60 p-3 md:hidden">
             <div className="flex flex-wrap items-center gap-2">

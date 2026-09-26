@@ -21,11 +21,7 @@ export default async function MzkPage() {
     : [];
 
   return (
-    <PageShell>
-      <div className="mb-8">
-        <SiteHeader current="mzk" />
-      </div>
-
+    <PageShell header={<SiteHeader current="mzk" />}>
       <div className="page-enter">
         <header className="mb-10 space-y-3">
           <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">

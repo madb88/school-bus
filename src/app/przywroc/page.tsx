@@ -20,11 +20,7 @@ export default async function PrzywrocPage({ searchParams }: PrzywrocPageProps) 
   const initialToken = normalizeTransferToken(params.t ?? params.code ?? "");
 
   return (
-    <PageShell>
-      <div className="mb-8">
-        <SiteHeader current="lekcje" />
-      </div>
-
+    <PageShell header={<SiteHeader current="lekcje" />}>
       <div className="page-enter">
         <header className="mb-10 space-y-3">
           <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">

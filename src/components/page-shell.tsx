@@ -11,7 +11,7 @@ export function PageShell({
   children: ReactNode;
   /** Wider content column — used by the schedule filters layout. */
   wide?: boolean;
-  /** Stays in the standard column when the page content is wider. */
+  /** Shared header column (max-w-6xl) — same width on every page. */
   header?: ReactNode;
 }) {
   return (
@@ -22,7 +22,7 @@ export function PageShell({
           className="page-atmosphere pointer-events-none absolute inset-0 print:hidden"
         />
         {header ? (
-          <div className="relative mx-auto w-full max-w-4xl px-6 pt-10 sm:px-10 sm:pt-14 print:hidden">
+          <div className="relative mx-auto mb-8 w-full max-w-6xl px-6 pt-10 sm:px-10 sm:pt-14 print:hidden">
             {header}
           </div>
         ) : null}

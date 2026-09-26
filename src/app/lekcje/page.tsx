@@ -22,11 +22,7 @@ export default async function LekcjePage() {
   const places = schedule ? collectPlaces(schedule) : [];
 
   return (
-    <PageShell>
-      <div className="mb-8 print:hidden">
-        <SiteHeader current="lekcje" />
-      </div>
-
+    <PageShell header={<SiteHeader current="lekcje" />}>
       <div className="page-enter">
         <header className="mb-10 space-y-3 print:hidden">
           <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">

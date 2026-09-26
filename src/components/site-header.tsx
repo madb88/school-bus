@@ -13,7 +13,7 @@ export function SiteHeader({ current }: SiteHeaderProps) {
     <header className="flex items-center justify-between gap-4">
       <Link
         href="/"
-        className="group inline-flex min-w-0 items-center gap-2.5 no-underline"
+        className="group inline-flex min-w-0 items-center gap-2.5 no-underline sm:shrink-0"
       >
         <Image
           src="/icons/icon-192.png"
@@ -23,7 +23,7 @@ export function SiteHeader({ current }: SiteHeaderProps) {
           priority
           className="size-8 shrink-0 rounded-lg transition-transform duration-300 group-hover:-rotate-3 group-hover:scale-105"
         />
-        <span className="truncate font-display text-sm font-semibold tracking-tight text-asphalt sm:text-base">
+        <span className="truncate font-display text-sm font-semibold tracking-tight text-asphalt sm:overflow-visible sm:whitespace-nowrap sm:text-base">
           Dojazdy do szkoły
         </span>
       </Link>
