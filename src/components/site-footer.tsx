@@ -88,6 +88,15 @@ export async function SiteFooter() {
             ·
           </span>
           <Link
+            href="/regulamin"
+            className="underline underline-offset-2 hover:text-foreground"
+          >
+            Regulamin
+          </Link>
+          <span aria-hidden className="mx-1.5 text-border">
+            ·
+          </span>
+          <Link
             href="/polityka-prywatnosci"
             className="underline underline-offset-2 hover:text-foreground"
           >
