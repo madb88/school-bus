@@ -119,11 +119,7 @@ export function LessonPlanForm({
     return dayHasEndBeforeStart(day?.start, day?.end);
   });
 
-  function updateDay(
-    key: WeekdayKey,
-    field: "start" | "end",
-    value: string,
-  ) {
+  function updateDay(key: WeekdayKey, field: "start" | "end", value: string) {
     setSaveError(null);
     setDraft((prev) => {
       const base = prev ?? stored;
@@ -252,7 +248,11 @@ export function LessonPlanForm({
             </p>
           </div>
           <div className="flex w-full min-w-0 max-w-md flex-col gap-1.5">
-            <Label id="lesson-place-label" htmlFor="lesson-place" className="sr-only">
+            <Label
+              id="lesson-place-label"
+              htmlFor="lesson-place"
+              className="sr-only"
+            >
               Przystanek
             </Label>
             <NativeSelect
@@ -337,7 +337,8 @@ export function LessonPlanForm({
               Jak dobieramy kursy?
             </h3>
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-              Na podstawie podanych godzin lekcji dopasowujemy odpowiednie kursy.
+              Na podstawie podanych godzin lekcji dopasowujemy odpowiednie
+              kursy.
             </p>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div className="flex items-start gap-3">
@@ -365,13 +366,15 @@ export function LessonPlanForm({
             </div>
           </div>
 
-          {daysMissingEnd.length > 0 || daysInvalidEnd.length > 0 || saveError ? (
+          {daysMissingEnd.length > 0 ||
+          daysInvalidEnd.length > 0 ||
+          saveError ? (
             <div className="space-y-2 text-sm leading-relaxed">
               {daysMissingEnd.length > 0 ? (
                 <p className="text-asphalt/80">
                   Brak końca lekcji (
-                  {daysMissingEnd.map((d) => d.label).join(", ")}
-                  ) — odwozy nie dopasują się do planu w te dni.
+                  {daysMissingEnd.map((d) => d.label).join(", ")}) — odwozy nie
+                  dopasują się do planu w te dni.
                 </p>
               ) : null}
               {daysInvalidEnd.length > 0 || saveError ? (
@@ -408,7 +411,8 @@ export function LessonPlanForm({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center max-sm:[&_a]:h-11 max-sm:[&_a]:w-full max-sm:[&_a]:px-4 max-sm:[&_button]:h-11 max-sm:[&_button]:w-full max-sm:[&_button]:px-4">
               <SettingsTransferSheet
                 canTransfer={
-                  hasConfiguredLessons(stored) || hasConfiguredMzkRoute(mzkRoute)
+                  hasConfiguredLessons(stored) ||
+                  hasConfiguredMzkRoute(mzkRoute)
                 }
                 triggerLabel="Użyj na innym urządzeniu"
               />
@@ -440,7 +444,7 @@ export function LessonPlanForm({
           <div className="space-y-1">
             <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
               <Printer className="size-4 text-bus-deep" aria-hidden />
-              Wydrukuj plan dojazdów
+              Wydrukuj plan dojazdów dopasowany do planu lekcji
             </h2>
             <p className="text-sm leading-relaxed text-muted-foreground">
               Wybierz, jakie połączenia chcesz uwzględnić na wydruku.
@@ -476,7 +480,7 @@ export function LessonPlanForm({
                   Autobus szkolny
                 </span>
                 <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">
-                  Tylko kursy autobusu szkolnego
+                  Pełny rozkład kursów autobusu szkolnego
                 </span>
               </span>
             </label>
@@ -509,7 +513,7 @@ export function LessonPlanForm({
                   Autobus szkolny + MZK
                 </span>
                 <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">
-                  Kursy autobusu szkolnego oraz MZK
+                  Autobus szkolny oraz najbliższe kursy MZK
                 </span>
               </span>
             </label>
@@ -537,10 +541,10 @@ export function LessonPlanForm({
               />
               <span className="min-w-0">
                 <span className="block text-sm font-medium text-foreground sm:text-base">
-                  Kompaktowa · do kieszeni
+                  Kompaktowy rozkład do kieszeni
                 </span>
                 <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">
-                  Zbity pasek do wycięcia i kieszeni (tylko szkolny)
+                  Skrócona wersja rozkładu do wycięcia i schowania do kieszeni
                 </span>
               </span>
             </label>
@@ -565,8 +569,8 @@ export function LessonPlanForm({
             </p>
           ) : canPrintMzk ? (
             <p className="text-xs leading-relaxed text-muted-foreground">
-              Wariant ze szkolnym + MZK dodaje tylko najbliższy kurs MZK (wyjazd
-              i powrót), bez całego rozkładu linii.
+              Wariant z MZK dodaje najbliższe połączenia MZK na początku i końcu
+              trasy, bez pełnego rozkładu linii.
             </p>
           ) : null}
 
