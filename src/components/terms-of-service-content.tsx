@@ -3,15 +3,11 @@
  * treść oparta na rzeczywistym kodzie aplikacji.
  *
  * Dane kontaktowe ujednolicone z polityką prywatności.
- * TODO(przed publikacją): uzupełnij adres i NIP/REGON Usługodawcy, jeśli dotyczy.
  * Dokument nie stanowi porady prawnej.
  */
 
 const PROVIDER_NAME = "Jakub Kamiński";
 const PROVIDER_EMAIL = "kaminskiqba@gmail.com";
-/** TODO(przed publikacją): uzupełnij, jeśli dotyczy — brak w polityce prywatności. */
-const PROVIDER_ADDRESS = "[ADRES]";
-const PROVIDER_TAX_IDS = "[NIP/REGON — JEŚLI DOTYCZY]";
 
 type Section = {
   id: string;
@@ -26,8 +22,7 @@ const SECTIONS: Section[] = [
     id: "postanowienia-ogolne",
     title: "§1 Postanowienia ogólne",
     paragraphs: [
-      // TODO(przed publikacją): potwierdź adres i NIP/REGON, jeśli dotyczy
-      `Niniejszy Regulamin określa zasady świadczenia usług drogą elektroniczną za pośrednictwem serwisu internetowego AutobusSzkolny.pl (dalej: „Serwis”), prowadzonego pod domeną autobusszkolny.pl oraz powiązanymi adresami, przez Usługodawcę: ${PROVIDER_NAME}, e-mail: ${PROVIDER_EMAIL}. Adres: ${PROVIDER_ADDRESS}. ${PROVIDER_TAX_IDS}.`,
+      `Niniejszy Regulamin określa zasady świadczenia usług drogą elektroniczną za pośrednictwem serwisu internetowego AutobusSzkolny.pl (dalej: „Serwis”), prowadzonego pod domeną autobusszkolny.pl oraz powiązanymi adresami, przez Usługodawcę: ${PROVIDER_NAME}, e-mail: ${PROVIDER_EMAIL}.`,
       "Serwis działa pod nazwą handlową „Dojazdy do szkoły”. Jest serwisem informacyjnym pomagającym rodzicom i uczniom korzystającym z dowozów do szkoły — w szczególności w zakresie przeglądania rozkładów i dopasowania kursów do planu lekcji.",
       "Usługodawca nie jest przewoźnikiem, nie organizuje transportu szkolnego ani komunikacji miejskiej i nie prowadzi sprzedaży biletów. Serwis nie zastępuje oficjalnych informacji właściwego przewoźnika, szkoły ani organizatora transportu.",
       "Korzystanie z Serwisu oznacza zapoznanie się z treścią Regulaminu. Serwis nie wymaga rejestracji konta ani osobnego zatwierdzania Regulaminu przed przeglądaniem rozkładów.",
