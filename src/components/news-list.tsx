@@ -19,6 +19,21 @@ export type NewsItem = {
 /** Newest first — prepend new entries here. */
 export const NEWS_ITEMS: readonly NewsItem[] = [
   {
+    id: "compact-print-and-week-days",
+    dateLabel: "26 września 2026",
+    title: "Kompaktowy wydruk i rozkład na każdy dzień",
+    lead: "Jeszcze łatwiej sprawdzisz, kiedy dziecko ma autobus — i możesz wydrukować mu rozkład do kieszeni.",
+    body: "W planie lekcji możesz teraz wydrukować kompaktowy rozkład z najbliższym odjazdem do szkoły i powrotem do domu. Wystarczy go wyciąć wzdłuż zaznaczonej linii i schować dziecku do kieszeni lub plecaka.\n\nNa stronie rozkładu możesz również wybrać dowolny dzień tygodnia, aby od razu sprawdzić godziny odjazdów w poniedziałek, wtorek, środę i kolejne dni nauki.",
+    pointsTitle: "Co nowego?",
+    points: [
+      "🎒 Rozkład do kieszeni — mały, skrócony wydruk z godziną wyjazdu do szkoły i powrotu do domu.",
+      "🚌 Trzy warianty wydruku — pełny rozkład autobusu szkolnego, autobus szkolny + najbliższe kursy MZK oraz wersja kompaktowa.",
+      "📅 Rozkład na każdy dzień tygodnia — wybierz konkretny dzień i sprawdź wszystkie potrzebne kursy, nie tylko dzisiejsze i jutrzejsze.",
+    ],
+    href: "/lekcje",
+    cta: "Otwórz plan lekcji",
+  },
+  {
     id: "pwa-home-screen",
     dateLabel: "25 września 2026",
     title: "Autobus Szkolny teraz jako aplikacja!",
@@ -75,9 +90,14 @@ export function NewsList({ items = NEWS_ITEMS }: { items?: readonly NewsItem[] }
           <p className="max-w-2xl text-base leading-relaxed text-foreground/90">
             {item.lead}
           </p>
-          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            {item.body}
-          </p>
+          {item.body.split(/\n\n+/).map((paragraph) => (
+            <p
+              key={paragraph}
+              className="max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base"
+            >
+              {paragraph}
+            </p>
+          ))}
           {item.points && item.points.length > 0 ? (
             <div className="max-w-2xl space-y-2">
               {item.pointsTitle ? (
