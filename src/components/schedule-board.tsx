@@ -1121,13 +1121,13 @@ export function ScheduleBoard({
     (hiddenMzkCount > 0 || showAllMzkConnections);
 
   const hoursFilterBody = matchActive && dayTimes ? (
-    <div className="flex flex-nowrap items-center gap-x-1.5 whitespace-nowrap">
+    <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
       <FilterTimeDisplay value={dayTimes.start} emptyLabel="—" />
       <span className="text-muted-foreground" aria-hidden>
         –
       </span>
       <FilterTimeDisplay value={dayTimes.end} emptyLabel="—" />
-      <label className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+      <label className="inline-flex min-w-0 shrink items-center gap-1 text-xs text-muted-foreground">
         <span>obejmuje</span>
         <input
           type="number"
@@ -1144,7 +1144,7 @@ export function ScheduleBoard({
               event.currentTarget.blur();
             }
           }}
-          className="h-8 w-12 rounded-lg border border-border bg-card px-1 text-center text-sm tabular-nums text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="h-8 w-12 min-w-0 max-w-full rounded-lg border border-border bg-card px-1 text-center text-sm tabular-nums text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
         />
         <span>min</span>
       </label>
@@ -1507,19 +1507,18 @@ export function ScheduleBoard({
         </p>
       </header>
 
-      <div>
+      <div
+        ref={filtersSentinelRef}
+        aria-hidden
+        className="pointer-events-none mb-0! h-px w-full print:hidden"
+      />
+      <div className="sticky top-0 z-10 -mx-6 pb-2 print:hidden sm:-mx-10 md:py-2.5">
         <div
-          ref={filtersSentinelRef}
-          aria-hidden
-          className="pointer-events-none h-px w-full print:hidden"
-        />
-        <div className="sticky top-0 z-10 -mx-6 pb-2 print:hidden sm:-mx-10 md:py-2.5">
-          <div
-            className={cn(
-              "overflow-hidden rounded-b-xl border border-border/70 bg-card shadow-[0_10px_28px_-18px_color-mix(in_srgb,var(--foreground)_45%,transparent)] transition-[border-top-left-radius,border-top-right-radius] duration-300 ease-out motion-reduce:transition-none md:rounded-t-xl",
-              filtersStuck ? "rounded-t-none" : "rounded-t-xl",
-            )}
-          >
+          className={cn(
+            "overflow-hidden rounded-b-xl border border-border/70 bg-card shadow-[0_10px_28px_-18px_color-mix(in_srgb,var(--foreground)_45%,transparent)] transition-[border-top-left-radius,border-top-right-radius] duration-300 ease-out motion-reduce:transition-none md:rounded-t-xl",
+            filtersStuck ? "rounded-t-none" : "rounded-t-xl",
+          )}
+        >
           {/* Mobile: compact bar + place / day / direction */}
           <div className="flex flex-col gap-2 border-b border-border/60 p-3 md:hidden">
             <div className="flex flex-wrap items-center gap-2">
@@ -1730,7 +1729,6 @@ export function ScheduleBoard({
                 {nextTrip.context ? ` (${nextTrip.context})` : null}
               </p>
             ) : null}
-          </div>
           </div>
         </div>
       </div>

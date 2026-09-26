@@ -16,7 +16,7 @@ export function PageShell({
 }) {
   return (
     <>
-      <main className="relative flex-1 overflow-x-clip">
+      <main className="relative min-w-0 flex-1 overflow-x-clip">
         <div
           aria-hidden
           className="page-atmosphere pointer-events-none absolute inset-0 print:hidden"
@@ -28,7 +28,7 @@ export function PageShell({
         ) : null}
         <div
           className={cn(
-            "relative mx-auto w-full px-6 sm:px-10 print:max-w-none print:px-0 print:py-0",
+            "relative mx-auto w-full min-w-0 px-6 sm:px-10 print:max-w-none print:px-0 print:py-0",
             header ? "pb-10 sm:pb-14" : "py-10 sm:py-14",
             wide ? "max-w-6xl" : "max-w-4xl",
           )}

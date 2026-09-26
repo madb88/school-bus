@@ -40,7 +40,7 @@ import { useMzkRoutePreference } from "@/lib/mzk/use-mzk-route";
 import { syncStoredPushPlan } from "@/lib/push/browser";
 
 const cardClass =
-  "space-y-5 rounded-xl border border-border/70 bg-card/90 p-4 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:p-6";
+  "min-w-0 space-y-5 overflow-x-clip rounded-xl border border-border/70 bg-card/90 p-4 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:p-6";
 
 const actionButtonClass = "h-11 w-full px-4 sm:w-auto";
 
@@ -59,6 +59,67 @@ function dayHasEndBeforeStart(
   const endMin = timeToMinutes(end);
   if (startMin === null || endMin === null) return false;
   return endMin < startMin;
+}
+
+/** Native `type="time"` overflows on real iOS/Android; text stays in-bounds. */
+function LessonTimeInput({
+  id,
+  label,
+  value,
+  disabled,
+  invalid,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  disabled?: boolean;
+  invalid?: boolean;
+  onChange: (value: string) => void;
+}) {
+  function commit(raw: string) {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      onChange("");
+      return;
+    }
+    const formatted = formatTimeInput(trimmed);
+    onChange(timeToMinutes(formatted) === null ? trimmed : formatted);
+  }
+
+  return (
+    <>
+      <Label
+        htmlFor={id}
+        className="text-xs font-medium tracking-wide text-muted-foreground uppercase md:hidden"
+      >
+        {label}
+      </Label>
+      <Input
+        id={id}
+        type="text"
+        inputMode="numeric"
+        autoComplete="off"
+        placeholder="08:00"
+        value={value}
+        disabled={disabled}
+        aria-invalid={invalid || undefined}
+        onChange={(event) => onChange(event.target.value)}
+        onBlur={(event) => commit(event.target.value)}
+        className="h-11 w-full min-w-0 max-w-full bg-background px-2.5 tabular-nums md:hidden"
+      />
+      <Input
+        id={`${id}-desktop`}
+        type="time"
+        value={value}
+        disabled={disabled}
+        aria-label={label}
+        aria-invalid={invalid || undefined}
+        onChange={(event) => onChange(event.target.value)}
+        className="lesson-time-input hidden h-10 w-full min-w-0 max-w-full bg-background px-2 tabular-nums md:block"
+      />
+    </>
+  );
 }
 
 export function LessonPlanForm({
@@ -275,39 +336,21 @@ export function LessonPlanForm({
                   >
                     <div className="font-medium text-asphalt">{label}</div>
                     <div className="flex min-w-0 flex-col gap-1.5">
-                      <Label
-                        htmlFor={`lesson-start-${key}`}
-                        className="text-xs font-medium tracking-wide text-muted-foreground uppercase md:sr-only"
-                      >
-                        Start lekcji
-                      </Label>
-                      <Input
+                      <LessonTimeInput
                         id={`lesson-start-${key}`}
-                        type="time"
+                        label="Start lekcji"
                         value={day?.start ?? ""}
-                        onChange={(event) =>
-                          updateDay(key, "start", event.target.value)
-                        }
-                        className="h-11 w-full max-w-full bg-background tabular-nums md:h-10"
+                        onChange={(next) => updateDay(key, "start", next)}
                       />
                     </div>
                     <div className="flex min-w-0 flex-col gap-1.5">
-                      <Label
-                        htmlFor={`lesson-end-${key}`}
-                        className="text-xs font-medium tracking-wide text-muted-foreground uppercase md:sr-only"
-                      >
-                        Koniec lekcji
-                      </Label>
-                      <Input
+                      <LessonTimeInput
                         id={`lesson-end-${key}`}
-                        type="time"
+                        label="Koniec lekcji"
                         value={day?.end ?? ""}
                         disabled={!day?.start}
-                        aria-invalid={invalidEnd || undefined}
-                        onChange={(event) =>
-                          updateDay(key, "end", event.target.value)
-                        }
-                        className="h-11 w-full max-w-full bg-background tabular-nums aria-invalid:border-destructive md:h-10"
+                        invalid={invalidEnd}
+                        onChange={(next) => updateDay(key, "end", next)}
                       />
                     </div>
                   </div>

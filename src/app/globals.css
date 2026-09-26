@@ -204,13 +204,28 @@
 
 /* Native time controls on iOS/Android keep a large intrinsic min-width;
    DevTools desktop preview does not reproduce that. */
-input[type="time"] {
+input[type="time"].lesson-time-input,
+.lesson-time-input[type="time"] {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
   max-width: 100%;
+  min-width: 0;
 }
 
-input[type="time"]::-webkit-datetime-edit {
+input[type="time"].lesson-time-input::-webkit-datetime-edit,
+input[type="time"].lesson-time-input::-webkit-datetime-edit-fields-wrapper,
+input[type="time"].lesson-time-input::-webkit-datetime-edit-text,
+input[type="time"].lesson-time-input::-webkit-datetime-edit-hour-field,
+input[type="time"].lesson-time-input::-webkit-datetime-edit-minute-field,
+input[type="time"].lesson-time-input::-webkit-datetime-edit-ampm-field {
   min-width: 0;
-  width: 100%;
+  padding-inline: 0;
+}
+
+input[type="time"].lesson-time-input::-webkit-calendar-picker-indicator {
+  margin-inline-start: 0;
+  flex-shrink: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
