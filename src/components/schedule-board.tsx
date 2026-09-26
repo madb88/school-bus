@@ -1106,6 +1106,10 @@ export function ScheduleBoard({
         <span>min</span>
       </label>
     </div>
+  ) : matchActive && isWeekendView ? (
+    <p className="text-xs text-muted-foreground">
+      Weekend — autobusy szkolne nie kursują.
+    </p>
   ) : matchActive && target && !dayTimes ? (
     <p className="text-xs text-muted-foreground">
       Brak godzin —{" "}
