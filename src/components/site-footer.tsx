@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { formatAppVersion } from "@/lib/app-version";
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { DOWOZY_SOURCE_URL } from "@/lib/dowozy/types";
@@ -83,6 +84,15 @@ export async function SiteFooter() {
             ·
           </span>
           <span className="tabular-nums">{version}</span>
+          <span aria-hidden className="mx-1.5 text-border">
+            ·
+          </span>
+          <Link
+            href="/polityka-prywatnosci"
+            className="underline underline-offset-2 hover:text-foreground"
+          >
+            Polityka prywatności
+          </Link>
         </p>
       </div>
     </footer>
