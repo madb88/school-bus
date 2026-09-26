@@ -1,4 +1,5 @@
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
+import { getWarsawParts, isSchoolDay } from "@/lib/dowozy/schedule-dates";
 import { dueTripsForPlan, warsawDateKey } from "./due-trips";
 import { schoolScheduleFingerprint } from "./schedule-fingerprint";
 import { sendPush } from "./send";
@@ -16,12 +17,16 @@ export type DispatchSummary = {
   checked: number;
   sent: number;
   removed: number;
-  skipped: "no-schedule" | "locked" | null;
+  skipped: "no-schedule" | "locked" | "weekend" | null;
 };
 
 export async function dispatchReminders(
   now: Date = new Date(),
 ): Promise<DispatchSummary> {
+  if (!isSchoolDay(getWarsawParts(now).weekday)) {
+    return { checked: 0, sent: 0, removed: 0, skipped: "weekend" };
+  }
+
   const locked = await acquireDispatchLock();
   if (!locked) {
     return { checked: 0, sent: 0, removed: 0, skipped: "locked" };
