@@ -4,10 +4,27 @@ import { useEffect, useState } from "react";
 import { siteName } from "@/lib/site-metadata";
 
 const FADE_MS = 280;
+/** Keep splash visible at least this long so it does not flash on fast loads. */
+const MIN_VISIBLE_MS = 450;
+
+function whenPageLoaded(): Promise<void> {
+  if (document.readyState === "complete") {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    window.addEventListener("load", () => resolve(), { once: true });
+  });
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
 
 /**
  * First-paint branded splash for PWA / cold start.
- * SSR'd into the initial HTML with critical inline CSS, then fades out after hydration.
+ * SSR'd into the initial HTML; stays until window load (+ short minimum), then fades out.
  */
 export function AppSplash() {
   const [hidden, setHidden] = useState(false);
@@ -17,17 +34,26 @@ export function AppSplash() {
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
+    let cancelled = false;
 
-    // Let the first frame paint the splash, then start the exit.
-    const frame = requestAnimationFrame(() => {
+    void (async () => {
+      const started = performance.now();
+      await whenPageLoaded();
+      const elapsed = performance.now() - started;
+      const remaining = Math.max(0, MIN_VISIBLE_MS - elapsed);
+      if (remaining > 0) await wait(remaining);
+      if (cancelled) return;
+
       if (reduceMotion) {
         setRemoved(true);
         return;
       }
       setHidden(true);
-    });
+    })();
 
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
