@@ -2,6 +2,7 @@ import { InstallGuide } from "@/components/install-guide";
 import { InstallPhoneMock } from "@/components/install-phone-mock";
 import { PageShell } from "@/components/page-shell";
 import { SiteHeader } from "@/components/site-header";
+import { isPushNotificationsUiEnabled } from "@/lib/push/feature";
 import { buildPageMetadata } from "@/lib/site-metadata";
 
 export const metadata = buildPageMetadata({
@@ -12,6 +13,8 @@ export const metadata = buildPageMetadata({
 });
 
 export default function InstalacjaPage() {
+  const pushNotificationsEnabled = isPushNotificationsUiEnabled();
+
   return (
     <PageShell header={<SiteHeader current="instalacja" />}>
       <div className="page-enter">
@@ -24,12 +27,20 @@ export default function InstalacjaPage() {
               </span>
             </h1>
             <div className="max-w-xl space-y-3 text-base leading-relaxed text-muted-foreground sm:text-lg">
-              <p>
-                Dodaj aplikację do ekranu telefonu i korzystaj z niej jak z
-                normalnej aplikacji. Ustaw plan lekcji, a powiadomienia
-                przypomną Ci o nadchodzących dowozach i odwozach — zanim
-                dziecko będzie musiało wyjść z domu lub szkoły.
-              </p>
+              {pushNotificationsEnabled ? (
+                <p>
+                  Dodaj aplikację do ekranu telefonu i korzystaj z niej jak z
+                  normalnej aplikacji. Ustaw plan lekcji, a powiadomienia
+                  przypomną Ci o nadchodzących dowozach i odwozach — zanim
+                  dziecko będzie musiało wyjść z domu lub szkoły.
+                </p>
+              ) : (
+                <p>
+                  Dodaj aplikację do ekranu telefonu i korzystaj z niej jak z
+                  normalnej aplikacji. Ustaw plan lekcji — powiadomienia o
+                  dowozach i odwozach pojawią się wkrótce.
+                </p>
+              )}
               <p>Raz ustawiasz plan. Aplikacja pamięta za Ciebie.</p>
               <p>
                 Aplikacja wymaga połączenia z internetem — nie działa w trybie
@@ -40,7 +51,7 @@ export default function InstalacjaPage() {
           <InstallPhoneMock />
         </header>
 
-        <InstallGuide />
+        <InstallGuide pushNotificationsEnabled={pushNotificationsEnabled} />
       </div>
     </PageShell>
   );
