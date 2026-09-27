@@ -154,6 +154,9 @@ export function SettingsRestorePanel({
               id="transfer-code"
               maxLength={8}
               pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
+              inputMode="text"
+              autoCapitalize="characters"
+              autoCorrect="off"
               value={codeInput}
               onChange={(value) => {
                 setCodeInput(value.toUpperCase());
