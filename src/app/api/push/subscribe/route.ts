@@ -65,9 +65,10 @@ export async function POST(request: Request) {
 
   const id = subscriptionId(subscription.endpoint);
   const existing = await getPushRecord(id);
-  const schedule = existing?.scheduleFingerprint
+  const loaded = existing?.scheduleFingerprint
     ? null
     : await loadScheduleSnapshot();
+  const schedule = loaded?.schedule ?? null;
   await savePushRecord({
     subscription,
     plan,

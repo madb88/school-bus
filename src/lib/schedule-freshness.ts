@@ -6,6 +6,8 @@ export type FreshnessInfo = {
   level: FreshnessLevel;
   /** Short Polish sentence for banners. */
   message: string;
+  /** Optional longer explanation (tooltip / secondary line). */
+  detail?: string;
 };
 
 /** Warn when the published GTFS feed ends within this many days. */

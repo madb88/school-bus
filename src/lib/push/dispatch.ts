@@ -1,5 +1,6 @@
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { getWarsawParts, isSchoolDay } from "@/lib/dowozy/schedule-dates";
+import type { Schedule } from "@/lib/dowozy/types";
 import { dueTripsForPlan, warsawDateKey } from "./due-trips";
 import { schoolScheduleFingerprint } from "./schedule-fingerprint";
 import { sendPush } from "./send";
@@ -44,7 +45,7 @@ export async function dispatchReminders(
     let removed = 0;
 
     for (const record of records) {
-      const outcome = await notifyRecord(record, schedule, today, now);
+      const outcome = await notifyRecord(record, schedule.schedule, today, now);
       sent += outcome.sent;
       if (outcome.removed) removed += 1;
     }
@@ -63,7 +64,7 @@ const SCHEDULE_UPDATED = {
 
 async function notifyRecord(
   record: PushRecord,
-  schedule: NonNullable<Awaited<ReturnType<typeof loadScheduleSnapshot>>>,
+  schedule: Schedule,
   today: string,
   now: Date,
 ): Promise<{ sent: number; removed: boolean }> {

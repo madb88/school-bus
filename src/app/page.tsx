@@ -4,6 +4,7 @@ import { ScheduleStatusBanner } from "@/components/schedule-status-banner";
 import { SiteHeader } from "@/components/site-header";
 import { parseFilterParams } from "@/lib/dowozy/filter-url";
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
+import { overrideFreshnessInfo } from "@/lib/dowozy/override-freshness";
 import { DOWOZY_SOURCE_URL } from "@/lib/dowozy/types";
 import { loadMzkScheduleMeta } from "@/lib/mzk/load-schedule";
 import {
@@ -24,13 +25,15 @@ type HomeProps = {
 
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
-  const [schedule, mzkMeta] = await Promise.all([
+  const [loaded, mzkMeta] = await Promise.all([
     loadScheduleSnapshot(),
     loadMzkScheduleMeta(),
   ]);
+  const schedule = loaded?.schedule ?? null;
   const initialFilters = parseFilterParams(params);
   const freshness = [
     schedule ? schoolScheduleFreshness(schedule.fetchedAt) : null,
+    loaded ? overrideFreshnessInfo(loaded) : null,
     mzkMeta
       ? mzkScheduleFreshness(mzkMeta.fetchedAt, mzkMeta.feedEndDate)
       : null,

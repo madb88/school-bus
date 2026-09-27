@@ -15,10 +15,11 @@ export const metadata = buildPageMetadata({
 });
 
 export default async function LekcjePage() {
-  const [schedule, mzkSchedule] = await Promise.all([
+  const [loaded, mzkSchedule] = await Promise.all([
     loadScheduleSnapshot(),
     loadMzkScheduleSnapshot(),
   ]);
+  const schedule = loaded?.schedule ?? null;
   const places = schedule ? collectPlaces(schedule) : [];
 
   return (

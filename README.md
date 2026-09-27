@@ -34,6 +34,30 @@ Otwórz [http://127.0.0.1:43123](http://127.0.0.1:43123).
 Snapshot szkolny: `data/dowozy-schedule.json`. Snapshot MZK: `data/mzk-schedule.json`.  
 GitHub Actions odpalają oba fetchy raz dziennie o **06:00** (Europe/Warsaw) i commitują zmiany automatycznie. Workflowy scrape/fetch kończą się błędem przy pustym snapshocie (GitHub powiadamia watcherów repo). CI na PR uruchamia lint, testy i build.
 
+### Tymczasowa korekta rozkładu
+
+Gdy aktualizacja godzin trafi do rodziców wcześniej niż na stronę szkoły, **nie edytuj** `data/dowozy-schedule.json` (scraper nadpisze go przy kolejnym pobraniu). Użyj niezależnej warstwy:
+
+1. Skopiuj pełną treść `data/dowozy-schedule.json`.
+2. Wklej ją do pola `schedule` w `data/dowozy-overrides.json`.
+3. Wprowadź potrzebne zmiany godzin/kursów w `schedule`.
+4. Ustaw:
+
+```json
+{
+  "active": true,
+  "reason": "Aktualizacja przekazana rodzicom — strona jeszcze nieaktualna",
+  "createdAt": "2026-09-27T14:30:00+02:00",
+  "expiresAt": "2026-09-29T22:00:00+02:00",
+  "schedule": { "...": "pełny Schedule" }
+}
+```
+
+5. Commit + deploy.
+6. Gdy oficjalna strona zostanie zaktualizowana, ustaw `"active": false` (albo wyczyść override) i zdeployuj ponownie.
+
+`expiresAt` (ISO 8601 z offsetem, np. `+02:00`) to zabezpieczenie — po tej dacie aplikacja wraca do scrapu, ale plik override nie jest usuwany automatycznie. Scraper i GitHub Actions **nie zmieniają** `dowozy-overrides.json`.
+
 Źródło MZK: [mzk.zgora.pl/dla-deweloperow](https://www.mzk.zgora.pl/dla-deweloperow) (GTFS).
 
 Trasa MZK (wsiadanie / wysiadanie) ustawia się na stronie `/mzk` i jest używana w trybie **Szkolny + MZK** na rozkładzie.

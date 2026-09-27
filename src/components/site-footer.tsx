@@ -29,10 +29,11 @@ function formatFetchedAt(iso: string): string {
 export async function SiteFooter() {
   const year = new Date().getFullYear();
   const version = formatAppVersion();
-  const [schoolSchedule, mzkMeta] = await Promise.all([
+  const [loaded, mzkMeta] = await Promise.all([
     loadScheduleSnapshot(),
     loadMzkScheduleMeta(),
   ]);
+  const schoolSchedule = loaded?.schedule ?? null;
 
   return (
     <footer className="border-t border-border/60 print:hidden">
