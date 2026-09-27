@@ -1,0 +1,50 @@
+---
+description: Scraper/fetcher, snapshoty data/, override, GitHub Actions
+globs:
+  - scripts/**/*
+  - data/**/*
+  - src/lib/dowozy/**/*
+  - src/lib/mzk/**/*
+  - .github/workflows/**/*
+alwaysApply: false
+---
+
+# Dane rozkładów, skrypty i automatyzacja
+
+## Rozdział warstw
+
+| Warstwa | Ścieżka | Zmieniać gdy… |
+| --- | --- | --- |
+| Logika parsowania | `src/lib/dowozy/*`, `src/lib/mzk/*` | zmiana źródła / formatu |
+| CLI | `scripts/scrape-dowozy.ts`, `scripts/fetch-mzk-gtfs.ts` | sposób pobrania |
+| Snapshot | `data/dowozy-schedule.json`, `data/mzk-schedule.json` | **tylko** przez skrypt / Actions |
+| Override | `data/dowozy-overrides.json` | tymczasowa korekta godzin (ręcznie) |
+
+## Zasady snapshotów
+
+- **Nie edytuj ręcznie** `dowozy-schedule.json` / `mzk-schedule.json`, jeśli poprawka powinna być w parserze/scraperze
+- Korekty godzin przed aktualizacją strony szkoły → `dowozy-overrides.json` (`active`, `reason`, `createdAt`, `expiresAt`, pełne `schedule`) — scraper **nie** rusza override
+- Pusty / podejrzany wynik → **fail-fast** (nie nadpisuj dobrych danych pustką). Workflowy weryfikują niepuste `pickups`/`dropoffs` oraz `stops`/`trips`
+
+## Komendy
+
+```bash
+npm run scrape:dowozy
+npm run fetch:mzk
+```
+
+Skrypty importują logikę z `src/lib` — nie kopiuj parserów do `scripts/`.
+
+## Odporność
+
+Obsłuż / zachowaj obsługę: pusta odpowiedź HTTP, zmiana HTML/GTFS, brak plików GTFS, niepoprawne JSON. Walidatory: `validate-schedule`, `validate-override`, `validate-schedule` (MZK).
+
+## GitHub Actions
+
+| Workflow | Harmonogram | Efekt |
+| --- | --- | --- |
+| `scrape-dowozy.yml` | ~06:00 Europe/Warsaw (+ gate DST) | commit `dowozy-schedule.json` |
+| `fetch-mzk.yml` | j.w. | commit `mzk-schedule.json` |
+| `ci.yml` | PR + push `main` | lint, test, build (Node 22) |
+
+Nie zmieniaj cronów / gate / fail-fast bez świadomego wpływu na produkcyjny pipeline. `workflow_dispatch` omija gate godziny.

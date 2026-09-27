@@ -1,0 +1,52 @@
+---
+description: Architektura src — warstwy lib/components/app, bez premature abstraction
+globs:
+  - src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Architektura
+
+## Struktura (źródło prawdy)
+
+```text
+src/app/           # routes, layout, metadata, API, server actions
+src/components/    # UI domenowe + ui/ (shadcn)
+src/lib/
+  dowozy/          # scrape, parse, filter, resolve, print, override
+  mzk/             # GTFS, filtr odjazdów, storage trasy
+  child-schedule/  # plan lekcji, match, preferred place
+  settings-transfer/
+  feedback/
+  push/
+scripts/           # CLI: scrape-dowozy, fetch-mzk-gtfs
+data/              # snapshoty JSON (wynik, nie logika)
+```
+
+## Zasady
+
+**Nie twórz nowej warstwy architektonicznej, jeśli projekt jej nie potrzebuje.**
+
+Przed dodaniem helpera / hooka / utila / store / API / typu:
+
+1. Przeszukaj `src/lib/<domena>/` i `src/components/`
+2. Rozszerz istniejące API zamiast tworzyć drugi mechanizm
+3. Unikaj wrapperów „dla czystości”
+
+## Podział odpowiedzialności
+
+| Warstwa | Robi | Nie robi |
+| --- | --- | --- |
+| `lib/*` | parsowanie, filtr, match, crypto, Redis, walidacja | JSX |
+| `components/*` | UI + lokalny state | scrapowanie, szyfrowanie, bezpośredni Redis |
+| `app/api` / actions | I/O, auth-ish checks, rate limit | duża logika domenowa (import z `lib`) |
+| `scripts/` | pobranie + zapis snapshotu | UI |
+
+## Unikaj
+
+- Duplikacji logiki filtrów/match między boardem a push
+- Komponentów łączących UI + fetch + transform + persistence w jednym bloku bez potrzeby (rozbij jak istniejące hooki: `use-lesson-plan`, `use-mzk-route`)
+- Globalnego state managera — localStorage + eventy custom + `useSyncExternalStore` to obecny wzorzec
+- Katalogu `hooks/` na siłę — hooki siedzą przy domenie w `lib/` lub w komponencie
+
+Jeżeli istnieje komponent realizujący daną funkcję (np. `PlaceCombobox`, `ScheduleBoard`), **rozszerz go** zamiast tworzyć drugi.

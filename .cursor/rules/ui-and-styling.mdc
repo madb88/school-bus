@@ -1,0 +1,52 @@
+---
+description: Tailwind v4, shadcn/ui, Lucide, tokeny kolorów i dark mode
+globs:
+  - src/components/**/*.{ts,tsx}
+  - src/app/**/*.{ts,tsx}
+  - src/app/globals.css
+alwaysApply: false
+---
+
+# UI i stylowanie
+
+## Stack UI
+
+- Tailwind CSS **v4** (`@import "tailwindcss"` w `globals.css`, PostCSS `@tailwindcss/postcss`)
+- shadcn/ui: styl `base-nova`, `cssVariables`, ikony Lucide (`components.json`)
+- Primitives: `@base-ui/react` + CVA w `src/components/ui/*`
+- Fonty: **Bricolage Grotesque** (`font-display`) + **Manrope** (`font-sans`) — nie zamieniaj na Inter/system
+
+## Komponenty
+
+- Najpierw użyj / rozszerz `src/components/ui/*` i istniejące komponenty domenowe
+- Nie duplikuj Button, Sheet, Select, Input, Accordion itd.
+- Łączenie klas: `cn` z paczki `"cn"`
+- Ikony: **Lucide React** — nie dodawaj drugiej biblioteki ikon ani ręcznych SVG, jeśli Lucide ma odpowiednik
+- Nie dodawaj Material UI, Chakra, Ant Design, Bootstrap, ani nowych UI kitów
+
+## Tokeny projektu (zachowaj)
+
+Semantyczne kolory w `globals.css`: `bus`, `bus-deep`, `mzk`, `mzk-deep`, `asphalt`, `sky-mist`, plus shadcn (`background`, `card`, `muted`, …).
+
+```tsx
+// ✅ tokeny projektu
+className="bg-bus text-bus-foreground text-asphalt"
+
+// ❌ losowe hex / inne palety w nowych komponentach
+className="bg-[#2b54e3] text-slate-900"
+```
+
+## Dark mode
+
+Implementacja: własny `ThemeProvider` + `ThemeScript` / `theme-init.ts` (klasa `.dark` na `<html>`, localStorage `school-bus-theme`).  
+**Nie** migruj na `next-themes` mimo że paczka może wisieć w zależnościach — źródłem prawdy jest obecny provider.
+
+- Tło dark: `#111821` (nie czysta czerń `#000` jako dominanta)
+- Karty / popovery: `#19222d`, stonowane kontrasty
+- Przy każdej zmianie UI sprawdź **light + dark**
+- `color-scheme` i `themeColor` w layout/manifest muszą pozostać spójne
+
+## Motion
+
+- Istnieje lekkie `page-enter` + `prefers-reduced-motion`
+- Nie dodawaj zbędnych animacji / glow / multi-shadow

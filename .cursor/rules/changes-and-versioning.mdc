@@ -1,0 +1,45 @@
+---
+description: Minimal change, zależności, versioning package.json, quality checklist
+alwaysApply: true
+---
+
+# Zmiany, zależności, wersjonowanie
+
+## Minimal change
+
+> Zmień najmniejszą możliwą liczbę plików potrzebnych do poprawnego rozwiązania problemu.
+
+Nie rób przy okazji: masowego refaktoru, migracji bibliotek, rename całego drzewa, formatowania repo, aktualizacji zależności „bo wypada”.
+
+Jeżeli szerszy refaktor jest konieczny — najpierw uzasadnij dlaczego.
+
+## Zależności
+
+Przed `npm install` nowej paczki:
+
+1. Czy da się to istniejącymi (`lib`, shadcn, Lucide, Upstash, …)?
+2. Czy jest konkretna wartość, nie tylko popularność?
+3. Nie dodawaj kolejnego UI kitu / ikon / state managera bez potrzeby
+
+`next-themes` nie jest używany w `src/` — theme to własny provider; nie buduj na nieużywanej paczce.
+
+## Versioning
+
+- Wersja: `package.json` → `APP_VERSION` / stopka
+- Podbij semver przy **user-facing** zmianach (README: większe zmiany widoczne dla użytkownika)
+- **Nie** podbijaj dla: refaktoru wewnętrznego, testów, komentarzy, czysto technicznych poprawek (chyba że konwencja zadania mówi inaczej)
+
+## Jakość kodu
+
+Preferuj: prosty, lokalny, typowany, testowalny kod.
+
+Unikaj: magic numbers/strings (wyciągnij stałe jak w `match-window`), głębokich ternary, zbędnego `useEffect` / `useMemo` / `useCallback`, globalnego state, client-fetch bez powodu.
+
+## Checklist przed większą zmianą
+
+1. Istniejąca implementacja / abstrakcja?
+2. Przepływ danych zrozumiany?
+3. Mobile + dark mode + a11y?
+4. Print (jeśli rozkład / lekcje)?
+5. Testy / lint / build?
+6. Czy nie powstał równoległy system?

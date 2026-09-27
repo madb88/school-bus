@@ -1,0 +1,47 @@
+---
+description: API routes, server actions, sekrety, rate limiting, walidacja wejścia
+globs:
+  - src/app/api/**/*.ts
+  - src/app/actions/**/*.ts
+  - src/lib/feedback/**/*
+  - src/lib/settings-transfer/**/*
+  - src/lib/push/**/*
+alwaysApply: false
+---
+
+# API i bezpieczeństwo
+
+## Sekrety
+
+- Tylko po stronie serwera: `RESEND_*`, `TURNSTILE_SECRET_KEY`, `SETTINGS_TRANSFER_SECRET`, `VAPID_PRIVATE_KEY`, `QSTASH_*`, Upstash tokeny
+- `NEXT_PUBLIC_*` wyłącznie dla rzeczy naprawdę publicznych (Turnstile site key, VAPID **public**, site URL)
+- Nigdy nie commitować `.env.local`; nowe zmienne → `.env.example` + krótki opis
+- Nie ujawniać `FEEDBACK_TO_EMAIL` ani sekretów w HTML / odpowiedziach API
+
+## Istniejące endpointy / actions
+
+| Ścieżka | Rola |
+| --- | --- |
+| `actions/feedback` | Resend + Turnstile + honeypot + rate limit |
+| `api/settings-transfer` | create / peek / redeem QR |
+| `api/mzk-departures` | odjazdy z snapshotu MZK |
+| `api/push/subscribe\|plan\|kinds\|test\|dispatch` | Web Push + QStash |
+
+Rozszerzaj te ścieżki zamiast mnożyć równoległe API.
+
+## Walidacja i błędy
+
+- Nie ufaj body / query / FormData — normalizuj i waliduj (wzór: feedback, settings-transfer, push subscribe)
+- Odpowiedzi błędów: krótkie komunikaty po polsku dla użytkownika; **bez** stack trace / szczegółów Redis / ścieżek plików
+- Rate limiting: użyj istniejących helperów (`lib/feedback/rate-limit`, `lib/settings-transfer/rate-limit`); przy 429 zwracaj `Retry-After` gdy już tak robimy
+- Transfer: wymagaj Redis **i** `SETTINGS_TRANSFER_SECRET`; peeki nie konsumują kodu
+
+## Przed nową zmienną środowiskową
+
+1. Czy naprawdę potrzebna?
+2. Dodać do `.env.example` z komentarzem
+3. Udokumentować w README tylko jeśli user-facing / setup
+
+## QStash / dispatch
+
+`POST /api/push/dispatch` weryfikowany signing keys QStash — nie osłabiaj weryfikacji i nie eksponuj endpointu bez auth.

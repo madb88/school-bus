@@ -1,0 +1,63 @@
+---
+description: Autobus szkolny — cel aplikacji, domena, ścieżki i ograniczenia projektu
+alwaysApply: true
+---
+
+# Autobus szkolny — przegląd projektu
+
+Aplikacja webowa (PWA) dla rodziców i dzieci: szybkie sprawdzenie **najbliższego autobusu szkolnego**, dopasowanie do planu lekcji, odwozu, kursów MZK oraz wydruk planu dojazdów. Język UI: **polski**. Bez kont użytkownika.
+
+## Stack (aktualny — `package.json`)
+
+- Next.js **16.3.x** (App Router), React **19**, TypeScript (strict)
+- Tailwind CSS **v4**, shadcn/ui (`base-nova` + `@base-ui/react`), Lucide
+- Vitest, Upstash Redis / Ratelimit / QStash, Resend, Cloudflare Turnstile, `web-push`
+- **Brak** Zod, Zustand, React Hook Form — nie zakładaj ich istnienia
+
+## Główne ścieżki użytkownika
+
+| Ścieżka | Rola |
+| --- | --- |
+| `/` | Rozkład dowozów (filtry, tryb szkolny / szkolny+MZK, print) |
+| `/lekcje` | Plan lekcji + transfer QR + print |
+| `/mzk` | Trasa MZK (wsiadanie / wysiadanie) |
+| `/przywroc` | Przywracanie ustawień z kodu QR |
+| `/instalacja` | Instalacja PWA (+ opcjonalnie push UI) |
+| `/nowosci`, `/o-aplikacji` | Informacje |
+| `/polityka-prywatnosci`, `/regulamin` | Prawne |
+
+Nawigacja: `NAV_ITEMS` w `src/components/site-nav.tsx`. Layout stron: `PageShell`.
+
+## Model danych (domena)
+
+- **Rozkład szkolny** (`Schedule`): pickupy, odwozy po dacie / weekday — snapshot `data/dowozy-schedule.json` + opcjonalny override `data/dowozy-overrides.json`
+- **MZK** (`MzkSchedule`): przystanki i kursy z GTFS — `data/mzk-schedule.json`
+- **Plan lekcji** (`ChildLessonPlan`): miejsce + godziny Pn–Pt — tylko localStorage (opcjonalnie Redis przy transferze / push)
+- **Trasa MZK** (`MzkRoutePreference`), **okno dopasowania** (minuty) — localStorage
+
+## Źródła danych
+
+1. Scraping strony szkoły → `npm run scrape:dowozy`
+2. GTFS MZK → `npm run fetch:mzk`
+3. GitHub Actions codziennie ~06:00 Europe/Warsaw (fail-fast na pusty snapshot)
+4. Tymczasowe korekty godzin: **tylko** `dowozy-overrides.json`, nigdy ręcznie scrapowanego snapshotu
+
+## Integracje zewnętrzne
+
+- Resend + Turnstile — feedback (server action)
+- Upstash Redis — rate limit, transfer QR (TTL 15 min, AES-GCM), subskrypcje push
+- QStash — cron `POST /api/push/dispatch` (Pn–Pt)
+- Vercel Analytics / Speed Insights
+
+## Ograniczenia
+
+- Dane użytkownika domyślnie **lokalne**; serwer tylko przy feedbacku, QR transferze lub push
+- Mobile-first, szybki odczyt najbliższego kursu — nie buduj „dashboardu”
+- Wersja w `package.json` → stopka (`APP_VERSION`)
+
+## Zasada przed każdą większą zmianą
+
+1. Znajdź istniejącą implementację / abstrakcję w `src/lib/*` lub `src/components/*`
+2. Zrozum przepływ danych (snapshot → lib → page/API → localStorage)
+3. Sprawdź mobile, dark mode, a11y; print jeśli dotyczy rozkładu/lekcji
+4. Dopiero wtedy implementuj — **nie twórz równoległego systemu**

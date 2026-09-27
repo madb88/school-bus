@@ -1,0 +1,40 @@
+---
+description: Next.js 16 App Router — Server/Client Components i aktualne API
+globs:
+  - src/app/**/*.{ts,tsx}
+  - src/components/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Next.js 16 (App Router)
+
+Ten projekt używa **Next.js 16** + App Router. Nie stosuj wzorców Pages Router ani przestarzałych API z tutoriali Next 13/14/15.
+
+## Dokumentacja lokalna
+
+Przed użyciem API, którego zachowanie może różnić się między wersjami, sprawdź lokalne docs:
+
+`node_modules/next/dist/docs/`
+
+`AGENTS.md` / `CLAUDE.md` tylko przypominają o tym — szczegóły domenowe są w tych rules.
+
+## Server vs Client
+
+- **Domyślnie**: Server Components (brak `"use client"`)
+- `"use client"` tylko gdy potrzeba: state, efekty, eventy, browser APIs (`localStorage`, SW, media query)
+- Dane rozkładu ładuj po stronie serwera (`loadScheduleSnapshot`, `loadMzkScheduleMeta`) i przekazuj propsami do client boardów
+- Server Actions: `src/app/actions/` (np. feedback) — `"use server"`
+- Route Handlers: `src/app/api/**/route.ts` z `export const runtime = "nodejs"` gdy używasz Node crypto / Redis
+
+## Konwencje App Router w tym repo
+
+- `searchParams` / `params` to **Promise** — `await` w page (jak w `src/app/page.tsx`)
+- Metadata: `buildPageMetadata` / `src/lib/site-metadata.ts`; viewport w `layout.tsx`
+- Snapshoty JSON muszą być w `outputFileTracingIncludes` (`next.config.ts`) — nie usuwaj bez powodu
+- Header dla `/sw.js` (no-cache + `Service-Worker-Allowed`) jest wymagany przez PWA
+
+## Dopasowanie do istniejącego kodu
+
+> Do istniejącego kodu dopasowuj się stylistycznie i architektonicznie. Nie refaktoryzuj całej aplikacji tylko dlatego, że nowszy wzorzec jest teoretycznie możliwy.
+
+Nie migruj na Pages Router, nie wprowadzaj równoległego routingu, nie zamieniaj Server Actions na API (i odwrotnie) bez konkretnej potrzeby.

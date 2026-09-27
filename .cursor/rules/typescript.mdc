@@ -1,0 +1,43 @@
+---
+description: TypeScript — silne typowanie domenowe, bezpieczne parsowanie, bez any
+globs:
+  - "**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# TypeScript
+
+`tsconfig`: `strict: true`, alias `@/*` → `./src/*`.
+
+## Preferuj
+
+- Jawne typy domenowe w `src/lib/**/types.ts` (np. `Schedule`, `ChildLessonPlan`, `MzkRoutePreference`)
+- Współdzielone typy zamiast duplikowania struktur między UI a API
+- Inference tam, gdzie typ jest oczywisty z kontekstu
+- `unknown` + wąskie guardy przy danych z JSON / localStorage / request body
+- Istniejące parsery: `parseLessonPlan`, `parseMzkRoutePreference`, `parseSettingsTransferPayload`, `parseSubscription`, `validateSchedule` itd.
+
+## Zakazane (bez bardzo konkretnego uzasadnienia w komentarzu)
+
+```ts
+const data: any
+value as any
+```
+
+## Parsowanie zewnętrznych danych
+
+```ts
+// ❌ BAD — ufanie kształtowi
+const plan = JSON.parse(raw) as ChildLessonPlan
+
+// ✅ GOOD — istniejący parser / walidacja
+const plan = parseLessonPlan(JSON.parse(raw))
+```
+
+Przy nowym kształcie danych z API/localStorage: napisz wąskie funkcje `isX` / `parseX` obok typów domenowych (wzór: `src/lib/child-schedule/storage.ts`, `src/lib/settings-transfer/payload.ts`).
+
+## Importy
+
+- Preferuj `@/` dla kodu aplikacji
+- `cn` importuj jak w istniejącym kodzie: `import { cn } from "cn"` (re-export w `@/lib/utils` dla shadcn)
+- Nie dodawaj Zod „bo tak się robi” — walidacja jest ręczna i lokalna

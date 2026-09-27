@@ -1,0 +1,49 @@
+---
+description: UX mobile-first, a11y, responsywność, print CSS planu dojazdów
+globs:
+  - src/components/**/*.{ts,tsx}
+  - src/app/**/*.{ts,tsx}
+  - src/app/globals.css
+alwaysApply: false
+---
+
+# UX, dostępność, mobile, print
+
+## Charakter produktu
+
+Narzędzie do **szybkiego** odczytu: najbliższy autobus, dowóz, odwóz, plan lekcji, MZK.
+
+- Najważniejsza informacja wizualnie na wierzchu (godzina / kierunek)
+- Prosty UI, mobile-first, bez dekoracyjnego przeładowania
+- Loading / empty / error spójne z istniejącymi (np. brak snapshotu na `/`, weekend placeholder)
+- Nie projektuj UI od zera, jeśli jest `ScheduleBoard`, formularz lekcji, combobox miejsca/przystanku
+
+## Touch i responsywność
+
+Sprawdzaj: mały telefon, typowy telefon, tablet, desktop.
+
+- Adekwatny rozmiar celów dotykowych (wzór: FAB, `MobileNav`, filtry)
+- `input[type="time"]`, długie nazwy miejsc, karty — bez poziomego overflow
+- Sticky / fixed: uwzględnij `env(safe-area-inset-*)` (jak FeedbackFab)
+- Preview w DevTools ≠ gwarancja iOS / Mobile Safari / PWA standalone
+
+## Accessibility
+
+- Semantyczny HTML: `button` zamiast klikalnego `div`, `nav` / `main` / nagłówki
+- `label` powiązane z inputami; focus-visible jak w Button shadcn
+- Keyboard: selecty, sheet/dialog, OTP, filtry dnia
+- `aria-label` / `aria-current` tylko gdy potrzebne (wzór: `SiteNav`, ikony `aria-hidden`)
+- Nie polegaj wyłącznie na kolorze (bus vs MZK mają też etykiety / strukturę)
+
+## Print
+
+Rozkład i plan lekcji mają tryby druku (`print:` utility + `@media print` w `globals.css`, `data-print-mode` na `body`).
+
+Przy zmianach planu / boardu sprawdź:
+
+- zwykły wydruk rozkładu
+- kompaktowy / school / school-mzk (lekcje)
+- `print:hidden` na chrome UI (nav, FAB, sticky filtry, toaster)
+- marginesy `@page`, `break-inside: avoid`, czytelność na papierze (force light)
+
+Nowy element UI **nie może** psuć istniejącego wydruku.

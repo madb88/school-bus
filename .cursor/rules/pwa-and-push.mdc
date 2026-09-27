@@ -1,0 +1,53 @@
+---
+description: PWA, service worker, Web Push, VAPID, QStash — bez równoległego mechanizmu
+globs:
+  - public/sw.js
+  - src/components/pwa-register.tsx
+  - src/components/install-*.tsx
+  - src/app/manifest.ts
+  - src/app/instalacja/**/*
+  - src/app/api/push/**/*
+  - src/lib/push/**/*
+  - next.config.ts
+alwaysApply: false
+---
+
+# PWA i Web Push
+
+## Istniejąca implementacja
+
+- Manifest: `src/app/manifest.ts` (standalone, ikony w `public/icons/`)
+- Rejestracja SW: `PwaRegister` → `/sw.js`
+- SW (`public/sw.js`): **tylko** `push` + `notificationclick`
+- Instalacja / guide: `/instalacja`, `InstallGuide`, `InstallNotifications`
+- Feature flag UI: `PUSH_NOTIFICATIONS_UI_ENABLED === "true"` (`isPushNotificationsUiEnabled`)
+
+## Krytyczne ograniczenie SW
+
+```text
+Nie dodawaj fetch listenera ani Cache API do sw.js.
+Dane rozkładu muszą pozostać „live” (bez stale cache aplikacji).
+```
+
+Nagłówki no-cache dla `/sw.js` w `next.config.ts` zostaw.
+
+## Push flow
+
+1. Browser permission + `PushManager.subscribe` (VAPID public)
+2. `POST /api/push/subscribe` → Redis (`school-bus:push:*`)
+3. Sync planu / kinds: `api/push/plan`, `api/push/kinds`
+4. QStash co 5 min (Pn–Pt) → `api/push/dispatch` → `web-push`
+5. Fingerprint rozkładu wykrywa zmiany godzin
+
+Rozszerzaj `src/lib/push/*` — nie buduj drugiego magazynu subskrypcji ani drugiego SW.
+
+## Bezpieczeństwo i iOS
+
+- `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` tylko serwer
+- Waliduj subscription (`parseSubscription`: HTTPS endpoint + keys)
+- iOS: push wymaga dodania do ekranu głównego — UI guide już to tłumaczy; nie obiecuj push w zwykłej karcie Safari
+- Test endpoint (`api/push/test`) nie powinien stać się publicznym spamem — zachowaj istniejące ograniczenia
+
+## Gdy Redis / VAPID brak
+
+Subscribe i dispatch degradują się gracefully (503 / no-op) — nie udawaj sukcesu.

@@ -1,0 +1,35 @@
+---
+description: Vitest — testy domenowe, zachowanie, lint/test/build przed większą zmianą
+globs:
+  - "**/*.{test,spec}.{ts,tsx}"
+  - src/lib/**/*.ts
+alwaysApply: false
+---
+
+# Testy (Vitest)
+
+- Runner: `vitest` (`npm test` = `vitest run`, watch: `npm run test:watch`)
+- Brak osobnego `vitest.config` — domyślne discovery `*.test.ts` obok kodu w `src/lib/**`
+- Import: `import { describe, expect, it, vi } from "vitest"`
+
+## Co testować
+
+- Logika domenowa niezależnie od UI: filtry, match, parse, validate, crypto, payload transfer, push due-trips / fingerprint / dispatch
+- Nowe istotne funkcje w `src/lib` → dodaj / zaktualizuj test
+- Przy zmianie istniejącego zachowania **najpierw** przeczytaj sąsiednie `*.test.ts`
+
+## Czego unikać
+
+- Testowania szczegółów implementacji UI / klas CSS, jeśli da się sprawdzić zachowanie czystej funkcji
+- Usuwania testów „żeby build przeszedł” — napraw kod lub zaktualizuj asercje świadomie
+- Snapshotów UI bez potrzeby
+
+## Przed zakończeniem większej zmiany
+
+```bash
+npm run lint
+npm test
+npm run build
+```
+
+CI (`.github/workflows/ci.yml`) uruchamia dokładnie ten zestaw na PR i `main`.

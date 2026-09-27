@@ -1,0 +1,61 @@
+---
+description: localStorage, Redis, transfer QR, push store — co lokalne, co serwerowe
+globs:
+  - src/lib/child-schedule/**/*
+  - src/lib/mzk/**/*
+  - src/lib/settings-transfer/**/*
+  - src/lib/push/**/*
+  - src/lib/onboarding-hints.ts
+  - src/components/theme-init.ts
+  - src/app/api/settings-transfer/**/*
+  - src/app/api/push/**/*
+alwaysApply: false
+---
+
+# Dane użytkownika i storage
+
+## Zasada prywatności
+
+Domyślnie wszystko zostaje na urządzeniu. **Nie wysyłaj** planu / trasy / preferencji na serwer bez wyraźnej potrzeby funkcji (QR transfer albo Web Push).
+
+Nie loguj treści planów, tokenów transferu, kluczy push ani sekretów.
+
+## localStorage (klucze)
+
+| Klucz | Zawartość |
+| --- | --- |
+| `school-bus.child-lesson-plan.v1` | plan lekcji |
+| `school-bus.mzk-route.v1` | trasa MZK |
+| `school-bus.preferred-place.v1` | wybrane miejsce |
+| `school-bus.lesson-match-window.v1` | okno dopasowania (min) |
+| `school-bus.push-kinds.v1` | rodzaje powiadomień |
+| `school-bus.hint-*.dismissed.v1` | onboarding hints |
+| `school-bus-theme` | light/dark |
+
+Wzorce CRUD: `load*` / `save*` / `parse*` + custom `Event` + `storage` listener (patrz `storage.ts`, `route-storage.ts`). Nowe ustawienia lokalne: ten sam wzorzec i wersjonowany klucz `.v1`.
+
+## Redis (Upstash) — kiedy
+
+Wymaga `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`.
+
+| Prefiks / użycie | TTL / uwagi |
+| --- | --- |
+| `school-bus:transfer:` | TTL **15 min** (`SETTINGS_TRANSFER_TTL_SEC`); payload **AES-256-GCM** (`SETTINGS_TRANSFER_SECRET`) |
+| `school-bus:push:` + index | subskrypcje, plan, fingerprint, sent-on |
+| Rate limity feedback / transfer | `@upstash/ratelimit` (fallback in-memory dla feedbacku) |
+
+Bez Redis: feedback może działać (limit pamięciowy); **transfer i push subscribe → 503**.
+
+## Transfer QR
+
+1. Create (`POST /api/settings-transfer`) → kod w Redis (encrypted)
+2. Peek (`GET`) → podgląd **bez** zużycia kodu
+3. Redeem → `take` (getdel) + `applySettingsTransferPayload` → localStorage
+
+Payload: `lessonPlan` + `mzkRoute` + `matchWindowMin` (`SettingsTransferPayload`). Nie rozszerzaj schema bez bumpa `SETTINGS_TRANSFER_SCHEMA_VERSION` i testów.
+
+## Czego nie wkładać do localStorage
+
+- sekrety, tokeny API, VAPID private, e-maile admina
+- dane wrażliwe „na zapas”
+- pełne snapshoty rozkładów (są w `data/` / serwerze)
