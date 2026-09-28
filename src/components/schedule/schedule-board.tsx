@@ -87,7 +87,6 @@ import {
   filtersHref,
   parseFilterParams,
   serializeFilterParams,
-  type ParsedFilterParams,
   type ScheduleSourceMode,
 } from "@/lib/dowozy/filter-url";
 import { findNextTrip, stopDomId } from "@/lib/dowozy/next-trip";
@@ -121,7 +120,6 @@ type ScheduleBoardProps = {
   schedule: Schedule;
   /** True when MZK snapshot exists on the server (full feed stays off the client). */
   mzkAvailable?: boolean;
-  initialFilters: ParsedFilterParams;
 };
 
 const filterToggleActiveClass =
@@ -169,7 +167,6 @@ function FilterTimeDisplay({
 export function ScheduleBoard({
   schedule,
   mzkAvailable = false,
-  initialFilters,
 }: ScheduleBoardProps) {
   const places = collectPlaces(schedule);
   const lessonPlan = useLessonPlan();
@@ -182,27 +179,29 @@ export function ScheduleBoard({
   const router = useRouter();
   const pathname = usePathname();
 
-  const urlPlaceValid =
-    typeof initialFilters.place === "string" &&
-    places.includes(initialFilters.place)
-      ? initialFilters.place
-      : initialFilters.place === null
-        ? null
-        : undefined;
+  // Wait for localStorage prefs (plan / miejsce / MZK) before painting trips —
+  // otherwise SSR empty defaults flash into filtered client content.
+  // useSyncExternalStore avoids setState-in-effect (server=false, client=true).
+  const prefsReady = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
-  // `undefined` override = follow local defaults from synced stores / URL absence.
+  // URL filters are applied on the client so `/` stays statically renderable
+  // (no await searchParams). Keep the spinner up for one extra frame while
+  // React commits the URL-derived state (adjust-state-during-render pattern).
+  const [urlApplied, setUrlApplied] = useState(false);
   const [matchLessonPlanOverride, setMatchLessonPlan] = useState<
     boolean | undefined
-  >(initialFilters.matchLessonPlan);
+  >(undefined);
   const [placeOverride, setPlaceOverride] = useState<string | null | undefined>(
-    urlPlaceValid,
+    undefined,
   );
-  const [direction, setDirection] = useState<ScheduleDirection>(
-    initialFilters.direction ?? "all",
-  );
+  const [direction, setDirection] = useState<ScheduleDirection>("all");
   const [sourceModeOverride, setSourceMode] = useState<
     ScheduleSourceMode | undefined
-  >(initialFilters.sourceMode);
+  >(undefined);
   const [showAllMzkConnections, setShowAllMzkConnections] = useState(false);
   const storedWindowRaw = useSyncExternalStore(
     subscribeLessonMatchWindow,
@@ -213,24 +212,37 @@ export function ScheduleBoard({
   const [windowDraft, setWindowDraft] = useState<string | null>(null);
   const [dateFilterOverride, setDateFilter] = useState<
     ScheduleDateFilter | undefined
-  >(initialFilters.dateFilter);
+  >(undefined);
   const [now, setNow] = useState(() => new Date());
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [extraOptionsOpen, setExtraOptionsOpen] = useState(false);
   const [copiedFlash, setCopiedFlash] = useState(false);
   const [filtersStuck, setFiltersStuck] = useState(false);
   const filtersSentinelRef = useRef<HTMLDivElement>(null);
-  // Wait for localStorage prefs (plan / miejsce / MZK) before painting trips —
-  // otherwise SSR empty defaults flash into filtered client content.
-  // useSyncExternalStore avoids setState-in-effect (server=false, client=true).
-  const prefsReady = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
   const planHintDismissed = useHintDismissed("plan");
   const mzkHintDismissed = useHintDismissed("mzk");
   const skipUrlWrite = useRef(false);
+
+  if (prefsReady && !urlApplied) {
+    const parsed = parseFilterParams(
+      new URLSearchParams(window.location.search),
+    );
+    const urlPlaceValid =
+      typeof parsed.place === "string" && places.includes(parsed.place)
+        ? parsed.place
+        : parsed.place === null
+          ? null
+          : undefined;
+
+    setUrlApplied(true);
+    setMatchLessonPlan(parsed.matchLessonPlan);
+    setPlaceOverride(urlPlaceValid);
+    setDirection(parsed.direction ?? "all");
+    setSourceMode(parsed.sourceMode);
+    setDateFilter(parsed.dateFilter);
+  }
+
+  const filtersReady = prefsReady && urlApplied;
 
   const matchLessonPlan = matchLessonPlanOverride ?? planReady;
   const sourceMode =
@@ -1302,7 +1314,7 @@ export function ScheduleBoard({
         </div>
       ) : null}
 
-      {!prefsReady ? (
+      {!filtersReady ? (
         <div
           className="flex min-h-[14rem] flex-col items-center justify-center gap-2.5 print:hidden"
           role="status"

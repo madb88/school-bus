@@ -2,7 +2,6 @@ import { PageShell } from "@/components/page-shell";
 import { ScheduleBoard } from "@/components/schedule-board";
 import { ScheduleStatusBanner } from "@/components/schedule-status-banner";
 import { SiteHeader } from "@/components/site-header";
-import { parseFilterParams } from "@/lib/dowozy/filter-url";
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { overrideFreshnessInfo } from "@/lib/dowozy/override-freshness";
 import { DOWOZY_SOURCE_URL } from "@/lib/dowozy/types";
@@ -23,18 +22,12 @@ export const metadata = buildPageMetadata({
   path: "/",
 });
 
-type HomeProps = {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-};
-
-export default async function Home({ searchParams }: HomeProps) {
-  const params = await searchParams;
+export default async function Home() {
   const [loaded, mzkMeta] = await Promise.all([
     loadScheduleSnapshot(),
     loadMzkScheduleMeta(),
   ]);
   const schedule = loaded?.schedule ?? null;
-  const initialFilters = parseFilterParams(params);
   const freshness = [
     schedule ? schoolScheduleFreshness(schedule.fetchedAt) : null,
     loaded ? overrideFreshnessInfo(loaded) : null,
@@ -56,7 +49,6 @@ export default async function Home({ searchParams }: HomeProps) {
             <ScheduleBoard
               schedule={schedule}
               mzkAvailable={Boolean(mzkMeta)}
-              initialFilters={initialFilters}
             />
           </>
         ) : (

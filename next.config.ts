@@ -21,6 +21,7 @@ const nextConfig: NextConfig = {
       "./data/dowozy-schedule.json",
       "./data/dowozy-overrides.json",
       "./data/mzk-schedule.json",
+      "./data/mzk-schedule-meta.json",
     ],
     "/api/mzk-departures": ["./data/mzk-schedule.json"],
   },

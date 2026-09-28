@@ -45,3 +45,16 @@ export const MZK_DEVELOPER_PAGE_URL =
 export const MZK_ATTRIBUTION = "MZK Zielona Góra" as const;
 
 export const MZK_SNAPSHOT_PATH = "data/mzk-schedule.json" as const;
+
+/** Lightweight sidecar for footer / home — avoids parsing the full GTFS snapshot. */
+export const MZK_META_PATH = "data/mzk-schedule-meta.json" as const;
+
+export type MzkScheduleMetaFile = {
+  sourceUrl: string;
+  attribution: string;
+  fetchedAt: string;
+  feedStartDate: string;
+  feedEndDate: string;
+  stopCount: number;
+  tripCount: number;
+};

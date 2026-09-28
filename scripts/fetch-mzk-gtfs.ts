@@ -3,9 +3,11 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { buildMzkScheduleFromGtfs } from "../src/lib/mzk/parse-gtfs";
+import { mzkMetaFromSchedule } from "../src/lib/mzk/meta";
 import {
   MZK_ATTRIBUTION,
   MZK_DEVELOPER_PAGE_URL,
+  MZK_META_PATH,
   MZK_SNAPSHOT_PATH,
 } from "../src/lib/mzk/types";
 
@@ -68,8 +70,11 @@ async function main() {
     );
 
     const outPath = path.join(process.cwd(), MZK_SNAPSHOT_PATH);
+    const metaPath = path.join(process.cwd(), MZK_META_PATH);
     await mkdir(path.dirname(outPath), { recursive: true });
     await writeFile(outPath, `${JSON.stringify(schedule, null, 2)}\n`, "utf8");
+    const meta = mzkMetaFromSchedule(schedule);
+    await writeFile(metaPath, `${JSON.stringify(meta, null, 2)}\n`, "utf8");
 
     const departureCount = schedule.trips.reduce(
       (sum, trip) => sum + trip.stops.length,
@@ -78,6 +83,7 @@ async function main() {
     console.log(
       `Wrote ${MZK_SNAPSHOT_PATH} (${schedule.stops.length} stops, ${schedule.trips.length} trips, ${departureCount} stop-times)`,
     );
+    console.log(`Wrote ${MZK_META_PATH}`);
   } finally {
     await rm(workDir, { recursive: true, force: true });
   }
