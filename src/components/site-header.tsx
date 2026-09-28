@@ -14,18 +14,24 @@ export function SiteHeader({ current }: SiteHeaderProps) {
     <header className="flex items-center justify-between gap-4">
       <Link
         href="/"
-        className="group inline-flex min-w-0 items-center gap-2.5 no-underline sm:shrink-0"
+        className="inline-flex min-w-0 items-center gap-2 no-underline sm:gap-2.5 sm:shrink-0"
       >
         <Image
-          src="/icons/icon-192.png"
+          src="/icons/logo-bus-sm.png"
           alt=""
-          width={64}
-          height={64}
+          width={144}
+          height={96}
           priority
-          className="size-8 shrink-0 rounded-lg transition-transform duration-300 group-hover:-rotate-3 group-hover:scale-105"
+          className="h-8 w-auto shrink-0 sm:h-9"
         />
-        <span className="truncate font-display text-sm font-semibold tracking-tight text-asphalt sm:overflow-visible sm:whitespace-nowrap sm:text-base">
-          Dojazdy do szkoły
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span className="truncate font-display text-sm font-bold leading-tight tracking-tight sm:text-[0.95rem]">
+            <span className="text-asphalt">autobus</span>
+            <span className="text-bus">szkolny.pl</span>
+          </span>
+          <span className="truncate text-[0.6rem] font-medium leading-snug text-muted-foreground sm:text-[0.65rem]">
+            Dojazdy do szkoły
+          </span>
         </span>
       </Link>
 
