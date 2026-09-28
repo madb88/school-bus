@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  BookOpen,
   Bus,
   CalendarDays,
   Info,
@@ -16,7 +17,8 @@ export type NavId =
   | "mzk"
   | "nowosci"
   | "instalacja"
-  | "o-aplikacji";
+  | "o-aplikacji"
+  | "o-projekcie";
 
 export const NAV_ITEMS: ReadonlyArray<{
   id: NavId;
@@ -30,10 +32,11 @@ export const NAV_ITEMS: ReadonlyArray<{
   { id: "nowosci", href: "/nowosci", label: "Nowości", icon: Newspaper },
   { id: "instalacja", href: "/instalacja", label: "Aplikacja", icon: Smartphone },
   { id: "o-aplikacji", href: "/o-aplikacji", label: "Jak zacząć", icon: Info },
+  { id: "o-projekcie", href: "/o-projekcie", label: "O projekcie", icon: BookOpen },
 ];
 
 type SiteNavProps = {
-  current: NavId;
+  current?: NavId;
 };
 
 export function SiteNav({ current }: SiteNavProps) {
@@ -52,12 +55,13 @@ export function SiteNav({ current }: SiteNavProps) {
     >
       {NAV_ITEMS.map((item) => {
         const Icon = item.icon;
+        const active = current === item.id;
         return (
           <Link
             key={item.id}
             href={item.href}
-            className={linkClass(current === item.id)}
-            aria-current={current === item.id ? "page" : undefined}
+            className={linkClass(active)}
+            aria-current={active ? "page" : undefined}
           >
             <Icon aria-hidden className="size-4 shrink-0" />
             {item.label}

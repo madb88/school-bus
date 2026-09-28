@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/sheet";
 
 type MobileNavProps = {
-  current: NavId;
+  current?: NavId;
 };
 
 export function MobileNav({ current }: MobileNavProps) {

@@ -5,7 +5,8 @@ import { SiteNav, type NavId } from "@/components/site-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 type SiteHeaderProps = {
-  current: NavId;
+  /** When omitted, no primary nav item is highlighted (e.g. /o-projekcie). */
+  current?: NavId;
 };
 
 export function SiteHeader({ current }: SiteHeaderProps) {
