@@ -18,14 +18,24 @@ export function getSiteUrl(): string {
   return FALLBACK_SITE_URL;
 }
 
-export const siteName = "Dojazdy do szkoły";
+/** Official brand name (domain mark). */
+export const siteName = "autobusszkolny.pl";
+
+/** Short name for PWA / home-screen labels. */
+export const siteShortName = "autobusszkolny";
+
+/** Brand tagline / product description — not a brand name substitute. */
+export const siteTagline = "Dojazdy do szkoły";
+
+/** Default browser / OG title for the site root. */
+export const rootTitle = `${siteName} – ${siteTagline}`;
 
 /** Visible scope note for the school timetable (home + footer). */
 export const schoolScopeLabel =
   "Szkoła Olimpijczyków · Drzonków";
 
 export const rootDescription =
-  "Rozkład dowozów szkolnych i kursów MZK do Szkoły Olimpijczyków. Filtruj po dniu, miejscu i planie lekcji.";
+  "Rozkłady autobusów szkolnych i komunikacji miejskiej oraz planowanie dojazdów dziecka do szkoły.";
 
 export function buildPageMetadata({
   title,

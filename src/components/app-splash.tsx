@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { siteName } from "@/lib/site-metadata";
+import { siteShortName } from "@/lib/site-metadata";
 
 const FADE_MS = 280;
 /** Keep splash visible at least this long so it does not flash on fast loads. */
@@ -98,7 +98,7 @@ export function AppSplash() {
           className="app-splash__logo"
           decoding="async"
         />
-        <p className="app-splash__title">{siteName}</p>
+        <p className="app-splash__title">{siteShortName}</p>
         <div className="app-splash__spinner" aria-hidden />
         <p className="app-splash__caption">Ładowanie…</p>
       </div>

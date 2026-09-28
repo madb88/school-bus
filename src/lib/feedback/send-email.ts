@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { siteName } from "@/lib/site-metadata";
 
 type SendFeedbackEmailInput = {
   message: string;
@@ -22,7 +23,7 @@ export async function sendFeedbackEmail({
 
   const resend = new Resend(apiKey);
   const text = [
-    "Nowa opinia z aplikacji Dojazdy do szkoły",
+    `Nowa opinia z aplikacji ${siteName}`,
     "",
     message,
     "",
@@ -32,7 +33,7 @@ export async function sendFeedbackEmail({
   const { error } = await resend.emails.send({
     from,
     to: [to],
-    subject: "Opinia — Dojazdy do szkoły",
+    subject: `Opinia — ${siteName}`,
     text,
     ...(replyTo ? { replyTo } : {}),
   });

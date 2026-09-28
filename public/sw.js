@@ -3,7 +3,7 @@
 
 self.addEventListener("push", (event) => {
   const fallback = {
-    title: "Dojazdy do szkoły",
+    title: "autobusszkolny.pl",
     body: "",
     url: "/",
   };

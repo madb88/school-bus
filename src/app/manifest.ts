@@ -1,11 +1,15 @@
 import type { MetadataRoute } from "next";
-import { rootDescription, siteName } from "@/lib/site-metadata";
+import {
+  siteName,
+  siteShortName,
+  siteTagline,
+} from "@/lib/site-metadata";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: siteName,
-    short_name: "Dojazdy",
-    description: rootDescription,
+    short_name: siteShortName,
+    description: siteTagline,
     start_url: "/",
     scope: "/",
     display: "standalone",

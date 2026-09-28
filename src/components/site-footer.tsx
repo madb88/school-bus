@@ -4,7 +4,7 @@ import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { DOWOZY_SOURCE_URL } from "@/lib/dowozy/types";
 import { loadMzkScheduleMeta } from "@/lib/mzk/load-schedule";
 import { MZK_DEVELOPER_PAGE_URL } from "@/lib/mzk/types";
-import { schoolScopeLabel } from "@/lib/site-metadata";
+import { schoolScopeLabel, siteName } from "@/lib/site-metadata";
 
 function formatFetchedAt(iso: string): string {
   try {
@@ -86,7 +86,7 @@ export async function SiteFooter() {
         )}
 
         <p className="text-sm text-muted-foreground">
-          © {year} Dojazdy do szkoły
+          © {year} {siteName}
           <span aria-hidden className="mx-1.5 text-border">
             ·
           </span>

@@ -178,7 +178,7 @@ const steps: GuideStep[] = [
   {
     number: "5",
     icon: Sparkles,
-    title: "Korzystaj wygodniej",
+    title: "Przydatne funkcje",
     summary: "PWA, powiadomienia, udostępnianie i przenoszenie planu.",
     instructions: (
       <p className="text-sm leading-relaxed text-muted-foreground">

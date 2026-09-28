@@ -36,8 +36,8 @@ export const NEWS_ITEMS: readonly NewsItem[] = [
   {
     id: "pwa-home-screen",
     dateLabel: "25 września 2026",
-    title: "Autobus Szkolny teraz jako aplikacja!",
-    lead: "Od teraz możesz korzystać z Autobusu Szkolnego jeszcze wygodniej — prosto z ekranu telefonu.",
+    title: "autobusszkolny.pl teraz jako aplikacja!",
+    lead: "Od teraz możesz korzystać z autobusszkolny.pl jeszcze wygodniej — prosto z ekranu telefonu.",
     body: "Dodaj stronę do ekranu głównego, a zyskasz szybki dostęp do rozkładu dowozów i odwozów bez konieczności otwierania przeglądarki i wpisywania adresu strony.",
     pointsTitle: "Co się zmienia?",
     points: [
@@ -49,7 +49,7 @@ export const NEWS_ITEMS: readonly NewsItem[] = [
     afterTitle: "Jak zacząć?",
     after:
       "Otwórz autobusszkolny.pl na telefonie i wybierz opcję „Dodaj do ekranu głównego”.",
-    closing: "Autobus Szkolny — teraz zawsze pod ręką. 🚌",
+    closing: "autobusszkolny.pl — teraz zawsze pod ręką. 🚌",
     href: "/instalacja",
     cta: "Jak dodać aplikację",
   },

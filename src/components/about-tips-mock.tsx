@@ -9,7 +9,7 @@ const tips: ReadonlyArray<{
   {
     icon: Smartphone,
     title: "Aplikacja na telefonie",
-    body: "Dodaj Dojazdy do ekranu głównego i korzystaj jak z aplikacji.",
+    body: "Dodaj autobusszkolny do ekranu głównego i korzystaj jak z aplikacji.",
   },
   {
     icon: Bell,

@@ -22,8 +22,8 @@ const SECTIONS: Section[] = [
     id: "postanowienia-ogolne",
     title: "§1 Postanowienia ogólne",
     paragraphs: [
-      `Niniejszy Regulamin określa zasady świadczenia usług drogą elektroniczną za pośrednictwem serwisu internetowego AutobusSzkolny.pl (dalej: „Serwis”), prowadzonego pod domeną autobusszkolny.pl oraz powiązanymi adresami, przez Usługodawcę: ${PROVIDER_NAME}, e-mail: ${PROVIDER_EMAIL}.`,
-      "Serwis działa pod nazwą handlową „Dojazdy do szkoły”. Jest serwisem informacyjnym pomagającym rodzicom i uczniom korzystającym z dowozów do szkoły — w szczególności w zakresie przeglądania rozkładów i dopasowania kursów do planu lekcji.",
+      `Niniejszy Regulamin określa zasady świadczenia usług drogą elektroniczną za pośrednictwem serwisu internetowego autobusszkolny.pl (dalej: „Serwis”), prowadzonego pod domeną autobusszkolny.pl oraz powiązanymi adresami, przez Usługodawcę: ${PROVIDER_NAME}, e-mail: ${PROVIDER_EMAIL}.`,
+      "Serwis autobusszkolny.pl (Dojazdy do szkoły) jest serwisem informacyjnym pomagającym rodzicom i uczniom korzystającym z dowozów do szkoły — w szczególności w zakresie przeglądania rozkładów i dopasowania kursów do planu lekcji.",
       "Usługodawca nie jest przewoźnikiem, nie organizuje transportu szkolnego ani komunikacji miejskiej i nie prowadzi sprzedaży biletów. Serwis nie zastępuje oficjalnych informacji właściwego przewoźnika, szkoły ani organizatora transportu.",
       "Korzystanie z Serwisu oznacza zapoznanie się z treścią Regulaminu. Serwis nie wymaga rejestracji konta ani osobnego zatwierdzania Regulaminu przed przeglądaniem rozkładów.",
       "W sprawach przetwarzania danych osobowych zastosowanie ma Polityka prywatności dostępna pod adresem /polityka-prywatnosci.",
@@ -34,7 +34,7 @@ const SECTIONS: Section[] = [
     title: "§2 Definicje",
     paragraphs: ["Użyte w Regulaminie określenia oznaczają:"],
     bullets: [
-      "Serwis — aplikacja internetowa AutobusSzkolny.pl / „Dojazdy do szkoły”,",
+      "Serwis — aplikacja internetowa autobusszkolny.pl (Dojazdy do szkoły),",
       "Usługodawca — podmiot wskazany w §1,",
       "Użytkownik — osoba korzystająca z Serwisu,",
       "Usługa — funkcjonalność Serwisu opisana w §3, świadczona drogą elektroniczną,",

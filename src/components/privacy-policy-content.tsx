@@ -22,7 +22,7 @@ const SECTIONS: Section[] = [
     title: "1. Administrator danych",
     paragraphs: [
       // TODO(przed publikacją): potwierdź imię, nazwisko i e-mail administratora
-      `Administratorem danych osobowych przetwarzanych w związku z korzystaniem z aplikacji Dojazdy do szkoły (autobusszkolny.pl) jest ${ADMIN_NAME}.`,
+      `Administratorem danych osobowych przetwarzanych w związku z korzystaniem z aplikacji autobusszkolny.pl (Dojazdy do szkoły) jest ${ADMIN_NAME}.`,
       `Kontakt w sprawach prywatności: ${ADMIN_EMAIL}.`,
     ],
   },

@@ -7,13 +7,13 @@ import { buildPageMetadata } from "@/lib/site-metadata";
 export const metadata = buildPageMetadata({
   title: "Polityka prywatności",
   description:
-    "Jak Dojazdy do szkoły przetwarzają dane: plan lekcji na urządzeniu, opcjonalne powiadomienia, transfer ustawień, formularz opinii i statystyki.",
+    "Jak autobusszkolny.pl przetwarza dane: plan lekcji na urządzeniu, opcjonalne powiadomienia, transfer ustawień, formularz opinii i statystyki.",
   path: "/polityka-prywatnosci",
 });
 
 export default function PolitykaPrywatnosciPage() {
   return (
-    <PageShell header={<SiteHeader current="o-aplikacji" />}>
+    <PageShell header={<SiteHeader />}>
       <header className="animate-rise-delay mb-10 space-y-3">
         <PageEyebrow>Prywatność</PageEyebrow>
         <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">

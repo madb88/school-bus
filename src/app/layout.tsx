@@ -9,7 +9,9 @@ import { Toaster } from "@/components/ui/sonner";
 import {
   getSiteUrl,
   rootDescription,
+  rootTitle,
   siteName,
+  siteShortName,
 } from "@/lib/site-metadata";
 import "./globals.css";
 
@@ -26,14 +28,14 @@ const sans = Manrope({
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
   title: {
-    default: siteName,
+    default: rootTitle,
     template: `%s · ${siteName}`,
   },
   description: rootDescription,
-  applicationName: siteName,
+  applicationName: siteShortName,
   appleWebApp: {
     capable: true,
-    title: siteName,
+    title: siteShortName,
     statusBarStyle: "black-translucent",
   },
   icons: {
@@ -47,12 +49,12 @@ export const metadata: Metadata = {
     type: "website",
     locale: "pl_PL",
     siteName,
-    title: siteName,
+    title: rootTitle,
     description: rootDescription,
   },
   twitter: {
     card: "summary",
-    title: siteName,
+    title: rootTitle,
     description: rootDescription,
   },
   robots: {

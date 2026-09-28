@@ -112,7 +112,7 @@ import {
 import { useMzkOdDepartures } from "@/lib/mzk/use-mzk-od-departures";
 import { useMzkRoutePreference } from "@/lib/mzk/use-mzk-route";
 import { dismissHint } from "@/lib/onboarding-hints";
-import { schoolScopeLabel } from "@/lib/site-metadata";
+import { schoolScopeLabel, siteName } from "@/lib/site-metadata";
 import { useHintDismissed } from "@/lib/use-hint-dismissed";
 import { cn } from "cn";
 import { toast } from "sonner";
@@ -585,7 +585,7 @@ export function ScheduleBoard({
     if (typeof navigator.share === "function") {
       try {
         await navigator.share({
-          title: "Dojazdy do szkoły",
+          title: siteName,
           text: shareNote,
           url: absolute,
         });
@@ -988,7 +988,7 @@ export function ScheduleBoard({
     <div className="space-y-10">
       <header className="hidden print:block">
         <p className="text-xs tracking-wide text-muted-foreground uppercase">
-          Dojazdy do szkoły
+          {siteName}
         </p>
         <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-foreground">
           {schedule.title || "Rozkład dowozów"}

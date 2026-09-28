@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MobileNav } from "@/components/mobile-nav";
 import { SiteNav, type NavId } from "@/components/site-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { siteTagline } from "@/lib/site-metadata";
 
 type SiteHeaderProps = {
   /** When omitted, no primary nav item is highlighted (e.g. /o-projekcie). */
@@ -30,7 +31,7 @@ export function SiteHeader({ current }: SiteHeaderProps) {
             <span className="text-bus">szkolny.pl</span>
           </span>
           <span className="truncate text-[0.6rem] font-medium leading-snug text-muted-foreground sm:text-[0.65rem]">
-            Dojazdy do szkoły
+            {siteTagline}
           </span>
         </span>
       </Link>

@@ -1,6 +1,6 @@
-# Autobus szkolny
+# autobusszkolny.pl
 
-Aplikacja **Autobus szkolny** — śledzenie bezpiecznego dojazdu dzieci do szkoły (Next.js).
+Aplikacja **autobusszkolny.pl** — Dojazdy do szkoły (Next.js).
 
 ## Stack
 

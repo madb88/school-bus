@@ -128,7 +128,7 @@ export function AboutProject() {
       <header className="space-y-3 sm:space-y-4">
         <PageEyebrow>O projekcie</PageEyebrow>
         <h1 className="max-w-2xl font-display text-3xl font-bold tracking-tight text-asphalt sm:text-4xl">
-          Autobusszkolny.pl powstał z prostego pomysłu
+          autobusszkolny.pl powstał z prostego pomysłu
         </h1>
         <p className="max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
           Chciałem stworzyć jedno miejsce, w którym rodzice mogą szybko

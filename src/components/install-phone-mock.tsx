@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { siteShortName } from "@/lib/site-metadata";
 
 /** Decorative phone frame with a schedule screen, for the install page. */
 export function InstallPhoneMock() {
@@ -22,7 +23,7 @@ export function InstallPhoneMock() {
             />
             <div className="min-w-0">
               <p className="truncate font-display text-sm font-semibold tracking-tight text-asphalt">
-                Dojazdy do szkoły
+                {siteShortName}
               </p>
               <p className="text-[0.6rem] text-muted-foreground">Dziś · dowozy</p>
             </div>
