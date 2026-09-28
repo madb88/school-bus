@@ -11,7 +11,11 @@ import {
   mzkScheduleFreshness,
   schoolScheduleFreshness,
 } from "@/lib/schedule-freshness";
-import { buildPageMetadata, rootDescription } from "@/lib/site-metadata";
+import {
+  buildPageMetadata,
+  rootDescription,
+  schoolScopeLabel,
+} from "@/lib/site-metadata";
 
 export const metadata = buildPageMetadata({
   title: "Rozkład dowozów",
@@ -47,7 +51,7 @@ export default async function Home({ searchParams }: HomeProps) {
             <h1 className="sr-only">Rozkład dowozów</h1>
             <ScheduleStatusBanner
               items={freshness}
-              className="mb-6 print:hidden"
+              className="mb-4 print:hidden md:mb-6"
             />
             <ScheduleBoard
               schedule={schedule}
@@ -61,6 +65,9 @@ export default async function Home({ searchParams }: HomeProps) {
               <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-4xl">
                 Rozkład dowozów
               </h1>
+              <p className="text-xs font-medium tracking-tight text-foreground/70">
+                {schoolScopeLabel}
+              </p>
               <p className="text-muted-foreground">
                 Rozkład szkolny jest chwilowo niedostępny. Spróbuj ponownie
                 później albo sprawdź źródło na stronie{" "}

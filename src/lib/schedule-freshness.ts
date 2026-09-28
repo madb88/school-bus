@@ -8,6 +8,10 @@ export type FreshnessInfo = {
   message: string;
   /** Optional longer explanation (tooltip / secondary line). */
   detail?: string;
+  /** Shorter title on small screens (falls back to `message`). */
+  messageCompact?: string;
+  /** Shorter detail on small screens (falls back to `detail`). */
+  detailCompact?: string;
 };
 
 /** Warn when the published GTFS feed ends within this many days. */

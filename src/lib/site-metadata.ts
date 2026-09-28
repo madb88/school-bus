@@ -20,6 +20,10 @@ export function getSiteUrl(): string {
 
 export const siteName = "Dojazdy do szkoły";
 
+/** Visible scope note for the school timetable (home + footer). */
+export const schoolScopeLabel =
+  "Szkoła Olimpijczyków · Drzonków";
+
 export const rootDescription =
   "Rozkład dowozów szkolnych i kursów MZK do Szkoły Olimpijczyków. Filtruj po dniu, miejscu i planie lekcji.";
 

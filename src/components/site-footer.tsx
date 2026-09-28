@@ -4,6 +4,7 @@ import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { DOWOZY_SOURCE_URL } from "@/lib/dowozy/types";
 import { loadMzkScheduleMeta } from "@/lib/mzk/load-schedule";
 import { MZK_DEVELOPER_PAGE_URL } from "@/lib/mzk/types";
+import { schoolScopeLabel } from "@/lib/site-metadata";
 
 function formatFetchedAt(iso: string): string {
   try {
@@ -41,22 +42,27 @@ export async function SiteFooter() {
         {(schoolSchedule || mzkMeta) && (
           <div className="space-y-1 text-xs text-muted-foreground sm:text-sm">
             {schoolSchedule ? (
-              <p>
-                {schoolSchedule.periodLabel
-                  ? `Obowiązuje: ${schoolSchedule.periodLabel} · `
-                  : null}
-                Rozkład szkolny zaktualizowano{" "}
-                {formatFetchedAt(schoolSchedule.fetchedAt)}
-                {" · "}
-                <a
-                  href={schoolSchedule.sourceUrl || DOWOZY_SOURCE_URL}
-                  className="underline underline-offset-2 hover:text-foreground"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  źródło: szkolaolimpijczykow.pl
-                </a>
-              </p>
+              <>
+                <p>
+                  Rozkład jazdy dla: {schoolScopeLabel}
+                </p>
+                <p>
+                  {schoolSchedule.periodLabel
+                    ? `Obowiązuje: ${schoolSchedule.periodLabel} · `
+                    : null}
+                  Rozkład szkolny zaktualizowano{" "}
+                  {formatFetchedAt(schoolSchedule.fetchedAt)}
+                  {" · "}
+                  <a
+                    href={schoolSchedule.sourceUrl || DOWOZY_SOURCE_URL}
+                    className="underline underline-offset-2 hover:text-foreground"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    źródło: szkolaolimpijczykow.pl
+                  </a>
+                </p>
+              </>
             ) : null}
             {mzkMeta ? (
               <p>

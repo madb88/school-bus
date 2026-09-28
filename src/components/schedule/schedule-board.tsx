@@ -112,6 +112,7 @@ import {
 import { useMzkOdDepartures } from "@/lib/mzk/use-mzk-od-departures";
 import { useMzkRoutePreference } from "@/lib/mzk/use-mzk-route";
 import { dismissHint } from "@/lib/onboarding-hints";
+import { schoolScopeLabel } from "@/lib/site-metadata";
 import { useHintDismissed } from "@/lib/use-hint-dismissed";
 import { cn } from "cn";
 import { toast } from "sonner";
@@ -1016,6 +1017,9 @@ export function ScheduleBoard({
         aria-hidden
         className="pointer-events-none mb-0! h-px w-full print:hidden"
       />
+      <p className="mb-1.5 text-xs font-medium tracking-tight text-foreground/70 print:hidden">
+        {schoolScopeLabel}
+      </p>
       <div className="sticky top-0 z-10 -mx-6 pb-2 print:hidden sm:-mx-10 md:py-2.5">
         <div
           className={cn(

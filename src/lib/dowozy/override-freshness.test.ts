@@ -23,7 +23,9 @@ describe("overrideFreshnessInfo", () => {
       overrideStatus: "override_active_conflict",
     });
     expect(info?.message).toMatch(/tymczasową korektę/i);
+    expect(info?.messageCompact).toMatch(/Tymczasowa korekta/i);
     expect(info?.detail).toMatch(/rodzicom/i);
+    expect(info?.detailCompact).toMatch(/rodzicom/i);
     expect(info?.level).toBe("stale");
   });
 
