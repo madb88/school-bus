@@ -2,11 +2,11 @@
  * Polityka prywatności — treść oparta na rzeczywistym kodzie aplikacji.
  *
  * TODO(przed publikacją): uzupełnij dane administratora poniżej
- * (obecnie placeholdery: Jakub Kamiński / kaminskiqba@gmail.com).
+ * (obecnie placeholdery: Jakub Kamiński / kontakt@autobusszkolny.pl).
  */
 
 const ADMIN_NAME = "Jakub Kamiński";
-const ADMIN_EMAIL = "kaminskiqba@gmail.com";
+const ADMIN_EMAIL = "kontakt@autobusszkolny.pl";
 
 type Section = {
   id: string;

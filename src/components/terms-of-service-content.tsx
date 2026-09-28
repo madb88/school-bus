@@ -7,7 +7,7 @@
  */
 
 const PROVIDER_NAME = "Jakub Kamiński";
-const PROVIDER_EMAIL = "kaminskiqba@gmail.com";
+const PROVIDER_EMAIL = "kontakt@autobusszkolny.pl";
 
 type Section = {
   id: string;
