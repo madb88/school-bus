@@ -34,12 +34,12 @@
             "label": "II kurs",
             "stops": [
               {
-                "time": "7:00",
-                "places": ["Barcikowice D."]
+                "time": "7:05",
+                "places": ["Barcikowice D.", "Zatonie"]
               },
               {
-                "time": "7:00",
-                "places": ["Zatonie", "Marzęcin"]
+                "time": "7:10",
+                "places": ["Marzęcin"]
               },
               {
                 "time": "7:30",
