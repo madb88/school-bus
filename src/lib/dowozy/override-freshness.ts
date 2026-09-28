@@ -5,7 +5,7 @@ const CONFLICT_DETAIL =
   "Korekta została wprowadzona na podstawie aktualizacji przekazanej rodzicom. Oficjalna strona dowozów może jeszcze zawierać poprzednią wersję.";
 
 const CONFLICT_DETAIL_COMPACT =
-  "Aktualizacja została przekazana rodzicom. Oficjalna strona może jeszcze zawierać poprzednią wersję.";
+  "Aktualizacja została przekazana rodzicom. Oficjalna strona dowozów może jeszcze zawierać poprzednią wersję.";
 
 /**
  * User-facing freshness row when a manual override is in effect.

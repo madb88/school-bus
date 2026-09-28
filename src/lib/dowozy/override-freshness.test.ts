@@ -26,6 +26,7 @@ describe("overrideFreshnessInfo", () => {
     expect(info?.messageCompact).toMatch(/Tymczasowa korekta/i);
     expect(info?.detail).toMatch(/rodzicom/i);
     expect(info?.detailCompact).toMatch(/rodzicom/i);
+    expect(info?.detailCompact).toMatch(/strona dowozów/i);
     expect(info?.level).toBe("stale");
   });
 
