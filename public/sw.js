@@ -1,6 +1,16 @@
 /* Minimal service worker: push and notification clicks only.
    Do not add a fetch listener or the Cache API. Schedule data must stay live. */
 
+function sameOriginUrl(rawUrl, origin) {
+  try {
+    const target = new URL(rawUrl, origin);
+    if (target.origin !== origin) return `${origin}/`;
+    return target.href;
+  } catch {
+    return `${origin}/`;
+  }
+}
+
 self.addEventListener("push", (event) => {
   const fallback = {
     title: "autobusszkolny.pl",
@@ -37,7 +47,7 @@ self.addEventListener("notificationclick", (event) => {
     event.notification.data && typeof event.notification.data.url === "string"
       ? event.notification.data.url
       : "/";
-  const target = new URL(rawUrl, self.location.origin).href;
+  const target = sameOriginUrl(rawUrl, self.location.origin);
 
   event.waitUntil(
     self.clients

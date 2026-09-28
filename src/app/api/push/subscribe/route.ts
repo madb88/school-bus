@@ -3,6 +3,10 @@ import { hasConfiguredLessons } from "@/lib/child-schedule/storage";
 import type { ChildLessonPlan } from "@/lib/child-schedule/types";
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { parsePushKinds } from "@/lib/push/kinds";
+import {
+  checkPushSubscribeRateLimit,
+  getClientIpFromHeaders,
+} from "@/lib/push/rate-limit";
 import { schoolScheduleFingerprint } from "@/lib/push/schedule-fingerprint";
 import { sendPush } from "@/lib/push/send";
 import {
@@ -34,6 +38,17 @@ function invalidBody() {
   return NextResponse.json({ error: "Niepoprawne żądanie." }, { status: 400 });
 }
 
+function rateLimited(retryAfterSec?: number) {
+  const headers =
+    retryAfterSec != null
+      ? { "Retry-After": String(retryAfterSec) }
+      : undefined;
+  return NextResponse.json(
+    { error: "Zbyt wiele prób. Spróbuj ponownie za chwilę." },
+    { status: 429, headers },
+  );
+}
+
 async function readJson(request: Request): Promise<unknown | null> {
   try {
     return await request.json();
@@ -48,6 +63,10 @@ function readPlan(body: Record<string, unknown>): ChildLessonPlan {
 
 export async function POST(request: Request) {
   if (!getPushRedis()) return unavailable();
+
+  const ip = getClientIpFromHeaders(request.headers);
+  const rate = await checkPushSubscribeRateLimit(ip);
+  if (!rate.ok) return rateLimited(rate.retryAfterSec);
 
   const body = await readJson(request);
   if (!body || typeof body !== "object") return invalidBody();

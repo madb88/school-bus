@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  checkPushTestRateLimit,
+  getClientIpFromHeaders,
+} from "@/lib/push/rate-limit";
 import { pushIsConfigured, sendPush } from "@/lib/push/send";
 import { parseSubscription } from "@/lib/push/store";
 
@@ -15,6 +19,19 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Powiadomienia nie są jeszcze skonfigurowane." },
       { status: 503 },
+    );
+  }
+
+  const ip = getClientIpFromHeaders(request.headers);
+  const rate = await checkPushTestRateLimit(ip);
+  if (!rate.ok) {
+    const headers =
+      rate.retryAfterSec != null
+        ? { "Retry-After": String(rate.retryAfterSec) }
+        : undefined;
+    return NextResponse.json(
+      { error: "Zbyt wiele prób. Spróbuj ponownie za chwilę." },
+      { status: 429, headers },
     );
   }
 
