@@ -1,3 +1,4 @@
+import { PageEyebrow } from "@/components/page-eyebrow";
 import { PageShell } from "@/components/page-shell";
 import { PrivacyPolicyContent } from "@/components/privacy-policy-content";
 import { SiteHeader } from "@/components/site-header";
@@ -14,6 +15,7 @@ export default function PolitykaPrywatnosciPage() {
   return (
     <PageShell header={<SiteHeader current="o-aplikacji" />}>
       <header className="animate-rise-delay mb-10 space-y-3">
+        <PageEyebrow>Prywatność</PageEyebrow>
         <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">
           Polityka prywatności
         </h1>

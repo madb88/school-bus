@@ -1,4 +1,5 @@
 import { MzkRouteForm } from "@/components/mzk-route-form";
+import { PageEyebrow } from "@/components/page-eyebrow";
 import { PageShell } from "@/components/page-shell";
 import { ScheduleStatusBanner } from "@/components/schedule-status-banner";
 import { SiteHeader } from "@/components/site-header";
@@ -24,6 +25,7 @@ export default async function MzkPage() {
     <PageShell header={<SiteHeader current="mzk" />}>
       <div className="page-enter">
         <header className="mb-10 space-y-3">
+          <PageEyebrow>MZK</PageEyebrow>
           <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">
             Trasa do szkoły
           </h1>

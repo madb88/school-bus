@@ -1,4 +1,5 @@
 import { LessonPlanForm } from "@/components/lesson-plan-form";
+import { PageEyebrow } from "@/components/page-eyebrow";
 import { PageShell } from "@/components/page-shell";
 import { SiteHeader } from "@/components/site-header";
 import { collectPlaces } from "@/lib/dowozy/filter-schedule";
@@ -26,6 +27,7 @@ export default async function LekcjePage() {
     <PageShell header={<SiteHeader current="lekcje" />}>
       <div className="page-enter">
         <header className="mb-10 space-y-3 print:hidden">
+          <PageEyebrow>Plan lekcji</PageEyebrow>
           <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">
             Plan lekcji
           </h1>

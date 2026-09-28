@@ -1,43 +1,16 @@
-import Link from "next/link";
-import { AboutScheduleMock } from "@/components/about-schedule-mock";
-import { buttonVariants } from "@/components/ui/button";
+import { PageEyebrow } from "@/components/page-eyebrow";
 
 export function AboutIntro() {
   return (
-    <header className="mb-12 grid gap-8 sm:mb-14 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-end lg:gap-10">
-      <div className="space-y-4">
-        <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">
-          Jak zacząć
-        </h1>
-        <div className="max-w-xl space-y-3 text-base leading-relaxed text-muted-foreground sm:text-lg">
-          <p>
-            Podaj plan lekcji, a my pokażemy Ci, którym autobusem dziecko może
-            pojechać do szkoły i czym wrócić do domu.
-          </p>
-          <p>
-            Możesz też dodać trasę MZK, jeśli dziecko korzysta z komunikacji
-            miejskiej. Na koniec możesz wydrukować gotowy, tygodniowy plan
-            dojazdów.
-          </p>
-          <p>
-            Plan pozostaje zapisany w tej przeglądarce. Jeśli włączysz
-            powiadomienia (wkrótce), zapisujemy go również na serwerze, aby
-            wysyłać przypomnienia dotyczące właściwych kursów.
-          </p>
-        </div>
-        <div className="pt-1">
-          <Link
-            href="/lekcje"
-            className={buttonVariants({ size: "lg", variant: "default" })}
-          >
-            Zacznij od planu lekcji
-          </Link>
-        </div>
-      </div>
-
-      <div className="mx-auto w-full max-w-sm lg:mx-0 lg:max-w-none">
-        <AboutScheduleMock />
-      </div>
+    <header className="mb-8 space-y-4 sm:mb-10">
+      <PageEyebrow>Jak zacząć</PageEyebrow>
+      <h1 className="max-w-2xl font-display text-3xl font-bold tracking-tight text-asphalt sm:text-4xl lg:text-5xl">
+        5 sposobów na korzystanie z autobusszkolny.pl
+      </h1>
+      <p className="max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+        Zobacz, jak w kilku prostych krokach skonfigurować aplikację i wyciągnąć
+        z niej jak najwięcej. Wybierz interesujący Cię temat i rozwiń szczegóły.
+      </p>
     </header>
   );
 }

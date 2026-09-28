@@ -1,3 +1,4 @@
+import { PageEyebrow } from "@/components/page-eyebrow";
 import { PageShell } from "@/components/page-shell";
 import { SiteHeader } from "@/components/site-header";
 import { TermsOfServiceContent } from "@/components/terms-of-service-content";
@@ -14,6 +15,7 @@ export default function RegulaminPage() {
   return (
     <PageShell header={<SiteHeader current="o-aplikacji" />}>
       <header className="animate-rise-delay mb-10 space-y-3">
+        <PageEyebrow>Regulamin</PageEyebrow>
         <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">
           Regulamin
         </h1>

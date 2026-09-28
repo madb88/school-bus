@@ -1,4 +1,5 @@
 import { SettingsRestorePanel } from "@/components/settings-restore-panel";
+import { PageEyebrow } from "@/components/page-eyebrow";
 import { PageShell } from "@/components/page-shell";
 import { SiteHeader } from "@/components/site-header";
 import { buildPageMetadata } from "@/lib/site-metadata";
@@ -23,6 +24,7 @@ export default async function PrzywrocPage({ searchParams }: PrzywrocPageProps) 
     <PageShell header={<SiteHeader current="lekcje" />}>
       <div className="page-enter">
         <header className="mb-10 space-y-3">
+          <PageEyebrow>Przywracanie</PageEyebrow>
           <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">
             Przywróć ustawienia
           </h1>

@@ -29,7 +29,7 @@ export const NAV_ITEMS: ReadonlyArray<{
   { id: "mzk", href: "/mzk", label: "MZK", icon: Map },
   { id: "nowosci", href: "/nowosci", label: "Nowości", icon: Newspaper },
   { id: "instalacja", href: "/instalacja", label: "Aplikacja", icon: Smartphone },
-  { id: "o-aplikacji", href: "/o-aplikacji", label: "O projekcie", icon: Info },
+  { id: "o-aplikacji", href: "/o-aplikacji", label: "Jak zacząć", icon: Info },
 ];
 
 type SiteNavProps = {

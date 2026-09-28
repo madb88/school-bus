@@ -5,9 +5,9 @@ import { SiteHeader } from "@/components/site-header";
 import { buildPageMetadata } from "@/lib/site-metadata";
 
 export const metadata = buildPageMetadata({
-  title: "O projekcie",
+  title: "Jak zacząć",
   description:
-    "Podaj plan lekcji, a pokażemy którym autobusem dziecko pojedzie do szkoły i czym wróci. Możesz dodać MZK, wydrukować plan dojazdów i włączyć przypomnienia (wkrótce).",
+    "5 sposobów na korzystanie z autobusszkolny.pl — plan lekcji, wydruk dojazdów, trasa MZK, rozkład i wygodne funkcje na co dzień.",
   path: "/o-aplikacji",
 });
 
