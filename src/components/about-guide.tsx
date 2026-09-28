@@ -176,7 +176,7 @@ const steps: GuideStep[] = [
       },
       {
         icon: Bell,
-        title: "Powiadomienia",
+        title: "Powiadomienia (wkrótce)",
         body: (
           <>
             Włącz powiadomienia, a otrzymasz przypomnienia dotyczące

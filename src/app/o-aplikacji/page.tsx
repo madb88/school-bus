@@ -7,7 +7,7 @@ import { buildPageMetadata } from "@/lib/site-metadata";
 export const metadata = buildPageMetadata({
   title: "O projekcie",
   description:
-    "Podaj plan lekcji, a pokażemy którym autobusem dziecko pojedzie do szkoły i czym wróci. Możesz dodać MZK, wydrukować plan dojazdów i włączyć przypomnienia.",
+    "Podaj plan lekcji, a pokażemy którym autobusem dziecko pojedzie do szkoły i czym wróci. Możesz dodać MZK, wydrukować plan dojazdów i włączyć przypomnienia (wkrótce).",
   path: "/o-aplikacji",
 });
 

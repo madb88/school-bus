@@ -21,8 +21,8 @@ export function AboutIntro() {
           </p>
           <p>
             Plan pozostaje zapisany w tej przeglądarce. Jeśli włączysz
-            powiadomienia, zapisujemy go również na serwerze, aby wysyłać
-            przypomnienia dotyczące właściwych kursów.
+            powiadomienia (wkrótce), zapisujemy go również na serwerze, aby
+            wysyłać przypomnienia dotyczące właściwych kursów.
           </p>
         </div>
         <div className="pt-1">
