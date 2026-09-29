@@ -188,7 +188,7 @@
           },
           {
             "time": "15:30",
-            "places": ["Zatonie", "Marzęcin", "Barcikowice D."]
+            "places": ["Zatonie", "Marzęcin", "Barcikowice D.", "Książ"]
           },
           {
             "time": "16:20",
@@ -248,7 +248,7 @@
           },
           {
             "time": "15:30",
-            "places": ["Zatonie", "Marzęcin", "Barcikowice D."]
+            "places": ["Zatonie", "Marzęcin", "Barcikowice D.", "Książ"]
           },
           {
             "time": "16:20",
@@ -312,6 +312,7 @@
               "Zatonie",
               "Marzęcin",
               "Barcikowice D.",
+              "Książ",
               "Barcikowice M."
             ]
           },
@@ -372,7 +373,7 @@
           },
           {
             "time": "15:30",
-            "places": ["Zatonie", "Marzęcin", "Barcikowice D."]
+            "places": ["Zatonie", "Marzęcin", "Barcikowice D.", "Książ"]
           },
           {
             "time": "16:20",
