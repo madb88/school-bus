@@ -85,6 +85,10 @@ export async function SiteFooter() {
           </div>
         )}
 
+        <p className="text-xs text-muted-foreground">
+          Niezależny serwis informacyjny – nie jest oficjalną stroną szkoły.
+        </p>
+
         <p className="text-sm text-muted-foreground">
           © {year} {siteName}
           <span aria-hidden className="mx-1.5 text-border">

@@ -24,6 +24,7 @@ const SECTIONS: Section[] = [
     paragraphs: [
       `Niniejszy Regulamin określa zasady świadczenia usług drogą elektroniczną za pośrednictwem serwisu internetowego autobusszkolny.pl (dalej: „Serwis”), prowadzonego pod domeną autobusszkolny.pl oraz powiązanymi adresami, przez Usługodawcę: ${PROVIDER_NAME}, e-mail: ${PROVIDER_EMAIL}.`,
       "Serwis autobusszkolny.pl (Dojazdy do szkoły) jest serwisem informacyjnym pomagającym rodzicom i uczniom korzystającym z dowozów do szkoły — w szczególności w zakresie przeglądania rozkładów i dopasowania kursów do planu lekcji.",
+      "Serwis autobusszkolny.pl jest niezależnym serwisem informacyjnym i nie jest oficjalną stroną internetową Szkoły Olimpijczyków – Drzonków, nie jest przez nią prowadzony ani nie stanowi jej jednostki organizacyjnej.",
       "Usługodawca nie jest przewoźnikiem, nie organizuje transportu szkolnego ani komunikacji miejskiej i nie prowadzi sprzedaży biletów. Serwis nie zastępuje oficjalnych informacji właściwego przewoźnika, szkoły ani organizatora transportu.",
       "Korzystanie z Serwisu oznacza zapoznanie się z treścią Regulaminu. Serwis nie wymaga rejestracji konta ani osobnego zatwierdzania Regulaminu przed przeglądaniem rozkładów.",
       "W sprawach przetwarzania danych osobowych zastosowanie ma Polityka prywatności dostępna pod adresem /polityka-prywatnosci.",
@@ -272,7 +273,7 @@ export function TermsOfServiceContent() {
       ))}
 
       <p className="border-t border-border/50 pt-8 text-xs text-muted-foreground sm:pt-10">
-        Ostatnia aktualizacja: 26 września 2026
+        Ostatnia aktualizacja: 29 września 2026
       </p>
     </article>
   );
