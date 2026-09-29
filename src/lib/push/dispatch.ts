@@ -19,24 +19,38 @@ export type DispatchSummary = {
   sent: number;
   removed: number;
   skipped: "no-schedule" | "locked" | "weekend" | null;
+  /** Effective timetable source used for fingerprints and trip reminders. */
+  scheduleSource: "scrape" | "override" | null;
 };
+
+function emptySummary(
+  skipped: DispatchSummary["skipped"],
+): DispatchSummary {
+  return {
+    checked: 0,
+    sent: 0,
+    removed: 0,
+    skipped,
+    scheduleSource: null,
+  };
+}
 
 export async function dispatchReminders(
   now: Date = new Date(),
 ): Promise<DispatchSummary> {
   if (!isSchoolDay(getWarsawParts(now).weekday)) {
-    return { checked: 0, sent: 0, removed: 0, skipped: "weekend" };
+    return emptySummary("weekend");
   }
 
   const locked = await acquireDispatchLock();
   if (!locked) {
-    return { checked: 0, sent: 0, removed: 0, skipped: "locked" };
+    return emptySummary("locked");
   }
 
   try {
-    const schedule = await loadScheduleSnapshot();
-    if (!schedule) {
-      return { checked: 0, sent: 0, removed: 0, skipped: "no-schedule" };
+    const loaded = await loadScheduleSnapshot();
+    if (!loaded) {
+      return emptySummary("no-schedule");
     }
 
     const records = await listPushRecords();
@@ -45,12 +59,18 @@ export async function dispatchReminders(
     let removed = 0;
 
     for (const record of records) {
-      const outcome = await notifyRecord(record, schedule.schedule, today, now);
+      const outcome = await notifyRecord(record, loaded.schedule, today, now);
       sent += outcome.sent;
       if (outcome.removed) removed += 1;
     }
 
-    return { checked: records.length, sent, removed, skipped: null };
+    return {
+      checked: records.length,
+      sent,
+      removed,
+      skipped: null,
+      scheduleSource: loaded.source,
+    };
   } finally {
     await releaseDispatchLock();
   }
@@ -61,6 +81,19 @@ const SCHEDULE_UPDATED = {
   body: "Godziny dowozów i odwozów się zmieniły. Sprawdź swój kurs.",
   url: "/",
 };
+
+function withUpdatedFingerprint(
+  record: PushRecord,
+  fingerprint: string,
+): PushRecord {
+  return {
+    ...record,
+    scheduleFingerprint: fingerprint,
+    // Drop today's dedupe so a moved trip can notify again the same day.
+    sentOn: "",
+    sent: [],
+  };
+}
 
 async function notifyRecord(
   record: PushRecord,
@@ -75,7 +108,7 @@ async function notifyRecord(
 
   if (!next.scheduleFingerprint || !next.kinds.schedule) {
     if (next.scheduleFingerprint !== fingerprint) {
-      next = { ...next, scheduleFingerprint: fingerprint };
+      next = withUpdatedFingerprint(next, fingerprint);
       fingerprintDirty = true;
     }
   } else if (next.scheduleFingerprint !== fingerprint) {
@@ -85,7 +118,7 @@ async function notifyRecord(
       return { sent, removed: true };
     }
     if (result === "ok") {
-      next = { ...next, scheduleFingerprint: fingerprint };
+      next = withUpdatedFingerprint(next, fingerprint);
       fingerprintDirty = true;
       sent += 1;
     }

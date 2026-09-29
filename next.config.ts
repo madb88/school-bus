@@ -67,6 +67,7 @@ const nextConfig: NextConfig = {
     ];
   },
   // Ensure schedule JSON snapshots are available to serverless functions on Vercel.
+  // "/*" covers pages; API routes need their own entries (see /api/mzk-departures).
   outputFileTracingIncludes: {
     "/*": [
       "./data/dowozy-schedule.json",
@@ -75,6 +76,14 @@ const nextConfig: NextConfig = {
       "./data/mzk-schedule-meta.json",
     ],
     "/api/mzk-departures": ["./data/mzk-schedule.json"],
+    "/api/push/dispatch": [
+      "./data/dowozy-schedule.json",
+      "./data/dowozy-overrides.json",
+    ],
+    "/api/push/subscribe": [
+      "./data/dowozy-schedule.json",
+      "./data/dowozy-overrides.json",
+    ],
   },
 };
 

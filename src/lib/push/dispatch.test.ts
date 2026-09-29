@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ChildLessonPlan } from "@/lib/child-schedule/types";
 import type { Schedule } from "@/lib/dowozy/types";
 import { schoolScheduleFingerprint } from "./schedule-fingerprint";
 
@@ -63,6 +64,18 @@ const overrideSchedule: Schedule = {
   ],
 };
 
+const plan: ChildLessonPlan = {
+  place: "Zatonie",
+  days: {
+    1: { start: "08:00", end: "14:00" },
+  },
+};
+
+const subscription = {
+  endpoint: "https://push.example/1",
+  keys: { p256dh: "x", auth: "y" },
+};
+
 describe("dispatchReminders", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -79,6 +92,7 @@ describe("dispatchReminders", () => {
       sent: 0,
       removed: 0,
       skipped: "weekend",
+      scheduleSource: null,
     });
     expect(acquireDispatchLock).not.toHaveBeenCalled();
     expect(listPushRecords).not.toHaveBeenCalled();
@@ -97,6 +111,7 @@ describe("dispatchReminders", () => {
       sent: 0,
       removed: 0,
       skipped: "weekend",
+      scheduleSource: null,
     });
     expect(acquireDispatchLock).not.toHaveBeenCalled();
     expect(listPushRecords).not.toHaveBeenCalled();
@@ -111,24 +126,12 @@ describe("dispatchReminders", () => {
     });
     listPushRecords.mockResolvedValue([
       {
-        subscription: {
-          endpoint: "https://push.example/1",
-          keys: { p256dh: "x", auth: "y" },
-        },
-        plan: {
-          place: "Zatonie",
-          days: {
-            mon: { start: "08:00", end: "14:00" },
-            tue: null,
-            wed: null,
-            thu: null,
-            fri: null,
-          },
-        },
+        subscription,
+        plan,
         sentOn: "",
         sent: [],
         scheduleFingerprint: schoolScheduleFingerprint(baseSchedule),
-        kinds: { pickup: false, dropoff: false, schedule: true },
+        kinds: { departure: false, return: false, schedule: true },
       },
     ]);
     sendPush.mockResolvedValue("ok");
@@ -136,16 +139,93 @@ describe("dispatchReminders", () => {
 
     const { dispatchReminders } = await import("./dispatch");
     const monday = new Date("2026-09-28T10:00:00+02:00");
-    await dispatchReminders(monday);
+    const summary = await dispatchReminders(monday);
 
-    expect(sendPush).toHaveBeenCalled();
+    expect(summary.scheduleSource).toBe("override");
+    expect(sendPush).toHaveBeenCalledWith(
+      subscription,
+      expect.objectContaining({
+        title: "Rozkład jazdy zaktualizowany",
+      }),
+    );
     expect(savePushRecord).toHaveBeenCalledWith(
       expect.objectContaining({
         scheduleFingerprint: schoolScheduleFingerprint(overrideSchedule),
+        sentOn: "",
+        sent: [],
       }),
     );
     expect(schoolScheduleFingerprint(overrideSchedule)).not.toBe(
       schoolScheduleFingerprint(baseSchedule),
     );
+  });
+
+  it("notifies the override trip time after a schedule change clears sent", async () => {
+    acquireDispatchLock.mockResolvedValue(true);
+    loadScheduleSnapshot.mockResolvedValue({
+      schedule: overrideSchedule,
+      source: "override",
+      overrideStatus: "override_active_conflict",
+    });
+    listPushRecords.mockResolvedValue([
+      {
+        subscription,
+        plan,
+        sentOn: "2026-09-28",
+        sent: ["2026-09-28|pickup|07:10|Zatonie"],
+        scheduleFingerprint: schoolScheduleFingerprint(baseSchedule),
+        kinds: { departure: true, return: false, schedule: true },
+      },
+    ]);
+    sendPush.mockResolvedValue("ok");
+    savePushRecord.mockResolvedValue(undefined);
+
+    const { dispatchReminders } = await import("./dispatch");
+    // 07:10 within 20 min of override 7:25
+    await dispatchReminders(new Date("2026-09-28T07:10:00+02:00"));
+
+    expect(sendPush).toHaveBeenCalledWith(
+      subscription,
+      expect.objectContaining({
+        title: "Rozkład jazdy zaktualizowany",
+      }),
+    );
+    expect(sendPush).toHaveBeenCalledWith(
+      subscription,
+      expect.objectContaining({
+        title: "Odjazd do szkoły za 15 min",
+        body: "Zatonie · 07:25",
+      }),
+    );
+    expect(savePushRecord).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scheduleFingerprint: schoolScheduleFingerprint(overrideSchedule),
+        sentOn: "2026-09-28",
+        sent: ["2026-09-28|pickup|07:25|Zatonie"],
+      }),
+    );
+  });
+
+  it("reports scrape as scheduleSource when no override is active", async () => {
+    acquireDispatchLock.mockResolvedValue(true);
+    loadScheduleSnapshot.mockResolvedValue({
+      schedule: baseSchedule,
+      source: "scrape",
+      overrideStatus: "none",
+    });
+    listPushRecords.mockResolvedValue([]);
+
+    const { dispatchReminders } = await import("./dispatch");
+    const summary = await dispatchReminders(
+      new Date("2026-09-28T10:00:00+02:00"),
+    );
+
+    expect(summary).toEqual({
+      checked: 0,
+      sent: 0,
+      removed: 0,
+      skipped: null,
+      scheduleSource: "scrape",
+    });
   });
 });
