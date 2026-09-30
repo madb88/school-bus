@@ -1,6 +1,14 @@
 "use client";
 
-import { ArrowRight, Bell, CalendarDays, Crown, Smartphone } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import {
+  ArrowRight,
+  Bell,
+  CalendarDays,
+  Clock,
+  Crown,
+  Smartphone,
+} from "lucide-react";
 import Link from "next/link";
 import {
   Accordion,
@@ -62,18 +70,30 @@ const PUSH_ENTRY = {
   manage: { href: "/profil?powiadomienia=1", label: "Zarządzaj w profilu" },
 } as const;
 
-const PUSH_POINTS = [
+const PUSH_POINTS: readonly {
+  icon: LucideIcon;
+  label: string;
+  iconWrapClassName: string;
+}[] = [
   {
     icon: Smartphone,
     label: "Na telefon i tablet",
-    iconClass: "bg-bus/12 text-bus",
+    iconWrapClassName:
+      "bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-300",
   },
   {
     icon: CalendarDays,
-    label: "Zgodne z Twoim planem",
-    iconClass: "bg-mzk/12 text-mzk",
+    label: "Zgodne z Twoim planem lekcji",
+    iconWrapClassName:
+      "bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-300",
   },
-] as const;
+  {
+    icon: Clock,
+    label: "Przypomnienie przed odjazdem",
+    iconWrapClassName:
+      "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-300",
+  },
+];
 
 type InstallGuideProps = {
   pushEntry?: PushEntry;
@@ -140,64 +160,72 @@ function NotificationsFrame({ entry }: { entry: PushEntry }) {
   return (
     <section
       aria-labelledby="instalacja-powiadomienia"
-      className="relative mb-8 overflow-hidden rounded-2xl border border-bus/30 bg-gradient-to-br from-sky-mist/80 via-background to-sky-mist/25 px-4 py-3.5 sm:px-5 dark:border-bus/40 dark:from-bus/12 dark:via-card dark:to-card"
+      className="mb-8 flex flex-col gap-5 rounded-2xl border border-sky-200/80 bg-sky-50/90 p-5 sm:p-6 dark:border-sky-500/25 dark:bg-sky-500/10 lg:flex-row lg:items-center lg:gap-8"
     >
-      <div className="relative flex flex-col gap-3.5 lg:flex-row lg:items-center lg:gap-5">
-        <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
-          <span className="grid size-14 shrink-0 place-items-center rounded-full bg-bus/12 sm:size-[3.75rem]">
-            <Bell aria-hidden className="size-6 text-bus sm:size-7" />
-          </span>
-          <div className="min-w-0">
-            <p className="inline-flex items-center gap-1 rounded-full border border-bus/20 bg-bus/10 px-2 py-0.5 text-[0.7rem] leading-none font-semibold text-bus">
-              <Crown aria-hidden className="size-3" />
-              {enabled ? "Tylko w Pakiecie Plus" : "Wkrótce"}
-            </p>
-            <h2
-              id="instalacja-powiadomienia"
-              className="mt-1.5 font-display text-lg leading-tight font-bold tracking-tight text-asphalt sm:text-xl"
-            >
-              <span className="text-bus">Powiadomienia</span> o dowozach i odwozach
-            </h2>
-            <p className="mt-1 max-w-xl text-sm leading-snug text-muted-foreground">
-              {enabled
-                ? "Otrzymuj przypomnienia, kiedy nadjeżdża autobus — prosto na telefon lub tablet."
-                : "Powiadomienia pojawią się wkrótce. Na razie możesz dodać aplikację do ekranu i ustawić plan lekcji."}
-            </p>
-            <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-2 border-t border-bus/10 pt-2.5">
-              {PUSH_POINTS.map((point) => {
-                const Icon = point.icon;
-                return (
-                  <li key={point.label} className="flex max-w-44 items-center gap-2">
-                    <span
-                      className={cn(
-                        "grid size-7 shrink-0 place-items-center rounded-full",
-                        point.iconClass,
-                      )}
-                    >
-                      <Icon aria-hidden className="size-3.5" />
-                    </span>
-                    <span className="text-xs leading-snug font-medium text-foreground/90">
-                      {point.label}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </div>
-        {action ? (
-          <Link
-            href={action.href}
-            className={cn(
-              buttonVariants({ size: "lg" }),
-              "h-10 w-full shrink-0 rounded-xl px-4 lg:w-auto",
-            )}
+      <div className="min-w-0 flex-1">
+        <header className="mb-4 flex flex-wrap items-center gap-2.5">
+          <span
+            aria-hidden
+            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-sky-500 text-white shadow-sm shadow-sky-500/25"
           >
-            {action.label}
-            <ArrowRight aria-hidden />
-          </Link>
-        ) : null}
+            <Bell className="size-4" strokeWidth={2.5} />
+          </span>
+          <h2
+            id="instalacja-powiadomienia"
+            className="font-display text-lg font-semibold tracking-tight text-asphalt sm:text-xl"
+          >
+            Powiadomienia o dowozach i odwozach
+          </h2>
+          <span className="inline-flex items-center gap-1 rounded-full border border-sky-300/70 bg-white/70 px-2 py-0.5 text-[0.7rem] leading-none font-semibold text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/15 dark:text-sky-300">
+            <Crown aria-hidden className="size-3" />
+            {enabled ? "Pakiet Plus" : "Wkrótce"}
+          </span>
+        </header>
+
+        <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
+          {enabled
+            ? "Otrzymuj przypomnienia, kiedy nadjeżdża autobus — prosto na telefon lub tablet."
+            : "Powiadomienia pojawią się wkrótce. Na razie możesz dodać aplikację do ekranu i ustawić plan lekcji."}
+        </p>
+
+        <ul className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-x-5 sm:gap-y-3">
+          {PUSH_POINTS.map((point) => {
+            const Icon = point.icon;
+            return (
+              <li
+                key={point.label}
+                className="flex items-center gap-2.5"
+              >
+                <span
+                  aria-hidden
+                  className={cn(
+                    "flex size-9 shrink-0 items-center justify-center rounded-full",
+                    point.iconWrapClassName,
+                  )}
+                >
+                  <Icon className="size-4" strokeWidth={2} />
+                </span>
+                <span className="text-sm leading-snug font-medium text-foreground/90">
+                  {point.label}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
       </div>
+
+      {action ? (
+        <Link
+          href={action.href}
+          className={cn(
+            buttonVariants({ size: "lg" }),
+            "h-10 w-full shrink-0 rounded-xl px-4 lg:w-auto",
+          )}
+        >
+          {action.label}
+          <ArrowRight aria-hidden />
+        </Link>
+      ) : null}
     </section>
   );
 }
