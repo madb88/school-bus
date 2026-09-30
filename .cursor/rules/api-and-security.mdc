@@ -6,6 +6,7 @@ globs:
   - src/lib/feedback/**/*
   - src/lib/settings-transfer/**/*
   - src/lib/push/**/*
+  - src/lib/billing/**/*
 alwaysApply: false
 ---
 
@@ -13,7 +14,7 @@ alwaysApply: false
 
 ## Sekrety
 
-- Tylko po stronie serwera: `RESEND_*`, `TURNSTILE_SECRET_KEY`, `SETTINGS_TRANSFER_SECRET`, `VAPID_PRIVATE_KEY`, `QSTASH_*`, Upstash tokeny
+- Tylko po stronie serwera: `RESEND_*`, `TURNSTILE_SECRET_KEY`, `SETTINGS_TRANSFER_SECRET`, `AUTH_SECRET`, `STRIPE_*`, `VAPID_PRIVATE_KEY`, `QSTASH_*`, Upstash tokeny
 - `NEXT_PUBLIC_*` wyłącznie dla rzeczy naprawdę publicznych (Turnstile site key, VAPID **public**, site URL)
 - Nigdy nie commitować `.env.local`; nowe zmienne → `.env.example` + krótki opis
 - Nie ujawniać `FEEDBACK_TO_EMAIL` ani sekretów w HTML / odpowiedziach API
@@ -23,9 +24,15 @@ alwaysApply: false
 | Ścieżka | Rola |
 | --- | --- |
 | `actions/feedback` | Resend + Turnstile + honeypot + rate limit |
+| `actions/complaint` | reklamacja Plan Plus; e-mail konta z sesji, tylko przy aktywnym Plusie |
+| `api/auth/magic-link` | wyślij link + kod (rate limit, ta sama odpowiedź) |
+| `api/auth/magic-link/verify` | GET link / POST kod → cookie sesji |
+| `api/auth/logout` | skasuj tylko tę sesję |
+| `api/billing/checkout` | Stripe Checkout; `user_id` i e-mail tylko z sesji |
+| `api/billing/webhook` | podpis `Stripe-Signature`, potem opłacona sesja albo pełny zwrot |
 | `api/settings-transfer` | create / peek / redeem QR |
 | `api/mzk-departures` | odjazdy z snapshotu MZK |
-| `api/push/subscribe\|plan\|kinds\|test\|dispatch` | Web Push + QStash |
+| `api/push/subscribe\|plan\|kinds\|test\|dispatch` | Web Push + QStash; zapis wymaga sesji i aktywnego Plus |
 
 Rozszerzaj te ścieżki zamiast mnożyć równoległe API.
 

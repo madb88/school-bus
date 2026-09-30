@@ -44,3 +44,39 @@ export async function sendFeedbackEmail({
 
   return { ok: true };
 }
+
+export async function sendComplaintEmail(input: {
+  message: string;
+  accountEmail: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const to = process.env.FEEDBACK_TO_EMAIL;
+  const from = process.env.FEEDBACK_FROM_EMAIL;
+
+  if (!apiKey || !to || !from) {
+    return { ok: false, error: "Brak konfiguracji wysyłki wiadomości." };
+  }
+
+  const resend = new Resend(apiKey);
+  const text = [
+    `Reklamacja Plan Plus z aplikacji ${siteName}`,
+    "",
+    `Konto: ${input.accountEmail}`,
+    "",
+    input.message,
+  ].join("\n");
+
+  const { error } = await resend.emails.send({
+    from,
+    to: [to],
+    subject: `Reklamacja Plan Plus — ${siteName}`,
+    text,
+    replyTo: input.accountEmail,
+  });
+
+  if (error) {
+    return { ok: false, error: "Nie udało się wysłać wiadomości. Spróbuj później." };
+  }
+
+  return { ok: true };
+}

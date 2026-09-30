@@ -1,8 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
+import { AccountButton } from "@/components/account-button";
 import { MobileNav } from "@/components/mobile-nav";
 import { SiteNav, type NavId } from "@/components/site-nav";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { siteTagline } from "@/lib/site-metadata";
 
 type SiteHeaderProps = {
@@ -10,7 +11,9 @@ type SiteHeaderProps = {
   current?: NavId;
 };
 
-export function SiteHeader({ current }: SiteHeaderProps) {
+export async function SiteHeader({ current }: SiteHeaderProps) {
+  const user = await getCurrentUser();
+
   return (
     <header className="flex items-center justify-between gap-4">
       <Link
@@ -39,7 +42,7 @@ export function SiteHeader({ current }: SiteHeaderProps) {
       <div className="flex shrink-0 items-center gap-3 sm:gap-4">
         <SiteNav current={current} />
         <MobileNav current={current} />
-        <ThemeToggle />
+        <AccountButton email={user?.email ?? null} />
       </div>
     </header>
   );
