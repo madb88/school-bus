@@ -147,11 +147,15 @@ export function ProfilePanel({
       <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
         <div className="hidden sm:block sm:w-52 sm:shrink-0">{nav}</div>
 
-        <div className="min-w-0 flex-1 sm:border-l sm:border-border/70 sm:pl-8">
-          {section !== "profil" ? (
+        <div className="min-w-0 flex-1 space-y-6 sm:border-l sm:border-border/70 sm:pl-8">
+          {section === "profil" || plusOpen ? (
+            <div className="sm:hidden">{nav}</div>
+          ) : null}
+
+          {section === "logout" ? (
             <button
               type="button"
-              className="mb-5 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:hidden"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:hidden"
               onClick={() => selectSection("profil")}
             >
               <ArrowLeft aria-hidden className="size-4" />
@@ -159,12 +163,7 @@ export function ProfilePanel({
             </button>
           ) : null}
 
-          {section === "profil" ? (
-            <div className="space-y-6">
-              <div className="sm:hidden">{nav}</div>
-              <ProfileSection email={email} />
-            </div>
-          ) : null}
+          {section === "profil" ? <ProfileSection email={email} /> : null}
 
           {section === "plus" ? (
             <PlusSection
