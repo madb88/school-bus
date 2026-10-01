@@ -12,6 +12,7 @@ import {
   parsePolishDateLabel,
   resolveTargetDay,
   toAbsoluteYmd,
+  weekdaysFromDateLabel,
 } from "./schedule-dates";
 
 describe("extractYearFromPeriod", () => {
@@ -35,8 +36,32 @@ describe("parsePolishDateLabel", () => {
   });
 });
 
+describe("weekdaysFromDateLabel", () => {
+  it("splits multi-day list headings", () => {
+    expect(weekdaysFromDateLabel("Poniedziałek, wtorek i czwartek")).toEqual([
+      1, 2, 4,
+    ]);
+  });
+
+  it("reads a single weekday heading", () => {
+    expect(weekdaysFromDateLabel("Środa")).toEqual([3]);
+    expect(weekdaysFromDateLabel("Piątek")).toEqual([5]);
+  });
+
+  it("expands inclusive weekday ranges", () => {
+    expect(weekdaysFromDateLabel("Odwozy – poniedziałek–piątek")).toEqual([
+      1, 2, 3, 4, 5,
+    ]);
+  });
+
+  it("keeps the weekday from a dated heading", () => {
+    expect(weekdaysFromDateLabel("Wtorek, 8 września")).toEqual([2]);
+  });
+});
+
 describe("dateLabelMatchesTarget", () => {
   const tuesday = { year: 2026, month: 8, day: 8, weekday: 2 };
+  const thursday = { year: 2026, month: 9, day: 1, weekday: 4 };
 
   it("matches exact calendar date", () => {
     expect(
@@ -53,6 +78,18 @@ describe("dateLabelMatchesTarget", () => {
   it("rejects a different weekday name", () => {
     expect(
       dateLabelMatchesTarget("Środa, 9 września", tuesday, 2026),
+    ).toBe(false);
+  });
+
+  it("matches every weekday listed in a compound heading", () => {
+    const label = "Poniedziałek, wtorek i czwartek";
+    expect(dateLabelMatchesTarget(label, { ...tuesday, weekday: 1 }, 2026)).toBe(
+      true,
+    );
+    expect(dateLabelMatchesTarget(label, tuesday, 2026)).toBe(true);
+    expect(dateLabelMatchesTarget(label, thursday, 2026)).toBe(true);
+    expect(
+      dateLabelMatchesTarget(label, { ...tuesday, weekday: 3 }, 2026),
     ).toBe(false);
   });
 });

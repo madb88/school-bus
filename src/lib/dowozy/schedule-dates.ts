@@ -204,6 +204,100 @@ export function parsePolishDateLabel(
   return { year: fallbackYear, month, day, weekdayName };
 }
 
+/** Fold Polish diacritics for weekday token matching. */
+function foldPl(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/ą/g, "a")
+    .replace(/ć/g, "c")
+    .replace(/ę/g, "e")
+    .replace(/ł/g, "l")
+    .replace(/ń/g, "n")
+    .replace(/ó/g, "o")
+    .replace(/ś/g, "s")
+    .replace(/ź|ż/g, "z");
+}
+
+/**
+ * Weekday name variants (nominative + common inflected) → JS weekday
+ * (0 = Sunday … 6 = Saturday), longest names first to avoid partial hits.
+ */
+const WEEKDAY_NAME_VARIANTS: ReadonlyArray<{ weekday: number; name: string }> =
+  [
+    { weekday: 1, name: "poniedzialek" },
+    { weekday: 1, name: "poniedzialku" },
+    { weekday: 2, name: "wtorek" },
+    { weekday: 2, name: "wtorku" },
+    { weekday: 3, name: "sroda" },
+    { weekday: 3, name: "srody" },
+    { weekday: 3, name: "srode" },
+    { weekday: 4, name: "czwartek" },
+    { weekday: 4, name: "czwartku" },
+    { weekday: 5, name: "piatek" },
+    { weekday: 5, name: "piatku" },
+    { weekday: 6, name: "sobota" },
+    { weekday: 6, name: "soboty" },
+    { weekday: 0, name: "niedziela" },
+    { weekday: 0, name: "niedzieli" },
+  ].sort((a, b) => b.name.length - a.name.length);
+
+type WeekdayHit = { weekday: number; start: number; end: number };
+
+function findWeekdayHits(foldedLabel: string): WeekdayHit[] {
+  const hits: WeekdayHit[] = [];
+  let cursor = 0;
+  while (cursor < foldedLabel.length) {
+    let matched: WeekdayHit | null = null;
+    for (const variant of WEEKDAY_NAME_VARIANTS) {
+      if (foldedLabel.startsWith(variant.name, cursor)) {
+        matched = {
+          weekday: variant.weekday,
+          start: cursor,
+          end: cursor + variant.name.length,
+        };
+        break;
+      }
+    }
+    if (matched) {
+      hits.push(matched);
+      cursor = matched.end;
+    } else {
+      cursor += 1;
+    }
+  }
+  return hits;
+}
+
+/** Text between two weekday hits that means an inclusive range (not a list). */
+const WEEKDAY_RANGE_BETWEEN_RE = /^[\s–—\-]*(?:do)?[\s–—\-]*$/;
+
+/**
+ * Weekdays covered by a dropoff heading, e.g.
+ * "Poniedziałek, wtorek i czwartek" → Mon/Tue/Thu,
+ * "Odwozy – poniedziałek–piątek" → Mon–Fri.
+ */
+export function weekdaysFromDateLabel(dateLabel: string): number[] {
+  const folded = foldPl(dateLabel.replace(/\u00a0/g, " "));
+  const hits = findWeekdayHits(folded);
+  if (!hits.length) return [];
+
+  const weekdays = new Set<number>();
+  for (const hit of hits) weekdays.add(hit.weekday);
+
+  for (let i = 0; i < hits.length - 1; i++) {
+    const left = hits[i];
+    const right = hits[i + 1];
+    const between = folded.slice(left.end, right.start);
+    if (!WEEKDAY_RANGE_BETWEEN_RE.test(between)) continue;
+
+    const from = Math.min(left.weekday, right.weekday);
+    const to = Math.max(left.weekday, right.weekday);
+    for (let day = from; day <= to; day++) weekdays.add(day);
+  }
+
+  return [...weekdays].sort((a, b) => a - b);
+}
+
 export function dateLabelMatchesTarget(
   dateLabel: string,
   target: { year: number; month: number; day: number; weekday: number },
@@ -219,10 +313,9 @@ export function dateLabelMatchesTarget(
     return true;
   }
 
-  // Fallback: same weekday name (posted week as a repeating template).
-  const weekdayName = WEEKDAYS_PL[target.weekday];
-  const labelWeekday = dateLabel.split(",")[0]?.trim();
-  return Boolean(weekdayName && labelWeekday === weekdayName);
+  // Template / multi-day headings: every weekday named in the label counts
+  // ("Poniedziałek, wtorek i czwartek", "Środa", "poniedziałek–piątek").
+  return weekdaysFromDateLabel(dateLabel).includes(target.weekday);
 }
 
 export function isSchoolDay(weekday: number): boolean {
