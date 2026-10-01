@@ -62,12 +62,17 @@ import {
 } from "@/lib/child-schedule/match";
 import {
   clampLessonMatchWindow,
+  DEFAULT_LESSON_MATCH_WINDOW_ENABLED,
   DEFAULT_LESSON_MATCH_WINDOW_MIN,
+  effectiveLessonMatchWindowMin,
+  getLessonMatchWindowEnabledSnapshot,
   getLessonMatchWindowSnapshot,
   MAX_LESSON_MATCH_WINDOW_MIN,
   MIN_LESSON_MATCH_WINDOW_MIN,
   saveLessonMatchWindow,
+  saveLessonMatchWindowEnabled,
   subscribeLessonMatchWindow,
+  subscribeLessonMatchWindowEnabled,
 } from "@/lib/child-schedule/match-window";
 import { savePreferredPlace } from "@/lib/child-schedule/preferred-place";
 import {
@@ -208,7 +213,17 @@ export function ScheduleBoard({
     getLessonMatchWindowSnapshot,
     () => String(DEFAULT_LESSON_MATCH_WINDOW_MIN),
   );
+  const storedWindowEnabledRaw = useSyncExternalStore(
+    subscribeLessonMatchWindowEnabled,
+    getLessonMatchWindowEnabledSnapshot,
+    () => (DEFAULT_LESSON_MATCH_WINDOW_ENABLED ? "1" : "0"),
+  );
   const lessonMatchWindowMin = clampLessonMatchWindow(Number(storedWindowRaw));
+  const lessonMatchWindowEnabled = storedWindowEnabledRaw === "1";
+  const effectiveWindowMin = effectiveLessonMatchWindowMin(
+    lessonMatchWindowMin,
+    lessonMatchWindowEnabled,
+  );
   const [windowDraft, setWindowDraft] = useState<string | null>(null);
   const [dateFilterOverride, setDateFilter] = useState<
     ScheduleDateFilter | undefined
@@ -357,7 +372,7 @@ export function ScheduleBoard({
   const deferredDateFilter = useDeferredValue(dateFilter);
   const deferredMatch = useDeferredValue(matchActive);
   const deferredSourceMode = useDeferredValue(sourceMode);
-  const deferredWindowMin = useDeferredValue(lessonMatchWindowMin);
+  const deferredWindowMin = useDeferredValue(effectiveWindowMin);
 
   const filtered = filterSchedule(schedule, {
     place: deferredPlace,
@@ -523,7 +538,7 @@ export function ScheduleBoard({
     isWeekendView && planReady
       ? buildNextMondayPreview(schedule, lessonPlan, {
           place,
-          windowMin: lessonMatchWindowMin,
+          windowMin: effectiveWindowMin,
           now,
         })
       : null;
@@ -636,14 +651,28 @@ export function ScheduleBoard({
     (hiddenMzkCount > 0 || showAllMzkConnections);
 
   const hoursFilterBody = matchActive && dayTimes ? (
-    <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
-      <FilterTimeDisplay value={dayTimes.start} emptyLabel="—" />
-      <span className="text-muted-foreground" aria-hidden>
-        –
-      </span>
-      <FilterTimeDisplay value={dayTimes.end} emptyLabel="—" />
-      <label className="inline-flex min-w-0 shrink items-center gap-1 text-xs text-muted-foreground">
-        <span>obejmuje</span>
+    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+      <div className="inline-flex items-center gap-x-1.5">
+        <FilterTimeDisplay value={dayTimes.start} emptyLabel="—" />
+        <span className="text-muted-foreground" aria-hidden>
+          –
+        </span>
+        <FilterTimeDisplay value={dayTimes.end} emptyLabel="—" />
+      </div>
+      <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
+      <div className="inline-flex min-w-0 shrink items-center gap-1.5 text-xs text-muted-foreground">
+        <label className="inline-flex cursor-pointer items-center gap-1.5">
+          <input
+            type="checkbox"
+            className="size-3.5 shrink-0 accent-bus"
+            checked={lessonMatchWindowEnabled}
+            aria-label="Ogranicz kursy oknem czasowym"
+            onChange={(event) => {
+              saveLessonMatchWindowEnabled(event.target.checked);
+            }}
+          />
+          <span>okno</span>
+        </label>
         <input
           type="number"
           inputMode="numeric"
@@ -651,6 +680,7 @@ export function ScheduleBoard({
           max={MAX_LESSON_MATCH_WINDOW_MIN}
           step={5}
           value={windowDraftValue}
+          disabled={!lessonMatchWindowEnabled}
           aria-label="Okno dopasowania do planu w minutach"
           onChange={(event) => setWindowDraft(event.target.value)}
           onBlur={() => commitLessonMatchWindow(windowDraftValue)}
@@ -659,10 +689,10 @@ export function ScheduleBoard({
               event.currentTarget.blur();
             }
           }}
-          className="h-8 w-12 min-w-0 max-w-full rounded-lg border border-border bg-card px-1 text-center text-sm tabular-nums text-foreground outline-hidden focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="h-8 w-12 min-w-0 max-w-full rounded-lg border border-border bg-card px-1 text-center text-sm tabular-nums text-foreground outline-hidden focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
         />
         <span>min</span>
-      </label>
+      </div>
     </div>
   ) : matchActive && isWeekendView ? (
     <p className="text-xs text-muted-foreground">
@@ -1376,7 +1406,11 @@ export function ScheduleBoard({
                 : hiddenMzkCount < 5
                   ? "kursy MZK"
                   : "kursów MZK"}{" "}
-              poza oknem (±{lessonMatchWindowMin} min).{" "}
+              poza oknem
+              {lessonMatchWindowEnabled
+                ? ` (±${lessonMatchWindowMin} min)`
+                : ""}
+              .{" "}
               <button
                 type="button"
                 className="font-medium text-foreground underline underline-offset-2 hover:text-mzk-deep"
