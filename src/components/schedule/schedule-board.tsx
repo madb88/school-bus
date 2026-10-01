@@ -374,10 +374,8 @@ export function ScheduleBoard({
     deferredMatch && target
       ? getDayTimes(lessonPlan, target.weekday)
       : undefined;
-  // Koniec lekcji z planu — także bez matcha, pod separator w Odwozach.
-  const planLessonEnd = target
-    ? getDayTimes(lessonPlan, target.weekday)?.end
-    : undefined;
+  // Separator „Koniec zajęć” tylko przy dopasowaniu do planu.
+  const planLessonEnd = dayTimes?.end;
   const planBlocksDay =
     deferredMatch &&
     target !== null &&
