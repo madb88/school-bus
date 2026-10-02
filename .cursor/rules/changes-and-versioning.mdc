@@ -28,6 +28,7 @@ Przed `npm install` nowej paczki:
 - Wersja: `package.json` → `APP_VERSION` / stopka
 - Podbij semver przy **user-facing** zmianach (README: większe zmiany widoczne dla użytkownika)
 - **Nie** podbijaj dla: refaktoru wewnętrznego, testów, komentarzy, czysto technicznych poprawek (chyba że konwencja zadania mówi inaczej)
+- Przy konflikcie merge/rebase na `version` w `package.json`: **zawsze zostaw wyższy semver** (nie wybieraj wg HEAD vs incoming)
 
 ## Jakość kodu
 
