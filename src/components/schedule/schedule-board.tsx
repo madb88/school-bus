@@ -6,6 +6,8 @@ import {
   ArrowLeftRight,
   CalendarDays,
   Check,
+  ChevronDown,
+  ChevronUp,
   Clock,
   FilterX,
   Link2,
@@ -233,7 +235,10 @@ export function ScheduleBoard({
   const [extraOptionsOpen, setExtraOptionsOpen] = useState(false);
   const [copiedFlash, setCopiedFlash] = useState(false);
   const [filtersStuck, setFiltersStuck] = useState(false);
+  /** Mobile: user expanded the sticky thin bar while scrolled. */
+  const [filtersPinnedOpen, setFiltersPinnedOpen] = useState(false);
   const filtersSentinelRef = useRef<HTMLDivElement>(null);
+  const filtersWasStuckRef = useRef(false);
   const planHintDismissed = useHintDismissed("plan");
   const mzkHintDismissed = useHintDismissed("mzk");
   const skipUrlWrite = useRef(false);
@@ -291,7 +296,14 @@ export function ScheduleBoard({
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setFiltersStuck(!entry.isIntersecting);
+        const stuck = !entry.isIntersecting;
+        if (stuck && !filtersWasStuckRef.current) {
+          setFiltersPinnedOpen(false);
+          setFiltersOpen(false);
+          setExtraOptionsOpen(false);
+        }
+        filtersWasStuckRef.current = stuck;
+        setFiltersStuck(stuck);
       },
       { threshold: 0 },
     );
@@ -1023,6 +1035,7 @@ export function ScheduleBoard({
   ].filter(Boolean);
 
   const tripCountLabel = formatTripCount(tripCount);
+  const mobileFiltersCollapsed = filtersStuck && !filtersPinnedOpen;
 
   return (
     <div className="space-y-10">
@@ -1067,9 +1080,61 @@ export function ScheduleBoard({
             filtersStuck ? "rounded-t-none" : "rounded-t-xl",
           )}
         >
+          {/* Mobile sticky: thin bar while scrolled */}
+          <div
+            className={cn(
+              "items-center gap-2 px-3 py-2",
+              mobileFiltersCollapsed ? "flex md:hidden" : "hidden",
+            )}
+          >
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm text-foreground">
+                {filterSummaryPrimary}
+              </p>
+              {filterSummarySecondaryParts.length > 0 ? (
+                <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                  {filterSummarySecondaryParts.join(" · ")}
+                </p>
+              ) : null}
+            </div>
+            {isWeekendView ? null : (
+              <span className="inline-flex shrink-0 items-center rounded-full bg-bus/15 px-2 py-0.5 text-[0.7rem] font-semibold text-bus-deep tabular-nums">
+                {tripCountLabel}
+              </span>
+            )}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              aria-expanded={false}
+              aria-controls="schedule-filters-panel"
+              onClick={() => setFiltersPinnedOpen(true)}
+            >
+              Rozwiń
+              <ChevronDown aria-hidden className="size-3.5" />
+            </Button>
+          </div>
+
           {/* Mobile: compact bar + place / day / direction */}
-          <div className="flex flex-col gap-2 border-b border-border/60 p-3 md:hidden">
+          <div
+            className={cn(
+              "flex-col gap-2 border-b border-border/60 p-3 md:hidden",
+              mobileFiltersCollapsed ? "hidden" : "flex",
+            )}
+          >
             <div className="flex flex-wrap items-center gap-2">
+              {filtersStuck ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  aria-expanded
+                  onClick={() => setFiltersPinnedOpen(false)}
+                >
+                  Zwiń
+                  <ChevronUp aria-hidden className="size-3.5" />
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 size="sm"
@@ -1187,7 +1252,10 @@ export function ScheduleBoard({
 
           <div
             id="schedule-filters-panel"
-            className={cn(filtersOpen ? "block" : "hidden", "md:block")}
+            className={cn(
+              filtersOpen && !mobileFiltersCollapsed ? "block" : "hidden",
+              "md:block",
+            )}
           >
             <div className="hidden md:block">{primaryFilters}</div>
             <div className="border-b border-border/60 p-3 md:hidden">
@@ -1204,12 +1272,20 @@ export function ScheduleBoard({
 
           <div
             id="schedule-extra-options-panel"
-            className={cn(extraOptionsOpen ? "block" : "hidden", "md:block")}
+            className={cn(
+              extraOptionsOpen && !mobileFiltersCollapsed ? "block" : "hidden",
+              "md:block",
+            )}
           >
             {additionalOptions}
           </div>
 
-          <div className="flex flex-col gap-1.5 border-t border-border/60 px-3 py-2.5 sm:px-4">
+          <div
+            className={cn(
+              "flex flex-col gap-1.5 border-t border-border/60 px-3 py-2.5 sm:px-4",
+              mobileFiltersCollapsed && "max-md:hidden",
+            )}
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate text-sm text-foreground">
