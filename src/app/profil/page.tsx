@@ -42,15 +42,15 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
     params.plus === "1" || plus.state === "pending" || plus.state === "unknown";
 
   return (
-    <PageShell header={<SiteHeader />}>
+    <PageShell wide header={<SiteHeader />}>
       <div className="page-enter">
-        <header className="mb-10 space-y-3">
+        <header className="mb-8 space-y-3 sm:mb-10">
           <PageEyebrow>Konto</PageEyebrow>
           <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">
             Profil
           </h1>
           <p className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Konto na tym urządzeniu i Plan Plus.
+            Zarządzaj swoim kontem i planem.
           </p>
         </header>
 
