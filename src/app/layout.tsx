@@ -40,6 +40,9 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     startupImage: iosSplashStartupImages(),
   },
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+  },
   icons: {
     icon: [
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
