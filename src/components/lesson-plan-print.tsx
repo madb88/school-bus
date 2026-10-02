@@ -4,9 +4,13 @@ import { useSyncExternalStore } from "react";
 import { hasConfiguredLessons } from "@/lib/child-schedule/storage";
 import {
   clampLessonMatchWindow,
+  DEFAULT_LESSON_MATCH_WINDOW_ENABLED,
   DEFAULT_LESSON_MATCH_WINDOW_MIN,
+  effectiveLessonMatchWindowMin,
+  getLessonMatchWindowEnabledSnapshot,
   getLessonMatchWindowSnapshot,
   subscribeLessonMatchWindow,
+  subscribeLessonMatchWindowEnabled,
 } from "@/lib/child-schedule/match-window";
 import type { ChildLessonPlan } from "@/lib/child-schedule/types";
 import {
@@ -276,7 +280,15 @@ export function LessonPlanPrint({
     getLessonMatchWindowSnapshot,
     () => String(DEFAULT_LESSON_MATCH_WINDOW_MIN),
   );
-  const windowMin = clampLessonMatchWindow(Number(storedWindowRaw));
+  const storedWindowEnabledRaw = useSyncExternalStore(
+    subscribeLessonMatchWindowEnabled,
+    getLessonMatchWindowEnabledSnapshot,
+    () => (DEFAULT_LESSON_MATCH_WINDOW_ENABLED ? "1" : "0"),
+  );
+  const windowMin = effectiveLessonMatchWindowMin(
+    clampLessonMatchWindow(Number(storedWindowRaw)),
+    storedWindowEnabledRaw === "1",
+  );
 
   if (!plan.place || !hasConfiguredLessons(plan)) return null;
 

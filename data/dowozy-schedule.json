@@ -23,22 +23,15 @@
           "stops": [
             {
               "time": "6:30",
-              "places": [
-                "Książ"
-              ]
+              "places": ["Książ"]
             },
             {
               "time": "6:35",
-              "places": [
-                "Barcikowice D."
-              ]
+              "places": ["Barcikowice D."]
             },
             {
               "time": "6:40",
-              "places": [
-                "Zatonie",
-                "Marzęcin"
-              ]
+              "places": ["Zatonie", "Marzęcin"]
             }
           ]
         },
@@ -47,39 +40,27 @@
           "stops": [
             {
               "time": "7:05",
-              "places": [
-                "Barcikowice D."
-              ]
+              "places": ["Barcikowice D."]
             },
             {
               "time": "7:05",
-              "places": [
-                "Zatonie"
-              ]
+              "places": ["Zatonie"]
             },
             {
               "time": "7:10",
-              "places": [
-                "Marzęcin"
-              ]
+              "places": ["Marzęcin"]
             },
             {
               "time": "7:30",
-              "places": [
-                "Złote Piaski"
-              ]
+              "places": ["Złote Piaski"]
             },
             {
               "time": "7:35",
-              "places": [
-                "Ługowo"
-              ]
+              "places": ["Ługowo"]
             },
             {
               "time": "7:40",
-              "places": [
-                "Sucha"
-              ]
+              "places": ["Sucha"]
             }
           ]
         },
@@ -88,34 +69,23 @@
           "stops": [
             {
               "time": "12:00",
-              "places": [
-                "Ługowo"
-              ]
+              "places": ["Ługowo"]
             },
             {
               "time": "12:02",
-              "places": [
-                "Złote Piaski"
-              ]
+              "places": ["Złote Piaski"]
             },
             {
               "time": "12:05",
-              "places": [
-                "Sucha"
-              ]
+              "places": ["Sucha"]
             },
             {
               "time": "12:20",
-              "places": [
-                "Barcikowice D."
-              ]
+              "places": ["Barcikowice D."]
             },
             {
               "time": "12:25",
-              "places": [
-                "Zatonie",
-                "Marzęcin"
-              ]
+              "places": ["Zatonie", "Marzęcin"]
             }
           ]
         },
@@ -125,16 +95,11 @@
           "stops": [
             {
               "time": "11:10",
-              "places": [
-                "Sucha",
-                "Złote Piaski"
-              ]
+              "places": ["Sucha", "Złote Piaski"]
             },
             {
               "time": "11:15",
-              "places": [
-                "Ługowo"
-              ]
+              "places": ["Ługowo"]
             }
           ]
         }
@@ -149,9 +114,7 @@
           "stops": [
             {
               "time": "6:45",
-              "places": [
-                "Barcikowice M."
-              ]
+              "places": ["Barcikowice M."]
             }
           ]
         }
@@ -166,16 +129,11 @@
           "stops": [
             {
               "time": "6:40",
-              "places": [
-                "Ługowo"
-              ]
+              "places": ["Ługowo"]
             },
             {
               "time": "6:45",
-              "places": [
-                "Złote Piaski",
-                "Sucha"
-              ]
+              "places": ["Złote Piaski", "Sucha"]
             }
           ]
         },
@@ -184,15 +142,11 @@
           "stops": [
             {
               "time": "7:20",
-              "places": [
-                "Nowy Kisielin"
-              ]
+              "places": ["Nowy Kisielin"]
             },
             {
               "time": "7:25",
-              "places": [
-                "Stary Kisielin"
-              ]
+              "places": ["Stary Kisielin"]
             }
           ]
         }
@@ -202,7 +156,7 @@
   "dropoffsByDate": [
     {
       "dateLabel": "Poniedziałek, wtorek i czwartek",
-      "driver": "Nieznany kierowca",
+      "driver": "p. Bogdan Metrykowski",
       "runs": [
         {
           "time": "11:45",
@@ -228,12 +182,7 @@
         },
         {
           "time": "13:45",
-          "places": [
-            "Zatonie",
-            "Marzęcin",
-            "Barcikowice D.",
-            "Książ"
-          ]
+          "places": ["Zatonie", "Marzęcin", "Barcikowice D.", "Książ"]
         },
         {
           "time": "14:45",
@@ -248,12 +197,7 @@
         },
         {
           "time": "15:30",
-          "places": [
-            "Zatonie",
-            "Marzęcin",
-            "Barcikowice D.",
-            "Książ"
-          ]
+          "places": ["Zatonie", "Marzęcin", "Barcikowice D.", "Książ"]
         },
         {
           "time": "16:20",
@@ -271,7 +215,7 @@
     },
     {
       "dateLabel": "Środa",
-      "driver": "Nieznany kierowca",
+      "driver": "p. Bogdan Metrykowski",
       "runs": [
         {
           "time": "11:45",
@@ -297,12 +241,7 @@
         },
         {
           "time": "13:45",
-          "places": [
-            "Zatonie",
-            "Marzęcin",
-            "Barcikowice D.",
-            "Książ"
-          ]
+          "places": ["Zatonie", "Marzęcin", "Barcikowice D.", "Książ"]
         },
         {
           "time": "14:45",
@@ -340,7 +279,7 @@
     },
     {
       "dateLabel": "Piątek",
-      "driver": "Nieznany kierowca",
+      "driver": "p. Bogdan Metrykowski",
       "runs": [
         {
           "time": "11:45",
@@ -366,12 +305,7 @@
         },
         {
           "time": "13:45",
-          "places": [
-            "Zatonie",
-            "Marzęcin",
-            "Barcikowice D.",
-            "Książ"
-          ]
+          "places": ["Zatonie", "Marzęcin", "Barcikowice D.", "Książ"]
         },
         {
           "time": "14:45",
@@ -402,10 +336,7 @@
       "runs": [
         {
           "time": "12:40",
-          "places": [
-            "Stary Kisielin",
-            "Nowy Kisielin"
-          ]
+          "places": ["Stary Kisielin", "Nowy Kisielin"]
         },
         {
           "time": "13:45",
@@ -419,10 +350,7 @@
         },
         {
           "time": "14:45",
-          "places": [
-            "Stary Kisielin",
-            "Nowy Kisielin"
-          ]
+          "places": ["Stary Kisielin", "Nowy Kisielin"]
         },
         {
           "time": "15:40",

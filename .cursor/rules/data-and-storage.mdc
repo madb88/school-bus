@@ -29,7 +29,8 @@ Nie loguj treści planów, tokenów transferu, kluczy push ani sekretów.
 | `school-bus.child-lesson-plan.v1` | plan lekcji |
 | `school-bus.mzk-route.v1` | trasa MZK |
 | `school-bus.preferred-place.v1` | wybrane miejsce |
-| `school-bus.lesson-match-window.v1` | okno dopasowania (min) |
+| `school-bus.lesson-match-window.v1` | okno dopasowania (min), domyślnie 240 |
+| `school-bus.lesson-match-window-enabled.v1` | czy okno dopasowania jest włączone (`1`/`0`) |
 | `school-bus.push-kinds.v1` | rodzaje powiadomień |
 | `school-bus.hint-*.dismissed.v1` | onboarding hints |
 | `school-bus-theme` | light/dark |
