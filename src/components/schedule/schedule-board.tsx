@@ -132,6 +132,9 @@ type ScheduleBoardProps = {
 const filterToggleActiveClass =
   "border-transparent bg-bus text-bus-foreground shadow-none hover:bg-bus/90 hover:text-bus-foreground dark:border-transparent dark:bg-bus dark:text-bus-foreground dark:hover:bg-bus/85 dark:hover:text-bus-foreground";
 
+/** Expand compact mobile filters only when this close to the document top. */
+const MOBILE_FILTERS_EXPAND_SCROLL_Y = 16;
+
 function FilterFieldLabel({
   id,
   icon: Icon,
@@ -235,6 +238,8 @@ export function ScheduleBoard({
   const [extraOptionsOpen, setExtraOptionsOpen] = useState(false);
   const [copiedFlash, setCopiedFlash] = useState(false);
   const [filtersStuck, setFiltersStuck] = useState(false);
+  /** Mobile: thin filter bar after scrolling away from the top. */
+  const [filtersCompact, setFiltersCompact] = useState(false);
   /** Mobile: user expanded the sticky thin bar while scrolled. */
   const [filtersPinnedOpen, setFiltersPinnedOpen] = useState(false);
   const filtersSentinelRef = useRef<HTMLDivElement>(null);
@@ -298,6 +303,10 @@ export function ScheduleBoard({
       ([entry]) => {
         const stuck = !entry.isIntersecting;
         if (stuck && !filtersWasStuckRef.current) {
+          // Entering sticky: collapse to thin bar. Stay collapsed until the
+          // page is scrolled back near the top (or the user taps Rozwiń) —
+          // auto-expand on unstick fights sticky height and causes a jump loop.
+          setFiltersCompact(true);
           setFiltersPinnedOpen(false);
           setFiltersOpen(false);
           setExtraOptionsOpen(false);
@@ -309,6 +318,17 @@ export function ScheduleBoard({
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => {
+      if (window.scrollY > MOBILE_FILTERS_EXPAND_SCROLL_Y) return;
+      setFiltersCompact(false);
+      setFiltersPinnedOpen(false);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   // Keep address bar in sync so filters are shareable.
@@ -1035,7 +1055,7 @@ export function ScheduleBoard({
   ].filter(Boolean);
 
   const tripCountLabel = formatTripCount(tripCount);
-  const mobileFiltersCollapsed = filtersStuck && !filtersPinnedOpen;
+  const mobileFiltersCollapsed = filtersCompact && !filtersPinnedOpen;
 
   return (
     <div className="space-y-10">
@@ -1123,18 +1143,6 @@ export function ScheduleBoard({
             )}
           >
             <div className="flex flex-wrap items-center gap-2">
-              {filtersStuck ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  aria-expanded
-                  onClick={() => setFiltersPinnedOpen(false)}
-                >
-                  Zwiń
-                  <ChevronUp aria-hidden className="size-3.5" />
-                </Button>
-              ) : null}
               <Button
                 type="button"
                 size="sm"
@@ -1167,87 +1175,100 @@ export function ScheduleBoard({
                   {extraOptionsOpen ? "▴" : "▾"}
                 </span>
               </Button>
+              {filtersCompact ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  className="ml-auto"
+                  aria-expanded
+                  onClick={() => setFiltersPinnedOpen(false)}
+                >
+                  Zwiń
+                  <ChevronUp aria-hidden className="size-3.5" />
+                </Button>
+              ) : null}
             </div>
-            <div className="flex min-w-0 flex-col gap-1">
-              <Label
-                htmlFor="schedule-mobile-place"
-                className="text-xs text-muted-foreground"
-              >
-                Miejsce
-              </Label>
-              <NativeSelect
-                id="schedule-mobile-place"
-                size="sm"
-                className="w-full max-w-full"
-                value={place ?? ""}
-                onChange={(event) => {
-                  const next = event.target.value || null;
-                  startTransition(() => {
-                    setPlaceOverride(next);
-                    persistPlace(next);
-                  });
-                }}
-              >
-                {placeItems.map((item) => (
-                  <NativeSelectOption
-                    key={item.value ?? "__all"}
-                    value={item.value ?? ""}
+                <div className="flex min-w-0 flex-col gap-1">
+                  <Label
+                    htmlFor="schedule-mobile-place"
+                    className="text-xs text-muted-foreground"
                   >
-                    {item.label}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-            </div>
-            <div className="grid grid-cols-2 gap-1.5">
-              <div className="flex min-w-0 flex-col gap-1">
-                <Label
-                  htmlFor="schedule-mobile-date"
-                  className="text-xs text-muted-foreground"
-                >
-                  Kiedy?
-                </Label>
-                <NativeSelect
-                  id="schedule-mobile-date"
-                  size="sm"
-                  className="w-full max-w-full"
-                  value={dateFilter === "all" ? "today" : dateFilter}
-                  onChange={(event) => {
-                    const next = event.target.value as ScheduleDateFilter;
-                    startTransition(() => setDateFilter(next));
-                  }}
-                >
-                  {mobileDateItems.map((item) => (
-                    <NativeSelectOption key={item.value} value={item.value}>
-                      {item.label}
-                    </NativeSelectOption>
-                  ))}
-                </NativeSelect>
-              </div>
-              <div className="flex min-w-0 flex-col gap-1">
-                <Label
-                  htmlFor="schedule-mobile-direction"
-                  className="text-xs text-muted-foreground"
-                >
-                  Kierunek
-                </Label>
-                <NativeSelect
-                  id="schedule-mobile-direction"
-                  size="sm"
-                  className="w-full max-w-full"
-                  value={direction}
-                  onChange={(event) => {
-                    const next = event.target.value as ScheduleDirection;
-                    startTransition(() => setDirection(next));
-                  }}
-                >
-                  {mobileDirectionItems.map((item) => (
-                    <NativeSelectOption key={item.value} value={item.value}>
-                      {item.label}
-                    </NativeSelectOption>
-                  ))}
-                </NativeSelect>
-              </div>
-            </div>
+                    Miejsce
+                  </Label>
+                  <NativeSelect
+                    id="schedule-mobile-place"
+                    size="sm"
+                    className="w-full max-w-full"
+                    value={place ?? ""}
+                    onChange={(event) => {
+                      const next = event.target.value || null;
+                      startTransition(() => {
+                        setPlaceOverride(next);
+                        persistPlace(next);
+                      });
+                    }}
+                  >
+                    {placeItems.map((item) => (
+                      <NativeSelectOption
+                        key={item.value ?? "__all"}
+                        value={item.value ?? ""}
+                      >
+                        {item.label}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <Label
+                      htmlFor="schedule-mobile-date"
+                      className="text-xs text-muted-foreground"
+                    >
+                      Kiedy?
+                    </Label>
+                    <NativeSelect
+                      id="schedule-mobile-date"
+                      size="sm"
+                      className="w-full max-w-full"
+                      value={dateFilter === "all" ? "today" : dateFilter}
+                      onChange={(event) => {
+                        const next = event.target.value as ScheduleDateFilter;
+                        startTransition(() => setDateFilter(next));
+                      }}
+                    >
+                      {mobileDateItems.map((item) => (
+                        <NativeSelectOption key={item.value} value={item.value}>
+                          {item.label}
+                        </NativeSelectOption>
+                      ))}
+                    </NativeSelect>
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <Label
+                      htmlFor="schedule-mobile-direction"
+                      className="text-xs text-muted-foreground"
+                    >
+                      Kierunek
+                    </Label>
+                    <NativeSelect
+                      id="schedule-mobile-direction"
+                      size="sm"
+                      className="w-full max-w-full"
+                      value={direction}
+                      onChange={(event) => {
+                        const next = event.target.value as ScheduleDirection;
+                        startTransition(() => setDirection(next));
+                      }}
+                    >
+                      {mobileDirectionItems.map((item) => (
+                        <NativeSelectOption key={item.value} value={item.value}>
+                          {item.label}
+                        </NativeSelectOption>
+                      ))}
+                    </NativeSelect>
+                  </div>
+                </div>
           </div>
 
           <div
