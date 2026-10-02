@@ -71,7 +71,7 @@ export function AppSplash() {
           __html: `
 #app-splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.75rem;background:#111821;color:#f2f6fb;opacity:1;transition:opacity ${FADE_MS}ms ease;pointer-events:none}
 #app-splash[data-hidden]{opacity:0}
-#app-splash .app-splash__logo{width:5rem;height:5rem;border-radius:1rem}
+#app-splash .app-splash__logo{width:7.5rem;height:auto;display:block}
 #app-splash .app-splash__title{margin:0;font-family:var(--font-display),ui-sans-serif,system-ui,sans-serif;font-size:1.125rem;font-weight:600;letter-spacing:-.02em;text-align:center}
 #app-splash .app-splash__caption{margin:0;font-size:.75rem;color:#8b9bb0}
 #app-splash .app-splash__spinner{width:1.5rem;height:1.5rem;margin-top:.25rem;border:2px solid rgba(240,120,32,.25);border-top-color:#f07820;border-radius:9999px;animation:app-splash-spin .7s linear infinite}
@@ -91,10 +91,10 @@ export function AppSplash() {
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- splash must paint before next/image JS */}
         <img
-          src="/icons/icon-192.png"
+          src="/icons/logo-bus-sm.png"
           alt=""
-          width={80}
-          height={80}
+          width={144}
+          height={96}
           className="app-splash__logo"
           decoding="async"
         />

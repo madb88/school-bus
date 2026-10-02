@@ -6,6 +6,7 @@ import { AppSplash } from "@/components/app-splash";
 import { PwaRegister } from "@/components/pwa-register";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { iosSplashStartupImages } from "@/lib/pwa/ios-splash";
 import {
   getSiteUrl,
   rootDescription,
@@ -37,6 +38,7 @@ export const metadata: Metadata = {
     capable: true,
     title: siteShortName,
     statusBarStyle: "black-translucent",
+    startupImage: iosSplashStartupImages(),
   },
   icons: {
     icon: [
