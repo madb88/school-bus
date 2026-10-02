@@ -32,13 +32,13 @@ export function FeedbackFab() {
           <Button
             type="button"
             size="lg"
-            className="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom,0px))] z-40 shadow-md print:hidden max-sm:size-11 max-sm:gap-0 sm:right-6 sm:bottom-6 sm:gap-2"
+            className="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom,0px))] z-40 hidden shadow-md print:hidden sm:right-6 sm:bottom-6 sm:gap-2 md:inline-flex"
             aria-label="Wyślij opinię"
           />
         }
       >
         <MessageSquare aria-hidden className="size-4" />
-        <span className="hidden sm:inline">Opinia</span>
+        Opinia
       </SheetTrigger>
       <SheetContent
         side="right"
