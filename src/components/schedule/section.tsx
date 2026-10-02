@@ -62,7 +62,7 @@ export function DirectionSection({
   return (
     <section
       aria-labelledby={headingId}
-      className="schedule-direction-section min-w-0 rounded-xl border border-border/70 bg-card/90 p-3 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:p-4 print:break-inside-avoid print:p-2 print:shadow-none dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]"
+      className="schedule-direction-section -mx-6 min-w-0 rounded-none border border-border/70 border-x-0 bg-card/90 p-3 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:-mx-10 sm:p-4 lg:mx-0 lg:rounded-xl lg:border-x print:mx-0 print:break-inside-avoid print:rounded-none print:border-x print:p-2 print:shadow-none dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]"
     >
       <SectionHeading
         id={headingId}
