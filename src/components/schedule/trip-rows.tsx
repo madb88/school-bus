@@ -34,6 +34,9 @@ export function TripBadge({
 export const tripRowCardClass =
   "rounded-lg border border-border/60 bg-card/80 px-3 py-2.5 sm:px-3.5 print:px-2 print:py-1.5";
 
+export const tripRowGridClass =
+  "grid grid-cols-[5rem_1fr] gap-2.5 sm:grid-cols-[5.25rem_1fr] sm:gap-3";
+
 export const timelineRailClass = "relative pl-3 sm:pl-3.5";
 
 /**
@@ -174,7 +177,7 @@ export function StopRow({
         isNext && "border-l-bus bg-bus/10",
       )}
     >
-      <div className="grid grid-cols-[3.75rem_1fr] gap-2.5 sm:grid-cols-[4.25rem_1fr] sm:gap-3">
+      <div className={tripRowGridClass}>
         <div className="relative flex flex-col gap-0.5">
           <span
             aria-hidden
@@ -244,7 +247,7 @@ export function MzkDepartureRow({
         isNext && "border-l-mzk bg-mzk/10",
       )}
     >
-      <div className="grid grid-cols-[3.75rem_1fr] gap-2.5 sm:grid-cols-[4.25rem_1fr] sm:gap-3">
+      <div className={tripRowGridClass}>
         <div className="relative flex flex-col gap-0.5">
           <span
             aria-hidden
@@ -308,7 +311,7 @@ export function SchoolTimelineRow({
         isNext && "border-l-bus bg-bus/10",
       )}
     >
-      <div className="grid grid-cols-[3.75rem_1fr] gap-2.5 sm:grid-cols-[4.25rem_1fr] sm:gap-3">
+      <div className={tripRowGridClass}>
         <div className="relative flex flex-col gap-0.5">
           <span
             aria-hidden
