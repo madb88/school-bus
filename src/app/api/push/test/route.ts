@@ -1,12 +1,22 @@
 import { NextResponse } from "next/server";
 import {
+  PUSH_NOT_YOURS,
+  pushOwnedBy,
+  requirePlusPush,
+  type PushAccess,
+} from "@/lib/push/access";
+import {
   checkPushTestRateLimit,
   getClientIpFromHeaders,
 } from "@/lib/push/rate-limit";
 import { pushIsConfigured, sendPush } from "@/lib/push/send";
-import { parseSubscription } from "@/lib/push/store";
+import { getPushRecord, parseSubscription, subscriptionId } from "@/lib/push/store";
 
 export const runtime = "nodejs";
+
+function denied(access: Extract<PushAccess, { ok: false }>) {
+  return NextResponse.json({ error: access.error }, { status: access.status });
+}
 
 const TEST_PAYLOAD = {
   title: "Odjazd do szkoły za 20 min",
@@ -35,6 +45,9 @@ export async function POST(request: Request) {
     );
   }
 
+  const access = await requirePlusPush();
+  if (!access.ok) return denied(access);
+
   let body: unknown;
   try {
     body = await request.json();
@@ -50,6 +63,15 @@ export async function POST(request: Request) {
   );
   if (!subscription) {
     return NextResponse.json({ error: "Niepoprawne żądanie." }, { status: 400 });
+  }
+
+  const existing = await getPushRecord(subscriptionId(subscription.endpoint));
+  if (
+    existing &&
+    (existing.subscription.keys.auth !== subscription.keys.auth ||
+      !pushOwnedBy(existing.userId, access.userId))
+  ) {
+    return NextResponse.json({ error: PUSH_NOT_YOURS }, { status: 403 });
   }
 
   const result = await sendPush(subscription, TEST_PAYLOAD);

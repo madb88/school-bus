@@ -11,11 +11,18 @@ import { THEME_STORAGE_KEY } from "@/components/theme-init";
 import { ThemeScript } from "@/components/theme-script";
 
 export type Theme = "light" | "dark";
+export type ThemePreference = "system" | Theme;
+
+type ThemeSnapshot = {
+  theme: Theme;
+  preference: ThemePreference;
+};
 
 type ThemeContextValue = {
+  /** Resolved light or dark, including when the preference follows the system. */
   theme: Theme;
-  setTheme: (theme: Theme) => void;
-  toggleTheme: () => void;
+  preference: ThemePreference;
+  setThemePreference: (preference: ThemePreference) => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -34,14 +41,19 @@ function readDomTheme(): Theme {
     : "light";
 }
 
-function readStoredTheme(): Theme | null {
+function readStoredPreference(): ThemePreference {
   try {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    if (stored === "light" || stored === "dark") return stored;
+    if (stored === "light" || stored === "dark" || stored === "system") return stored;
   } catch {
     /* ignore */
   }
-  return null;
+  return "system";
+}
+
+function readStoredTheme(): Theme | null {
+  const preference = readStoredPreference();
+  return preference === "system" ? null : preference;
 }
 
 function systemTheme(): Theme {
@@ -83,25 +95,37 @@ function subscribe(onStoreChange: () => void) {
   };
 }
 
-function getSnapshot(): Theme {
-  return readDomTheme();
+const SERVER_SNAPSHOT: ThemeSnapshot = { theme: "light", preference: "system" };
+
+let snapshotKey = "";
+let snapshot: ThemeSnapshot = SERVER_SNAPSHOT;
+
+function getSnapshot(): ThemeSnapshot {
+  const preference = readStoredPreference();
+  const theme = readDomTheme();
+  const key = `${preference}:${theme}`;
+  if (key !== snapshotKey) {
+    snapshotKey = key;
+    snapshot = { preference, theme };
+  }
+  return snapshot;
 }
 
-function getServerSnapshot(): Theme {
+function getServerSnapshot(): ThemeSnapshot {
   // Matches SSR + ThemeScript boot: first paint may already be dark on the
   // document, but React state stays light until hydration reads the DOM.
-  return "light";
+  return SERVER_SNAPSHOT;
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const theme = useSyncExternalStore(
+  const { theme, preference } = useSyncExternalStore(
     subscribe,
     getSnapshot,
     getServerSnapshot,
   );
 
-  const setTheme = useCallback((next: Theme) => {
-    applyTheme(next);
+  const setThemePreference = useCallback((next: ThemePreference) => {
+    applyTheme(next === "system" ? systemTheme() : next);
     try {
       localStorage.setItem(THEME_STORAGE_KEY, next);
     } catch {
@@ -110,12 +134,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     notifyThemeListeners();
   }, []);
 
-  const toggleTheme = useCallback(() => {
-    setTheme(readDomTheme() === "dark" ? "light" : "dark");
-  }, [setTheme]);
-
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, preference, setThemePreference }}>
       <ThemeScript />
       {children}
     </ThemeContext.Provider>

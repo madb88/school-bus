@@ -1,6 +1,7 @@
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { getWarsawParts, isSchoolDay } from "@/lib/dowozy/schedule-dates";
 import type { Schedule } from "@/lib/dowozy/types";
+import { userHasActivePlus } from "./access";
 import { dueTripsForPlan, warsawDateKey } from "./due-trips";
 import { schoolScheduleFingerprint } from "./schedule-fingerprint";
 import { sendPush } from "./send";
@@ -101,6 +102,11 @@ async function notifyRecord(
   today: string,
   now: Date,
 ): Promise<{ sent: number; removed: boolean }> {
+  if (!record.userId || !(await userHasActivePlus(record.userId, now))) {
+    await deletePushRecord(subscriptionId(record.subscription.endpoint));
+    return { sent: 0, removed: true };
+  }
+
   let next = record;
   let sent = 0;
   let fingerprintDirty = false;

@@ -30,10 +30,10 @@ const SECTIONS: Section[] = [
     id: "privacy-first",
     title: "2. Jak dbamy o prywatność",
     paragraphs: [
-      "Aplikacja służy do przeglądania rozkładów autobusów szkolnych i wybranych kursów MZK, dopasowania ich do planu lekcji oraz — opcjonalnie — przenoszenia ustawień między urządzeniami i włączania przypomnień.",
-      "Bez powiadomień — Twój plan pozostaje na Twoim urządzeniu.",
-      "Po włączeniu powiadomień część danych planu jest przechowywana na serwerze, ponieważ jest to konieczne do wysyłania spersonalizowanych powiadomień.",
-      "Nie wymagamy konta ani logowania. Podanie danych (np. e-mail w formularzu opinii albo włączenie powiadomień) jest dobrowolne.",
+      "Aplikacja służy do przeglądania rozkładów autobusów szkolnych i wybranych kursów MZK, dopasowania ich do planu lekcji oraz — opcjonalnie — przenoszenia ustawień między urządzeniami, logowania do konta, zakupu Planu Plus i włączania przypomnień.",
+      "Podstawowe rozkłady i lokalny plan lekcji działają bez konta. Konto (logowanie adresem e-mail) jest opcjonalne i potrzebne do Planu Plus oraz powiązanych funkcji, w tym powiadomień Web Push.",
+      "Bez powiadomień plan lekcji pozostaje na Twoim urządzeniu. Po włączeniu powiadomień (wymaga aktywnego Planu Plus) część danych planu jest przechowywana na serwerze, ponieważ jest to konieczne do wysyłania spersonalizowanych przypomnień.",
+      "Podanie danych (np. e-mail przy logowaniu lub w formularzu opinii albo włączenie powiadomień) jest dobrowolne.",
     ],
   },
   {
@@ -53,12 +53,40 @@ const SECTIONS: Section[] = [
     ],
     afterBullets: [
       "Dane lokalne są potrzebne do działania spersonalizowanych funkcji aplikacji. Możesz je usunąć, czyszcząc dane witryny w ustawieniach przeglądarki albo usuwając poszczególne ustawienia w aplikacji (np. plan lekcji).",
-      "Aplikacja nie zapisuje samodzielnie cookies ani sessionStorage. Usługi zewnętrzne opisane poniżej mogą stosować własne mechanizmy techniczne — zgodnie ze swoją dokumentacją.",
+      "Aplikacja nie używa sessionStorage. Usługi zewnętrzne opisane poniżej mogą stosować własne mechanizmy techniczne — zgodnie ze swoją dokumentacją.",
+    ],
+  },
+  {
+    id: "session-cookie",
+    title: "4. Ciasteczko sesji logowania",
+    paragraphs: [
+      "Po zalogowaniu aplikacja ustawia własne ciasteczko sesji potrzebne do utrzymania logowania na tym urządzeniu.",
+    ],
+    bullets: [
+      "nazwa: sb_session,",
+      "cel: rozpoznanie zalogowanej sesji (konto Plan Plus / powiadomienia),",
+      "czas życia: około 30 dni od ustawienia (Max-Age); po wylogowaniu ciasteczko jest usuwane,",
+      "właściwości: HttpOnly, SameSite=Lax; Secure w środowisku produkcyjnym.",
+    ],
+    afterBullets: [
+      "Ciasteczko jest niezbędne do funkcji, o które prosisz przy logowaniu. Nie stosujemy w aplikacji banera zgody na cookies wyłącznie pod to ciasteczko. Nie używamy własnych cookies marketingowych ani reklamowych.",
+      "Płatność Planu Plus odbywa się przez przekierowanie do Stripe Checkout (osobna strona dostawcy płatności). Ciasteczka Stripe na ich domenie podlegają polityce Stripe.",
+    ],
+  },
+  {
+    id: "account-plus",
+    title: "5. Konto, e-mail i Plan Plus",
+    paragraphs: [
+      "Możesz zalogować się adresem e-mail bez hasła (tzw. magic link: jednorazowy link i 6-cyfrowy kod w wiadomości). E-mail jest identyfikatorem konta.",
+      "Przy pierwszym udanym logowaniu tworzymy w magazynie serwera (Upstash Redis) rekord konta powiązany z znormalizowanym adresem e-mail oraz sesję. Jedno konto może mieć wiele sesji na różnych urządzeniach; wylogowanie kończy tylko bieżącą sesję.",
+      "Plan Plus to opcjonalna, płatna funkcja (jednorazowa opłata za rok szkolny). Po opłaceniu zapisujemy na serwerze uprawnienie (entitlement) z datą ważności — aby wiedzieć, czy Plan Plus jest aktywny, oraz aby umożliwić funkcje zastrzeżone dla Plus (w tym powiadomienia).",
+      "Checkout prowadzi Stripe. Z naszej aplikacji do Stripe trafiają dane potrzebne do płatności (m.in. e-mail konta oraz wewnętrzny identyfikator użytkownika w metadanych zamówienia). Stripe przetwarza dane karty / metody płatności zgodnie ze swoją polityką — nie przechowujemy numeru karty w naszej aplikacji.",
+      "Po udanej płatności możemy wysłać na e-mail konta potwierdzenie zakupu (Resend). Przy aktywnym Planie Plus możesz też zgłosić reklamację dotyczącą tej usługi z poziomu profilu.",
     ],
   },
   {
     id: "settings-transfer",
-    title: "4. Przenoszenie ustawień (kod / QR)",
+    title: "6. Przenoszenie ustawień (kod / QR)",
     paragraphs: [
       "Możesz przenieść plan lekcji, trasę MZK i okno dopasowania na inne urządzenie za pomocą kodu QR lub krótkiego kodu tekstowego.",
       "Przed zapisem na serwerze dane są szyfrowane algorytmem AES-256-GCM. Na serwerze (Upstash Redis) trafia wyłącznie zaszyfrowany pakiet, powiązany z jednorazowym kodem.",
@@ -68,39 +96,40 @@ const SECTIONS: Section[] = [
   },
   {
     id: "web-push",
-    title: "5. Powiadomienia Web Push (opcjonalne)",
+    title: "7. Powiadomienia Web Push (opcjonalne)",
     paragraphs: [
-      "Powiadomienia są funkcją opcjonalną — uruchamianą dopiero wtedy, gdy o to poprosisz i zezwolisz na nie w przeglądarce.",
-      "Bez powiadomień — Twój plan pozostaje na Twoim urządzeniu. Po włączeniu powiadomień część danych planu jest przechowywana na serwerze, ponieważ jest to konieczne do wysyłania spersonalizowanych powiadomień.",
+      "Powiadomienia są funkcją opcjonalną — uruchamianą dopiero wtedy, gdy o to poprosisz, zezwolisz na nie w przeglądarce i masz aktywny Plan Plus oraz sesję logowania.",
+      "Bez powiadomień plan lekcji pozostaje na Twoim urządzeniu. Po włączeniu powiadomień część danych planu jest przechowywana na serwerze, ponieważ jest to konieczne do wysyłania spersonalizowanych powiadomień. Rekord subskrypcji jest powiązany z identyfikatorem konta.",
       "Cel przetwarzania: przypomnienia o odjeździe autobusu szkolnego (ok. 20 minut przed), o autobusie powrotnym (ok. 20 minut przed, gdy podasz godzinę końca lekcji), informacje o zmianie godzin w rozkładzie szkolnym, a także krótkie potwierdzenie włączenia oraz — na żądanie — powiadomienie testowe. Przypomnienia dotyczą autobusu szkolnego, nie kursów MZK.",
     ],
     bullets: [
       "subskrypcja Push z przeglądarki: adres endpointu oraz klucze techniczne (p256dh, auth) potrzebne do zaszyfrowanego dostarczenia powiadomienia,",
-      "identyfikator rekordu oparty o skrót (hash) endpointu,",
+      "identyfikator rekordu oparty o skrót (hash) endpointu oraz powiązanie z kontem (userId),",
       "plan lekcji niezbędny do wyliczenia przypomnień (miejsce oraz godziny w dni robocze),",
       "wybrane rodzaje powiadomień (odjazd, powrót, zmiana rozkładu),",
       "dane techniczne do unikania powtórzeń (np. lista już wysłanych przypomnień danego dnia) oraz skrót treści rozkładu szkolnego (do wykrycia zmiany godzin).",
     ],
     afterBullets: [
-      "Te dane subskrypcji są danymi technicznymi służącymi do dostarczenia powiadomienia na konkretne urządzenie. W połączeniu z planem lekcji pozwalają wysłać spersonalizowane przypomnienie — nie zbieramy przy tym imienia, nazwiska ani adresu e-mail na potrzeby Push.",
-      "Rekordy powiadomień na serwerze nie mają automatycznego terminu ważności (TTL). Usuwamy je, gdy wyłączysz powiadomienia w aplikacji, albo gdy dostawca Push zgłosi, że subskrypcja jest już nieaktualna (np. odpowiedź 404/410).",
+      "Te dane subskrypcji są danymi technicznymi służącymi do dostarczenia powiadomienia na konkretne urządzenie. W połączeniu z planem lekcji pozwalają wysłać spersonalizowane przypomnienie.",
+      "Rekordy powiadomień na serwerze nie mają automatycznego terminu ważności (TTL). Usuwamy je, gdy wyłączysz powiadomienia w aplikacji, gdy Plan Plus wygaśnie lub zostanie cofnięty (np. po zwrocie płatności), albo gdy dostawca Push zgłosi, że subskrypcja jest już nieaktualna (np. odpowiedź 404/410).",
       "Wysyłkę przypomnień uruchamia zaplanowane zadanie (Upstash QStash). Dostawcą kanału Push jest usługa wynikająca z przeglądarki / systemu (adres endpointu), np. Google, Mozilla lub Apple — wyłącznie w zakresie dostarczenia powiadomienia.",
     ],
   },
   {
     id: "feedback",
-    title: "6. Formularz „Opinia”",
+    title: "8. Formularz „Opinia” i reklamacje Plan Plus",
     paragraphs: [
       "Możesz wysłać opinię przez formularz w aplikacji. Wiadomość (do 2000 znaków) jest wymagana. Adres e-mail zwrotny jest opcjonalny (do 254 znaków).",
       "Aby ograniczyć spam, stosujemy Cloudflare Turnstile (weryfikacja „nie jestem robotem”) oraz limit liczby wiadomości z jednego adresu IP (3 w ciągu 15 minut; licznik w Upstash Redis albo, gdy Redis jest niedostępny, tymczasowo w pamięci serwera).",
       "Adres IP wykorzystujemy wyłącznie do limitu zapytań i weryfikacji Turnstile — nie dołączamy go do treści wiadomości e-mail.",
       "Wiadomość trafia na skrzynkę administratora za pośrednictwem usługi Resend. Jeśli podasz e-mail, ustawiamy go jako adres odpowiedzi (reply-to), żeby można było odpisać.",
+      "Przy aktywnym Planie Plus możesz zgłosić reklamację dotyczącą tej usługi z profilu. W takiej sprawie używamy e-maila z sesji konta (nie adresu wpisanego w formularzu reklamacji).",
       "Okres przechowywania wiadomości w skrzynce nie wynika z kodu aplikacji — wiadomości są przechowywane do czasu ich rozpatrzenia i usunięcia przez administratora.",
     ],
   },
   {
     id: "analytics",
-    title: "7. Statystyki odwiedzin i wydajności",
+    title: "9. Statystyki odwiedzin i wydajności",
     paragraphs: [
       "Korzystamy z Vercel Web Analytics oraz Vercel Speed Insights, wbudowanych w aplikację, aby rozumieć, jak działa serwis i jak go ulepszać (np. popularność stron, podstawowe metryki wydajności).",
       "Według aktualnej dokumentacji Vercel Web Analytics: dane są zbierane w sposób zagregowany, bez third-party cookies; odwiedzający są rozróżniani hashem żądania, a nie trwałym identyfikatorem osobowym. Do punktu danych mogą należeć m.in. znacznik czasu, adres URL / ścieżka, referrer, przybliżona lokalizacja (np. kraj / region / miasto), system i przeglądarka oraz typ urządzenia. Sesja odwiedzającego nie jest przechowywana trwale — według dokumentacji jest odrzucana po 24 godzinach.",
@@ -110,14 +139,15 @@ const SECTIONS: Section[] = [
   },
   {
     id: "processors",
-    title: "8. Odbiorcy danych i podmioty przetwarzające",
+    title: "10. Odbiorcy danych i podmioty przetwarzające",
     paragraphs: [
       "Dane mogą trafić wyłącznie do podmiotów, których usługi rzeczywiście wykorzystujemy:",
     ],
     bullets: [
       "Vercel — hosting aplikacji oraz Analytics i Speed Insights,",
-      "Upstash — Redis (transfer ustawień, limity zapytań, a przy włączonych powiadomieniach także rekordy Push) oraz QStash (harmonogram wysyłki przypomnień),",
-      "Resend — wysyłka wiadomości z formularza opinii,",
+      "Upstash — Redis (konto, sesja, Plan Plus, transfer ustawień, limity zapytań, rekordy Push) oraz QStash (harmonogram wysyłki przypomnień),",
+      "Resend — wysyłka maili logowania, potwierdzeń zakupu, formularza opinii i reklamacji,",
+      "Stripe — obsługa płatności za Plan Plus (Checkout i powiązane dane płatności),",
       "Cloudflare — Turnstile przy formularzu opinii,",
       "dostawca Web Push wynikający z endpointu przeglądarki — wyłącznie w celu dostarczenia powiadomienia.",
     ],
@@ -128,33 +158,38 @@ const SECTIONS: Section[] = [
   },
   {
     id: "legal-bases",
-    title: "9. Cele i podstawy przetwarzania",
+    title: "11. Cele i podstawy przetwarzania",
     paragraphs: [
       "Przetwarzamy dane w następujących celach:",
     ],
     bullets: [
       "świadczenie usługi drogą elektroniczną (rozkłady, plan lekcji, transfer ustawień) — art. 6 ust. 1 lit. b RODO (wykonanie umowy / żądanie użytkownika przed zawarciem umowy) albo lit. f (prawnie uzasadniony interes: działanie aplikacji),",
-      "opcjonalne powiadomienia Push — art. 6 ust. 1 lit. a RODO (zgoda; możesz ją wycofać, wyłączając powiadomienia),",
-      "formularz opinii — art. 6 ust. 1 lit. a lub f RODO (zgoda / prawnie uzasadniony interes: kontakt z użytkownikami i rozwój serwisu),",
+      "konto i sesja logowania (e-mail, ciasteczko sesji) — art. 6 ust. 1 lit. b RODO,",
+      "zakup i utrzymanie Planu Plus (entitlement, potwierdzenie płatności) — art. 6 ust. 1 lit. b RODO,",
+      "opcjonalne powiadomienia Push — art. 6 ust. 1 lit. a RODO (zgoda; możesz ją wycofać, wyłączając powiadomienia) oraz w powiązaniu z umową Planu Plus lit. b,",
+      "formularz opinii i reklamacje — art. 6 ust. 1 lit. a lub f albo b RODO (zgoda / prawnie uzasadniony interes / wykonanie umowy),",
       "bezpieczeństwo i ograniczenie nadużyć (limity IP, Turnstile) — art. 6 ust. 1 lit. f RODO,",
       "statystyki i wydajność (Vercel Analytics / Speed Insights) — art. 6 ust. 1 lit. f RODO (prawnie uzasadniony interes: utrzymanie i rozwój serwisu), z zastrzeżeniem oceny administratora co do ewentualnej zgody.",
     ],
   },
   {
     id: "retention",
-    title: "10. Okresy przechowywania",
+    title: "12. Okresy przechowywania",
     paragraphs: [
       "Dane lokalne w przeglądarce: do czasu ich usunięcia przez Ciebie lub wyczyszczenia danych witryny.",
+      "Konto (e-mail, identyfikator): do czasu usunięcia konta na żądanie albo do czasu, gdy przestaniemy świadczyć usługę konta — obecnie w aplikacji nie ma samoobsługowego usuwania konta; możesz napisać do administratora.",
+      "Sesja logowania (Redis + ciasteczko): około 30 dni od ostatniego odświeżenia sesji albo do wylogowania.",
+      "Uprawnienie Plan Plus (entitlement): do końca okresu ważności oraz w zakresie potrzebnym do rozliczeń / reklamacji; przy zwrocie płatności status jest aktualizowany.",
       "Transfer ustawień (zaszyfrowany kod): do 15 minut albo do jednorazowego wykorzystania — w zależności od tego, co nastąpi wcześniej.",
       "Liczniki limitów zapytań (IP): krótkotrwale, zgodnie z oknem limitu (rzędu kilkudziesięciu minut).",
-      "Rekordy Web Push: do wyłączenia powiadomień lub unieważnienia subskrypcji przez dostawcę Push — bez automatycznego TTL w aplikacji.",
-      "Wiadomości z formularza opinii: do rozpatrzenia i usunięcia przez administratora (brak sztywnego terminu w kodzie).",
+      "Rekordy Web Push: do wyłączenia powiadomień, wygaśnięcia / cofnięcia Planu Plus lub unieważnienia subskrypcji przez dostawcę Push — bez automatycznego TTL w aplikacji.",
+      "Wiadomości z formularza opinii i reklamacji: do rozpatrzenia i usunięcia przez administratora (brak sztywnego terminu w kodzie).",
       "Dane Analytics / Speed Insights: zgodnie z polityką i konfiguracją Vercel.",
     ],
   },
   {
     id: "rights",
-    title: "11. Twoje prawa",
+    title: "13. Twoje prawa",
     paragraphs: [
       "W zakresie przewidzianym przez RODO możesz żądać: dostępu do danych, ich sprostowania, usunięcia, ograniczenia przetwarzania, przeniesienia danych, a także wniesienia sprzeciwu wobec przetwarzania opartego na prawnie uzasadnionym interesie. Zgodę (np. na powiadomienia) możesz wycofać w dowolnym momencie, bez wpływu na zgodność z prawem przetwarzania sprzed wycofania.",
       "Aby skorzystać z praw, napisz na adres kontaktowy administratora. Masz też prawo wnieść skargę do organu nadzorczego — w Polsce jest to Prezes Urzędu Ochrony Danych Osobowych (UODO), ul. Stawki 2, 00-193 Warszawa, https://uodo.gov.pl.",
@@ -162,9 +197,9 @@ const SECTIONS: Section[] = [
   },
   {
     id: "voluntary",
-    title: "12. Dobrowolność i zmiany",
+    title: "14. Dobrowolność i zmiany",
     paragraphs: [
-      "Korzystanie z podstawowych rozkładów nie wymaga podawania danych osobowych. Plan lekcji i ustawienia lokalne są dobrowolne. Transfer, powiadomienia i formularz opinii także są opcjonalne — bez nich część funkcji będzie niedostępna, ale rozkład nadal możesz przeglądać.",
+      "Korzystanie z podstawowych rozkładów nie wymaga podawania danych osobowych. Plan lekcji i ustawienia lokalne są dobrowolne. Konto, Plan Plus, transfer, powiadomienia i formularz opinii także są opcjonalne — bez nich część funkcji będzie niedostępna, ale rozkład nadal możesz przeglądać.",
       "Politykę możemy aktualizować, gdy zmieni się aplikacja lub przepisy. Aktualna wersja jest zawsze dostępna pod adresem /polityka-prywatnosci. Data ostatniej aktualizacji znajduje się poniżej.",
       "Niniejszy dokument ma charakter informacyjny i nie stanowi porady prawnej.",
     ],
@@ -212,7 +247,7 @@ export function PrivacyPolicyContent() {
       ))}
 
       <p className="border-t border-border/50 pt-8 text-xs text-muted-foreground sm:pt-10">
-        Ostatnia aktualizacja: 26 września 2026
+        Ostatnia aktualizacja: 30 września 2026
       </p>
     </article>
   );

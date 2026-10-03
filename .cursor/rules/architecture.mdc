@@ -19,6 +19,8 @@ src/lib/
   settings-transfer/
   feedback/
   push/
+  auth/            # magic link, sesja
+  billing/         # Plan Plus: Stripe Checkout, entitlement
 scripts/           # CLI: scrape-dowozy, fetch-mzk-gtfs
 data/              # snapshoty JSON (wynik, nie logika)
 ```

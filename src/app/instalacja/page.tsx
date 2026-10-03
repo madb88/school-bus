@@ -1,8 +1,10 @@
-import { InstallGuide } from "@/components/install-guide";
+import { InstallGuide, type PushEntry } from "@/components/install-guide";
 import { InstallPhoneMock } from "@/components/install-phone-mock";
 import { PageEyebrow } from "@/components/page-eyebrow";
 import { PageShell } from "@/components/page-shell";
 import { SiteHeader } from "@/components/site-header";
+import { getCurrentUser } from "@/lib/auth/current-user";
+import { loadPlusPanel } from "@/lib/billing/status";
 import { isPushNotificationsUiEnabled } from "@/lib/push/feature";
 import { buildPageMetadata } from "@/lib/site-metadata";
 
@@ -13,8 +15,18 @@ export const metadata = buildPageMetadata({
   path: "/instalacja",
 });
 
-export default function InstalacjaPage() {
+export default async function InstalacjaPage() {
   const pushNotificationsEnabled = isPushNotificationsUiEnabled();
+  let pushEntry: PushEntry = "off";
+  if (pushNotificationsEnabled) {
+    const user = await getCurrentUser();
+    if (!user) {
+      pushEntry = "login";
+    } else {
+      const plus = await loadPlusPanel(user.userId, false);
+      pushEntry = plus.state === "active" ? "manage" : "profil";
+    }
+  }
 
   return (
     <PageShell header={<SiteHeader current="instalacja" />}>
@@ -53,7 +65,7 @@ export default function InstalacjaPage() {
           <InstallPhoneMock />
         </header>
 
-        <InstallGuide pushNotificationsEnabled={pushNotificationsEnabled} />
+        <InstallGuide pushEntry={pushEntry} />
       </div>
     </PageShell>
   );
