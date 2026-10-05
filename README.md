@@ -34,7 +34,7 @@ Otwórz [http://127.0.0.1:43123](http://127.0.0.1:43123).
 Snapshot szkolny: `data/dowozy-schedule.json`. Snapshot MZK: `data/mzk-schedule.json`.  
 GitHub Actions odpalają oba fetchy raz dziennie o **06:00** (Europe/Warsaw) i commitują zmiany automatycznie. Workflowy scrape/fetch kończą się błędem przy pustym snapshocie (GitHub powiadamia watcherów repo). CI na PR uruchamia lint, testy i build.
 
-**Local (opcjonalnie):** ustaw `DOWOZY_API_BASE_URL=http://localhost:8000` w `.env.local`, żeby rozkład szkolny brać z backendu (`GET /health`, potem `GET /api/v1/dowozy/schedule`). Przy niedostępnym API lokalnie nie ma fallbacku na JSON — UI pokazuje brak rozkładu. Bez tej zmiennej (i na produkcji Vercel) aplikacja używa snapshotów JSON z repo.
+**Local (opcjonalnie):** ustaw `DOWOZY_API_BASE_URL=http://localhost:8000` w `.env.local`, żeby rozkład szkolny i MZK brać z backendu (`GET /health`, potem `GET /api/v1/dowozy/schedule`, `GET /api/v1/mzk/schedule`, `GET /api/v1/mzk/meta`). Przy niedostępnym API lokalnie nie ma fallbacku na JSON — UI pokazuje brak rozkładu. Bez tej zmiennej (i na produkcji Vercel) aplikacja używa snapshotów JSON z repo.
 
 ### Tymczasowa korekta rozkładu
 

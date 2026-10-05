@@ -31,10 +31,14 @@ alwaysApply: false
 | `api/billing/checkout` | Stripe Checkout; `user_id` i e-mail tylko z sesji |
 | `api/billing/webhook` | podpis `Stripe-Signature`, potem opłacona sesja albo pełny zwrot |
 | `api/settings-transfer` | create / peek / redeem QR |
-| `api/mzk-departures` | odjazdy z snapshotu MZK |
+| `api/mzk-departures` | odjazdy z snapshotu MZK (lub z zewnętrznego API gdy `DOWOZY_API_BASE_URL`) |
 | `api/push/subscribe\|plan\|kinds\|test\|dispatch` | Web Push + QStash; zapis wymaga sesji i aktywnego Plus |
 
 Rozszerzaj te ścieżki zamiast mnożyć równoległe API.
+
+### Zewnętrzny schedule API (`DOWOZY_API_BASE_URL`)
+
+Lokalnie (nie Next routes): `GET /health`, `GET /api/v1/dowozy/schedule`, `GET /api/v1/mzk/schedule`, `GET /api/v1/mzk/meta`. Przy ustawionym base URL brak fallbacku na `data/*.json`.
 
 ## Walidacja i błędy
 

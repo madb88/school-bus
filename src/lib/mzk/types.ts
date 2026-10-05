@@ -49,6 +49,13 @@ export const MZK_SNAPSHOT_PATH = "data/mzk-schedule.json" as const;
 /** Lightweight sidecar for footer / home — avoids parsing the full GTFS snapshot. */
 export const MZK_META_PATH = "data/mzk-schedule-meta.json" as const;
 
+/**
+ * Paths on the same host as DOWOZY_API_BASE_URL (local schedule API).
+ * Empty / unset base URL = load from repo JSON snapshots (production default).
+ */
+export const MZK_API_SCHEDULE_PATH = "/api/v1/mzk/schedule" as const;
+export const MZK_API_META_PATH = "/api/v1/mzk/meta" as const;
+
 export type MzkScheduleMetaFile = {
   sourceUrl: string;
   attribution: string;
