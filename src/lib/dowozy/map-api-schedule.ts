@@ -6,7 +6,12 @@ import {
   toAbsoluteYmd,
   type AbsoluteYmd,
 } from "./schedule-dates";
-import type { DowozyApiScheduleResponse, DowozyOverride, Schedule } from "./types";
+import type {
+  DowozyApiModified,
+  DowozyApiScheduleResponse,
+  DowozyOverride,
+  Schedule,
+} from "./types";
 
 /**
  * UTC ms for 00:00:00 on the given Europe/Warsaw calendar day.
@@ -68,9 +73,9 @@ export function expiresAtAfterInclusiveWarsawDay(
 }
 
 export function mapApiModifiedToOverride(
-  modified: DowozyApiScheduleResponse["modified"],
+  modified: DowozyApiModified | undefined,
 ): DowozyOverride | null {
-  if (!modified.active) {
+  if (!modified?.active) {
     return {
       active: false,
       reason: "",

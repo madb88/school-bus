@@ -50,6 +50,12 @@ describe("isDowozyApiScheduleResponse", () => {
     ).toBe(true);
   });
 
+  it("accepts original without modified (no correction)", () => {
+    expect(isDowozyApiScheduleResponse({ original: validSchedule })).toBe(
+      true,
+    );
+  });
+
   it("rejects bare schedule without wrapper", () => {
     expect(isDowozyApiScheduleResponse(validSchedule)).toBe(false);
   });

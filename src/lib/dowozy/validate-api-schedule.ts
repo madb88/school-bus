@@ -32,5 +32,7 @@ export function isDowozyApiScheduleResponse(
 ): value is DowozyApiScheduleResponse {
   if (!isRecord(value)) return false;
   if (!isScheduleSnapshot(value.original)) return false;
+  // Backend omits `modified` when there is no correction.
+  if (value.modified === undefined) return true;
   return isDowozyApiModified(value.modified);
 }

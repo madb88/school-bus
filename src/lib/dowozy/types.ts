@@ -62,7 +62,8 @@ export type DowozyApiModified = {
 /** Response shape from GET /api/v1/dowozy/schedule. */
 export type DowozyApiScheduleResponse = {
   original: Schedule;
-  modified: DowozyApiModified;
+  /** Absent when the backend has no active correction. */
+  modified?: DowozyApiModified;
 };
 
 /** Temporary full-schedule correction layered on top of the scrape snapshot. */

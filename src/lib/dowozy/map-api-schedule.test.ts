@@ -86,6 +86,15 @@ describe("mapApiModifiedToOverride", () => {
     });
   });
 
+  it("maps missing modified to inactive override", () => {
+    expect(mapApiModifiedToOverride(undefined)).toEqual({
+      active: false,
+      reason: "",
+      createdAt: "",
+      schedule: null,
+    });
+  });
+
   it("maps active modified with activeUntil", () => {
     const override = mapApiModifiedToOverride({
       active: true,
@@ -104,6 +113,13 @@ describe("mapApiResponseToResolveInput + resolve", () => {
       original,
       modified: { active: false },
     });
+    const result = resolveScheduleSnapshot(input);
+    expect(result.source).toBe("scrape");
+    expect(result.schedule).toEqual(original);
+  });
+
+  it("uses original when modified is omitted", () => {
+    const input = mapApiResponseToResolveInput({ original });
     const result = resolveScheduleSnapshot(input);
     expect(result.source).toBe("scrape");
     expect(result.schedule).toEqual(original);
