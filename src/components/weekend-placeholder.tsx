@@ -73,7 +73,7 @@ export function WeekendPlaceholder({
       className="flex flex-col items-center px-4 py-10 text-center sm:py-14 print:hidden"
       role="status"
     >
-      <WeekendBusIllustration className="mx-auto h-auto w-full max-w-52 sm:max-w-72" />
+      <WeekendBusIllustration />
 
       <h2 className="mt-8 max-w-lg font-display text-[1.65rem] font-bold tracking-tight text-asphalt sm:mt-10 sm:text-[1.875rem] dark:text-foreground">
         W weekend odpoczywamy

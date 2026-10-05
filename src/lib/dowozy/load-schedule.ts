@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { cache } from "react";
+import { fetchDowozyScheduleFromApi, getDowozyApiBaseUrl } from "./api-client";
+import { mapApiResponseToResolveInput } from "./map-api-schedule";
 import type { DowozyOverride, Schedule, ScheduleSnapshotResult } from "./types";
 import { DOWOZY_OVERRIDES_PATH, DOWOZY_SNAPSHOT_PATH } from "./types";
 import { resolveScheduleSnapshot } from "./resolve-schedule";
@@ -74,46 +76,70 @@ async function loadOverrideFile(cwd: string): Promise<OverrideLoad> {
   }
 }
 
+async function loadScheduleFromFiles(
+  cwd: string,
+): Promise<ScheduleSnapshotResult | null> {
+  const base = await loadBaseSchedule(cwd);
+  if (!base) return null;
+
+  const overrideLoad = await loadOverrideFile(cwd);
+
+  if (overrideLoad.kind === "invalid") {
+    return resolveScheduleSnapshot({
+      base,
+      override: null,
+      overrideInvalid: true,
+    });
+  }
+
+  if (overrideLoad.kind === "absent") {
+    return resolveScheduleSnapshot({ base, override: null });
+  }
+
+  const { override } = overrideLoad;
+  if (
+    override.active &&
+    (!override.schedule || !isScheduleSnapshot(override.schedule))
+  ) {
+    console.warn(
+      "Active school schedule override is missing a valid schedule; using scrape snapshot.",
+    );
+    return resolveScheduleSnapshot({
+      base,
+      override: null,
+      overrideInvalid: true,
+    });
+  }
+
+  return resolveScheduleSnapshot({ base, override });
+}
+
 /**
- * Loads the scrape snapshot and optional manual override, then returns the
- * effective schedule for the whole app (UI, push, fingerprint).
+ * Loads the school schedule for the whole app (UI, push, fingerprint).
+ *
+ * - Default (no DOWOZY_API_BASE_URL): repo JSON snapshots — production path.
+ * - When DOWOZY_API_BASE_URL is set (local): GET /health then schedule API only;
+ *   on failure returns null (no JSON file fallback — shows unavailable UI).
  */
-export const loadScheduleSnapshot = cache(
-  async (
-    cwd: string = process.cwd(),
-  ): Promise<ScheduleSnapshotResult | null> => {
-    const base = await loadBaseSchedule(cwd);
-    if (!base) return null;
-
-    const overrideLoad = await loadOverrideFile(cwd);
-
-    if (overrideLoad.kind === "invalid") {
-      return resolveScheduleSnapshot({
-        base,
-        override: null,
-        overrideInvalid: true,
-      });
-    }
-
-    if (overrideLoad.kind === "absent") {
-      return resolveScheduleSnapshot({ base, override: null });
-    }
-
-    const { override } = overrideLoad;
-    if (
-      override.active &&
-      (!override.schedule || !isScheduleSnapshot(override.schedule))
-    ) {
-      console.warn(
-        "Active school schedule override is missing a valid schedule; using scrape snapshot.",
+export async function loadScheduleSnapshotOnce(
+  cwd: string = process.cwd(),
+): Promise<ScheduleSnapshotResult | null> {
+  const apiBase = getDowozyApiBaseUrl();
+  if (apiBase) {
+    const apiResult = await fetchDowozyScheduleFromApi(apiBase);
+    if (apiResult.ok) {
+      return resolveScheduleSnapshot(
+        mapApiResponseToResolveInput(apiResult.data),
       );
-      return resolveScheduleSnapshot({
-        base,
-        override: null,
-        overrideInvalid: true,
-      });
     }
+    console.warn(
+      "School schedule API unavailable; not using local JSON snapshots.",
+      apiResult.reason,
+    );
+    return null;
+  }
 
-    return resolveScheduleSnapshot({ base, override });
-  },
-);
+  return loadScheduleFromFiles(cwd);
+}
+
+export const loadScheduleSnapshot = cache(loadScheduleSnapshotOnce);
