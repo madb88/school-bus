@@ -5,6 +5,8 @@ globs:
   - src/lib/mzk/**/*
   - src/lib/settings-transfer/**/*
   - src/lib/push/**/*
+  - src/lib/auth/**/*
+  - src/lib/billing/**/*
   - src/lib/onboarding-hints.ts
   - src/components/theme-init.ts
   - src/app/api/settings-transfer/**/*
@@ -42,8 +44,14 @@ Wymaga `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`.
 | Prefiks / użycie | TTL / uwagi |
 | --- | --- |
 | `school-bus:transfer:` | TTL **15 min** (`SETTINGS_TRANSFER_TTL_SEC`); payload **AES-256-GCM** (`SETTINGS_TRANSFER_SECRET`) |
-| `school-bus:push:` + index | subskrypcje, plan, fingerprint, sent-on |
-| Rate limity feedback / transfer | `@upstash/ratelimit` (fallback in-memory dla feedbacku) |
+| `school-bus:push:` + index + `push:by-user:` | subskrypcja z `userId`, plan, fingerprint; bez aktywnego Plus dispatch usuwa rekord |
+| `school-bus:entitlement:` | Plan Plus (`status`, `validUntil`, `stripePaymentIntentId`) |
+| `school-bus:stripe-order:` | idempotencja webhooka Stripe |
+| `school-bus:stripe-receipt:` | potwierdzenie mailowe zakupu, raz na płatność |
+| `school-bus:billing-return:` | powrót z płatności, TTL **2 h** (stan „w toku”) |
+| Rate limity feedback / transfer / checkout / reklamacja | `@upstash/ratelimit` (fallback in-memory) |
+
+Users, magic-link i sesje są w backendzie (Mongo). Cookie `sb_session` na Next trzyma opaque `sessionToken`.
 
 Bez Redis: feedback może działać (limit pamięciowy); **transfer i push subscribe → 503**.
 

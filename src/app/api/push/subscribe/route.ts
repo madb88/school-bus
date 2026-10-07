@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { hasConfiguredLessons } from "@/lib/child-schedule/storage";
 import type { ChildLessonPlan } from "@/lib/child-schedule/types";
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
+import {
+  PUSH_NOT_YOURS,
+  pushOwnedBy,
+  requirePlusPush,
+  requirePushUser,
+  type PushAccess,
+} from "@/lib/push/access";
 import { parsePushKinds } from "@/lib/push/kinds";
 import {
   checkPushSubscribeRateLimit,
@@ -38,6 +45,14 @@ function invalidBody() {
   return NextResponse.json({ error: "Niepoprawne żądanie." }, { status: 400 });
 }
 
+function denied(access: Extract<PushAccess, { ok: false }>) {
+  return NextResponse.json({ error: access.error }, { status: access.status });
+}
+
+function notYours() {
+  return NextResponse.json({ error: PUSH_NOT_YOURS }, { status: 403 });
+}
+
 function rateLimited(retryAfterSec?: number) {
   const headers =
     retryAfterSec != null
@@ -68,6 +83,9 @@ export async function POST(request: Request) {
   const rate = await checkPushSubscribeRateLimit(ip);
   if (!rate.ok) return rateLimited(rate.retryAfterSec);
 
+  const access = await requirePlusPush();
+  if (!access.ok) return denied(access);
+
   const body = await readJson(request);
   if (!body || typeof body !== "object") return invalidBody();
   const record = body as Record<string, unknown>;
@@ -84,6 +102,14 @@ export async function POST(request: Request) {
 
   const id = subscriptionId(subscription.endpoint);
   const existing = await getPushRecord(id);
+  if (
+    existing &&
+    (existing.subscription.keys.auth !== subscription.keys.auth ||
+      !pushOwnedBy(existing.userId, access.userId))
+  ) {
+    return notYours();
+  }
+
   const loaded = existing?.scheduleFingerprint
     ? null
     : await loadScheduleSnapshot();
@@ -100,6 +126,7 @@ export async function POST(request: Request) {
       record.kinds !== undefined
         ? parsePushKinds(record.kinds)
         : (existing?.kinds ?? parsePushKinds(undefined)),
+    userId: access.userId,
   });
 
   if (!existing) {
@@ -112,6 +139,9 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   if (!getPushRedis()) return unavailable();
 
+  const access = await requirePushUser();
+  if (!access.ok) return denied(access);
+
   const body = await readJson(request);
   if (!body || typeof body !== "object") return invalidBody();
   const subscription = parseSubscription(
@@ -122,6 +152,7 @@ export async function DELETE(request: Request) {
   const id = subscriptionId(subscription.endpoint);
   const existing = await getPushRecord(id);
   if (existing && existing.subscription.keys.auth === subscription.keys.auth) {
+    if (!pushOwnedBy(existing.userId, access.userId)) return notYours();
     await deletePushRecord(id);
   }
 

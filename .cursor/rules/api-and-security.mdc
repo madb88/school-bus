@@ -6,6 +6,7 @@ globs:
   - src/lib/feedback/**/*
   - src/lib/settings-transfer/**/*
   - src/lib/push/**/*
+  - src/lib/billing/**/*
 alwaysApply: false
 ---
 
@@ -13,7 +14,7 @@ alwaysApply: false
 
 ## Sekrety
 
-- Tylko po stronie serwera: `RESEND_*`, `TURNSTILE_SECRET_KEY`, `SETTINGS_TRANSFER_SECRET`, `VAPID_PRIVATE_KEY`, `QSTASH_*`, Upstash tokeny
+- Tylko po stronie serwera: `RESEND_*`, `TURNSTILE_SECRET_KEY`, `SETTINGS_TRANSFER_SECRET`, `BACKEND_API_URL`, `BACKEND_SERVICE_KEY`, `STRIPE_*`, `VAPID_PRIVATE_KEY`, `QSTASH_*`, Upstash tokeny
 - `NEXT_PUBLIC_*` wyłącznie dla rzeczy naprawdę publicznych (Turnstile site key, VAPID **public**, site URL)
 - Nigdy nie commitować `.env.local`; nowe zmienne → `.env.example` + krótki opis
 - Nie ujawniać `FEEDBACK_TO_EMAIL` ani sekretów w HTML / odpowiedziach API
@@ -23,11 +24,25 @@ alwaysApply: false
 | Ścieżka | Rola |
 | --- | --- |
 | `actions/feedback` | Resend + Turnstile + honeypot + rate limit |
+| `actions/complaint` | reklamacja Plan Plus; e-mail konta z sesji, tylko przy aktywnym Plusie |
+| `api/auth/magic-link` | BFF → backend magic-link (ta sama odpowiedź) |
+| `api/auth/magic-link/verify` | GET link / POST kod → cookie `sb_session` (token z backendu) |
+| `api/auth/logout` | BFF → backend logout + clear cookie |
+| `api/billing/checkout` | Stripe Checkout; `user_id` i e-mail tylko z sesji |
+| `api/billing/webhook` | podpis `Stripe-Signature`, potem opłacona sesja albo pełny zwrot |
 | `api/settings-transfer` | create / peek / redeem QR |
-| `api/mzk-departures` | odjazdy z snapshotu MZK |
-| `api/push/subscribe\|plan\|kinds\|test\|dispatch` | Web Push + QStash |
+| `api/mzk-departures` | odjazdy z snapshotu MZK (lub z zewnętrznego API gdy `DOWOZY_API_BASE_URL`) |
+| `api/push/subscribe\|plan\|kinds\|test\|dispatch` | Web Push + QStash; zapis wymaga sesji i aktywnego Plus |
 
 Rozszerzaj te ścieżki zamiast mnożyć równoległe API.
+
+### Zewnętrzny schedule API (`DOWOZY_API_BASE_URL`)
+
+Lokalnie (nie Next routes): `GET /health`, `GET /api/v1/dowozy/schedule`, `GET /api/v1/mzk/schedule`, `GET /api/v1/mzk/meta`. Przy ustawionym base URL brak fallbacku na `data/*.json`.
+
+### Auth backend (`BACKEND_API_URL` + `BACKEND_SERVICE_KEY`)
+
+Next jest BFF: przeglądarka woła `/api/auth/*`; serwer woła `/api/v1/auth/*` i `/api/v1/users/*` z `X-Service-Key` i opcjonalnie `Authorization: Bearer` + `X-Client-IP`. Cookie `sb_session` trzyma surowy `sessionToken` z backendu.
 
 ## Walidacja i błędy
 

@@ -9,6 +9,8 @@ const releaseDispatchLock = vi.fn();
 const loadScheduleSnapshot = vi.fn();
 const sendPush = vi.fn();
 const savePushRecord = vi.fn();
+const deletePushRecord = vi.fn();
+const readEntitlement = vi.fn();
 
 vi.mock("@/lib/dowozy/load-schedule", () => ({
   loadScheduleSnapshot: (...args: unknown[]) => loadScheduleSnapshot(...args),
@@ -16,11 +18,15 @@ vi.mock("@/lib/dowozy/load-schedule", () => ({
 
 vi.mock("./store", () => ({
   acquireDispatchLock: (...args: unknown[]) => acquireDispatchLock(...args),
-  deletePushRecord: vi.fn(),
+  deletePushRecord: (...args: unknown[]) => deletePushRecord(...args),
   listPushRecords: (...args: unknown[]) => listPushRecords(...args),
   releaseDispatchLock: (...args: unknown[]) => releaseDispatchLock(...args),
   savePushRecord: (...args: unknown[]) => savePushRecord(...args),
   subscriptionId: vi.fn(() => "sub-1"),
+}));
+
+vi.mock("@/lib/billing/store", () => ({
+  readEntitlement: (...args: unknown[]) => readEntitlement(...args),
 }));
 
 vi.mock("./send", () => ({
@@ -71,14 +77,22 @@ const plan: ChildLessonPlan = {
   },
 };
 
+const USER = "11111111-1111-4111-8111-111111111111";
+
 const subscription = {
   endpoint: "https://push.example/1",
   keys: { p256dh: "x", auth: "y" },
 };
 
+const activePlus = {
+  status: "active" as const,
+  validUntil: "2099-08-31",
+};
+
 describe("dispatchReminders", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    readEntitlement.mockResolvedValue(activePlus);
   });
 
   it("skips Redis work on Saturday (Warsaw)", async () => {
@@ -132,6 +146,7 @@ describe("dispatchReminders", () => {
         sent: [],
         scheduleFingerprint: schoolScheduleFingerprint(baseSchedule),
         kinds: { departure: false, return: false, schedule: true },
+        userId: USER,
       },
     ]);
     sendPush.mockResolvedValue("ok");
@@ -175,6 +190,7 @@ describe("dispatchReminders", () => {
         sent: ["2026-09-28|pickup|07:10|Zatonie"],
         scheduleFingerprint: schoolScheduleFingerprint(baseSchedule),
         kinds: { departure: true, return: false, schedule: true },
+        userId: USER,
       },
     ]);
     sendPush.mockResolvedValue("ok");
@@ -227,5 +243,66 @@ describe("dispatchReminders", () => {
       skipped: null,
       scheduleSource: "scrape",
     });
+  });
+
+  it("removes a subscription with no account and does not send", async () => {
+    acquireDispatchLock.mockResolvedValue(true);
+    loadScheduleSnapshot.mockResolvedValue({
+      schedule: baseSchedule,
+      source: "scrape",
+      overrideStatus: "none",
+    });
+    listPushRecords.mockResolvedValue([
+      {
+        subscription,
+        plan,
+        sentOn: "",
+        sent: [],
+        scheduleFingerprint: schoolScheduleFingerprint(baseSchedule),
+        kinds: { departure: true, return: true, schedule: true },
+      },
+    ]);
+
+    const { dispatchReminders } = await import("./dispatch");
+    const summary = await dispatchReminders(new Date("2026-09-28T07:10:00+02:00"));
+
+    expect(summary).toMatchObject({ checked: 1, sent: 0, removed: 1 });
+    expect(sendPush).not.toHaveBeenCalled();
+    expect(savePushRecord).not.toHaveBeenCalled();
+    expect(deletePushRecord).toHaveBeenCalledWith("sub-1");
+    expect(readEntitlement).not.toHaveBeenCalled();
+  });
+
+  it("removes a subscription when Plan Plus has expired and does not send", async () => {
+    acquireDispatchLock.mockResolvedValue(true);
+    loadScheduleSnapshot.mockResolvedValue({
+      schedule: baseSchedule,
+      source: "scrape",
+      overrideStatus: "none",
+    });
+    readEntitlement.mockResolvedValue({
+      status: "active",
+      validUntil: "2026-08-31",
+    });
+    listPushRecords.mockResolvedValue([
+      {
+        subscription,
+        plan,
+        sentOn: "",
+        sent: [],
+        scheduleFingerprint: schoolScheduleFingerprint(baseSchedule),
+        kinds: { departure: true, return: true, schedule: true },
+        userId: USER,
+      },
+    ]);
+
+    const { dispatchReminders } = await import("./dispatch");
+    const summary = await dispatchReminders(new Date("2026-09-28T07:10:00+02:00"));
+
+    expect(summary).toMatchObject({ checked: 1, sent: 0, removed: 1 });
+    expect(readEntitlement).toHaveBeenCalledWith(USER);
+    expect(sendPush).not.toHaveBeenCalled();
+    expect(savePushRecord).not.toHaveBeenCalled();
+    expect(deletePushRecord).toHaveBeenCalledWith("sub-1");
   });
 });

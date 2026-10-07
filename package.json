@@ -1,6 +1,6 @@
 {
   "name": "school-bus",
-  "version": "1.7.9",
+  "version": "1.9.4",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -10,7 +10,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "scrape:dowozy": "tsx scripts/scrape-dowozy.ts",
-    "fetch:mzk": "tsx scripts/fetch-mzk-gtfs.ts"
+    "fetch:mzk": "tsx scripts/fetch-mzk-gtfs.ts",
+    "generate:splash": "tsx scripts/generate-ios-splash.ts",
+    "migrate:users": "tsx scripts/migrate-users-to-backend.ts"
   },
   "allowScripts": {
     "esbuild": true,

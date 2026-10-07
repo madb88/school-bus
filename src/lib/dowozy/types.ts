@@ -44,6 +44,28 @@ export const DOWOZY_SNAPSHOT_PATH = "data/dowozy-schedule.json" as const;
 
 export const DOWOZY_OVERRIDES_PATH = "data/dowozy-overrides.json" as const;
 
+/**
+ * Server-only base URL for the school schedule API (local testing).
+ * Empty / unset = load from repo JSON snapshots (production default).
+ */
+export const DOWOZY_API_SCHEDULE_PATH = "/api/v1/dowozy/schedule" as const;
+export const DOWOZY_API_HEALTH_PATH = "/health" as const;
+
+/** Manual correction block from GET /api/v1/dowozy/schedule. */
+export type DowozyApiModified = {
+  active: boolean;
+  /** Inclusive calendar day YYYY-MM-DD (Europe/Warsaw). */
+  activeUntil?: string;
+  schedule?: Schedule | null;
+};
+
+/** Response shape from GET /api/v1/dowozy/schedule. */
+export type DowozyApiScheduleResponse = {
+  original: Schedule;
+  /** Absent when the backend has no active correction. */
+  modified?: DowozyApiModified;
+};
+
 /** Temporary full-schedule correction layered on top of the scrape snapshot. */
 export type DowozyOverride = {
   active: boolean;

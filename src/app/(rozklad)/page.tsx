@@ -1,10 +1,10 @@
 import { PageShell } from "@/components/page-shell";
 import { ScheduleBoard } from "@/components/schedule-board";
 import { ScheduleStatusBanner } from "@/components/schedule-status-banner";
+import { ScheduleUnavailable } from "@/components/schedule-unavailable";
 import { SiteHeader } from "@/components/site-header";
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { overrideFreshnessInfo } from "@/lib/dowozy/override-freshness";
-import { DOWOZY_SOURCE_URL } from "@/lib/dowozy/types";
 import { loadMzkScheduleMeta } from "@/lib/mzk/load-schedule";
 import {
   mzkScheduleFreshness,
@@ -13,7 +13,6 @@ import {
 import {
   buildPageMetadata,
   rootDescription,
-  schoolScopeLabel,
 } from "@/lib/site-metadata";
 
 export const metadata = buildPageMetadata({
@@ -52,29 +51,7 @@ export default async function Home() {
             />
           </>
         ) : (
-          <div className="space-y-8">
-            <div className="space-y-3">
-              <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-4xl">
-                Rozkład dowozów
-              </h1>
-              <p className="text-xs font-medium tracking-tight text-foreground/70">
-                {schoolScopeLabel}
-              </p>
-              <p className="text-muted-foreground">
-                Rozkład szkolny jest chwilowo niedostępny. Spróbuj ponownie
-                później albo sprawdź źródło na stronie{" "}
-                <a
-                  href={DOWOZY_SOURCE_URL}
-                  className="underline underline-offset-2 hover:text-foreground"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  szkoły
-                </a>
-                .
-              </p>
-            </div>
-          </div>
+          <ScheduleUnavailable />
         )}
       </div>
     </PageShell>
