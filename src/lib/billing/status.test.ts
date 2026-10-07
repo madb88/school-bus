@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { AuthKv } from "@/lib/auth/store";
+import type { Kv } from "@/lib/redis/kv";
 import { BILLING_RETURN_VALUE, billingReturnKey, entitlementKey } from "./constants";
 import { loadPlusPanel, plusPanelState } from "./status";
 
 const USER = "11111111-1111-4111-8111-111111111111";
 const NOW = new Date("2026-09-30T10:00:00.000Z");
 
-class MemoryKv implements AuthKv {
+class MemoryKv implements Kv {
   private values = new Map<string, unknown>();
 
   async get<T>(key: string): Promise<T | null> {

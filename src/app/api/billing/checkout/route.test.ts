@@ -27,6 +27,7 @@ describe("POST /api/billing/checkout", () => {
     vi.mocked(getCurrentUser).mockResolvedValue({
       userId: SESSION_USER,
       email: "parent@example.com",
+      role: "user",
     });
     vi.mocked(createPlanCheckout).mockResolvedValue({
       ok: true,

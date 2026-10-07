@@ -1,22 +1,39 @@
 import { cookies } from "next/headers";
+import { cache } from "react";
+import { fetchMe } from "./backend";
 import { SESSION_COOKIE } from "./constants";
-import { getUserForSession } from "./store";
-import { openSessionId } from "./token";
+import { readSessionToken } from "./token";
 
-async function readSessionId(): Promise<string | null> {
+export type CurrentUser = {
+  userId: string;
+  email: string;
+  role: "user" | "admin";
+};
+
+let warnedUnavailable = false;
+
+async function loadCurrentUser(): Promise<CurrentUser | null> {
   const jar = await cookies();
-  const sealed = jar.get(SESSION_COOKIE)?.value;
-  if (!sealed) return null;
-  return openSessionId(sealed);
+  const token = readSessionToken(jar.get(SESSION_COOKIE)?.value);
+  if (!token) return null;
+
+  const user = await fetchMe(token);
+  if (user === "unavailable") {
+    if (!warnedUnavailable) {
+      warnedUnavailable = true;
+      console.warn("Auth backend unavailable; treating as logged out");
+    }
+    return null;
+  }
+  if (!user) return null;
+
+  return { userId: user.id, email: user.email, role: user.role };
 }
 
-/** Signed cookie only — used by the header link, without a Redis lookup. */
-export async function hasSignedInSession(): Promise<boolean> {
-  return (await readSessionId()) !== null;
-}
+/** Per-request memoization so SiteHeader and page gates share one /users/me call. */
+export const getCurrentUser = cache(loadCurrentUser);
 
-export async function getCurrentUser(): Promise<{ userId: string; email: string } | null> {
-  const sessionId = await readSessionId();
-  if (!sessionId) return null;
-  return getUserForSession(sessionId);
+/** Reset the one-shot unavailable warning (tests only). */
+export function resetCurrentUserWarnCache(): void {
+  warnedUnavailable = false;
 }

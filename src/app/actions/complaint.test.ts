@@ -38,6 +38,7 @@ describe("sendComplaint", () => {
     vi.mocked(getCurrentUser).mockResolvedValue({
       userId: SESSION_USER,
       email: "parent@example.com",
+      role: "user",
     });
     vi.mocked(loadPlusPanel).mockResolvedValue({
       state: "active",

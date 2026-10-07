@@ -1,6 +1,6 @@
 import { SESSION_COOKIE, SESSION_TTL_SEC } from "./constants";
 
-export function sessionCookieOptions(): {
+export function sessionCookieOptions(maxAge: number = SESSION_TTL_SEC): {
   httpOnly: true;
   secure: boolean;
   sameSite: "lax";
@@ -12,7 +12,7 @@ export function sessionCookieOptions(): {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: SESSION_TTL_SEC,
+    maxAge,
   };
 }
 

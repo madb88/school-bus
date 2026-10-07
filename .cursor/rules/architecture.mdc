@@ -19,10 +19,11 @@ src/lib/
   settings-transfer/
   feedback/
   push/
-  auth/            # magic link, sesja
-  billing/         # Plan Plus: Stripe Checkout, entitlement
-scripts/           # CLI: scrape-dowozy, fetch-mzk-gtfs
-data/              # snapshoty JSON (wynik, nie logika)
+  auth/            # BFF magic-link / sesja → backend
+  billing/         # Plan Plus: Stripe Checkout, entitlement (Redis)
+  redis/           # wspólny klient Upstash (billing itd.)
+  scripts/           # CLI: scrape-dowozy, fetch-mzk-gtfs, migrate-users
+  data/              # snapshoty JSON (wynik, nie logika)
 ```
 
 ## Zasady

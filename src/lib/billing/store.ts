@@ -1,6 +1,5 @@
-import { getAuthRedis } from "@/lib/auth/redis";
-import { toAuthKv, type AuthKv } from "@/lib/auth/store";
 import { partsFromYmd } from "@/lib/dowozy/schedule-dates";
+import { getRedis, toKv, type Kv } from "@/lib/redis/kv";
 import {
   BILLING_RETURN_TTL_SEC,
   BILLING_RETURN_VALUE,
@@ -28,10 +27,10 @@ export type StripeOrder = {
   renewal?: boolean;
 };
 
-export function getBillingKv(): AuthKv | null {
-  const redis = getAuthRedis();
+export function getBillingKv(): Kv | null {
+  const redis = getRedis();
   if (!redis) return null;
-  return toAuthKv(redis);
+  return toKv(redis);
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -88,13 +87,13 @@ export function parseStripeOrder(value: unknown): StripeOrder | null {
   };
 }
 
-function kvOf(client?: AuthKv): AuthKv | null {
+function kvOf(client?: Kv): Kv | null {
   return client ?? getBillingKv();
 }
 
 export async function readEntitlement(
   userId: string,
-  client?: AuthKv,
+  client?: Kv,
 ): Promise<Entitlement | null> {
   const kv = kvOf(client);
   if (!kv || !isUserId(userId)) return null;
@@ -103,7 +102,7 @@ export async function readEntitlement(
 
 export async function readStripeOrder(
   orderId: string,
-  client?: AuthKv,
+  client?: Kv,
 ): Promise<StripeOrder | null> {
   const kv = kvOf(client);
   if (!kv || !isOrderId(orderId)) return null;
@@ -119,7 +118,7 @@ export async function grantEntitlementForward(
     customerId?: string;
     now: Date;
   },
-  client?: AuthKv,
+  client?: Kv,
 ): Promise<void> {
   const kv = kvOf(client);
   if (!kv || !isUserId(input.userId) || !isOrderId(input.orderId)) return;
@@ -141,7 +140,7 @@ export async function grantEntitlementForward(
 export async function revokeEntitlementForOrder(
   userId: string,
   orderId: string,
-  client?: AuthKv,
+  client?: Kv,
 ): Promise<void> {
   const kv = kvOf(client);
   if (!kv || !isUserId(userId) || !isOrderId(orderId)) return;
@@ -153,7 +152,7 @@ export async function revokeEntitlementForOrder(
 
 export async function rememberPaymentReturn(
   userId: string,
-  client?: AuthKv,
+  client?: Kv,
 ): Promise<boolean> {
   const kv = kvOf(client);
   if (!kv || !isUserId(userId)) return false;
@@ -169,13 +168,13 @@ export async function rememberPaymentReturn(
   }
 }
 
-export async function clearPaymentReturn(userId: string, client?: AuthKv): Promise<void> {
+export async function clearPaymentReturn(userId: string, client?: Kv): Promise<void> {
   const kv = kvOf(client);
   if (!kv || !isUserId(userId)) return;
   await kv.del(billingReturnKey(userId));
 }
 
-export async function hasPaymentReturn(userId: string, client?: AuthKv): Promise<boolean> {
+export async function hasPaymentReturn(userId: string, client?: Kv): Promise<boolean> {
   const kv = kvOf(client);
   if (!kv || !isUserId(userId)) return false;
   return (await kv.get(billingReturnKey(userId))) === BILLING_RETURN_VALUE;

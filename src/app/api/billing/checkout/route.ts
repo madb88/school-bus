@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { loginLinkOrigin } from "@/lib/auth/flow";
-import { jsonError } from "@/lib/auth/http";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { jsonError } from "@/lib/auth/http";
+import { loginLinkOrigin } from "@/lib/auth/origin";
 import { getClientIpFromHeaders } from "@/lib/auth/rate-limit";
 import { createPlanCheckout } from "@/lib/billing/checkout";
 import { isUserId } from "@/lib/billing/constants";

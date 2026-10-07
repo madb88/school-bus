@@ -1,4 +1,4 @@
-import type { AuthKv } from "@/lib/auth/store";
+import type { Kv } from "@/lib/redis/kv";
 import { isUserId } from "./constants";
 import { formatPolishYmd, isActiveUntil } from "./school-year";
 import {
@@ -37,7 +37,7 @@ export async function loadPlusPanel(
   userId: string,
   paidReturn: boolean,
   now = new Date(),
-  client?: AuthKv,
+  client?: Kv,
 ): Promise<PlusPanelState> {
   const kv = client ?? getBillingKv();
   if (!isUserId(userId) || !kv) {

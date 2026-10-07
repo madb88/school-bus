@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { resetAuthRedisCache } from "@/lib/auth/redis";
+import { resetRedisCache } from "@/lib/redis/kv";
 import { POST } from "./route";
 
 describe("POST /api/billing/webhook", () => {
@@ -9,7 +9,7 @@ describe("POST /api/billing/webhook", () => {
     vi.stubEnv("STRIPE_WEBHOOK_SECRET", "whsec_test_secret_value_0001");
     vi.stubEnv("UPSTASH_REDIS_REST_URL", "");
     vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "");
-    resetAuthRedisCache();
+    resetRedisCache();
   });
 
   it("rejects a body without a signature", async () => {

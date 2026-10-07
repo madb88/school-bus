@@ -1,18 +1,28 @@
 import { createHmac } from "node:crypto";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { BackendUser } from "@/lib/auth/backend";
+import { normalizeEmail } from "@/lib/auth/email";
+import type { Kv } from "@/lib/redis/kv";
+import { entitlementKey } from "./constants";
+import { readEntitlement } from "./store";
+import { handleStripeWebhook, priceIdFromLineItems } from "./webhook";
 
 const deletePushRecordsForUser = vi.fn<(userId: string) => Promise<void>>(
   async () => undefined,
 );
 
+const getUserById = vi.fn<(id: string) => Promise<BackendUser | null | "unavailable">>();
+const ensureUserByEmail =
+  vi.fn<(email: string) => Promise<BackendUser | null | "unavailable">>();
+
 vi.mock("@/lib/push/store", () => ({
   deletePushRecordsForUser: (userId: string) => deletePushRecordsForUser(userId),
 }));
-import { userEmailKey, userKey } from "@/lib/auth/constants";
-import type { AuthKv } from "@/lib/auth/store";
-import { entitlementKey } from "./constants";
-import { readEntitlement } from "./store";
-import { handleStripeWebhook, priceIdFromLineItems } from "./webhook";
+
+vi.mock("@/lib/auth/backend", () => ({
+  getUserById: (id: string) => getUserById(id),
+  ensureUserByEmail: (email: string) => ensureUserByEmail(email),
+}));
 
 const SECRET = "whsec_test_secret_value_0001";
 const API_KEY = "unit_test_stripe_secret_key_0001";
@@ -25,7 +35,7 @@ const PI = "pi_3TestOrder1001aa";
 const CUSTOMER = "cus_TestCustomer01";
 const SESSION = "cs_test_session0001";
 
-class MemoryKv implements AuthKv {
+class MemoryKv implements Kv {
   private values = new Map<string, unknown>();
 
   async get<T>(key: string): Promise<T | null> {
@@ -58,6 +68,21 @@ class MemoryKv implements AuthKv {
   async incr() {
     return 1;
   }
+}
+
+const users = new Map<string, BackendUser>();
+const usersByEmail = new Map<string, string>();
+
+function seedUser(id: string, email: string) {
+  const normalized = normalizeEmail(email) ?? email;
+  const user: BackendUser = {
+    id,
+    email: normalized,
+    role: "user",
+    createdAt: "2026-01-01T00:00:00.000Z",
+  };
+  users.set(id, user);
+  usersByEmail.set(normalized, id);
 }
 
 function sign(body: string, secret = SECRET, now = NOW): string {
@@ -130,7 +155,7 @@ function refundBody(
   });
 }
 
-function throwingKv(): AuthKv {
+function throwingKv(): Kv {
   const fail = () => {
     throw new Error("redis touched");
   };
@@ -146,7 +171,7 @@ function throwingKv(): AuthKv {
 }
 
 async function deliver(
-  kv: AuthKv | null,
+  kv: Kv | null,
   body: string,
   signature: string | null = sign(body),
   lookupPrice: (sessionId: string) => Promise<string | "mixed" | null> = async () => PRICE,
@@ -170,12 +195,23 @@ async function deliver(
   });
 }
 
-async function seedUser(kv: MemoryKv, id: string, email: string) {
-  await kv.set(userKey(id), { email, createdAt: "2026-01-01T00:00:00.000Z" });
-  await kv.set(userEmailKey(email), id);
-}
-
 describe("stripe webhook", () => {
+  beforeEach(() => {
+    users.clear();
+    usersByEmail.clear();
+    deletePushRecordsForUser.mockClear();
+    getUserById.mockImplementation(async (id) => users.get(id) ?? null);
+    ensureUserByEmail.mockImplementation(async (email) => {
+      const normalized = normalizeEmail(email);
+      if (!normalized) return "unavailable";
+      const existing = usersByEmail.get(normalized);
+      if (existing) return users.get(existing) ?? null;
+      const id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+      seedUser(id, normalized);
+      return users.get(id) ?? null;
+    });
+  });
+
   it("rejects a missing, wrong, or stale signature before Redis", async () => {
     const body = sessionBody();
     const lookup = () => {
@@ -197,9 +233,14 @@ describe("stripe webhook", () => {
     expect(await deliver(null, sessionBody())).toEqual({ ok: false, status: 503 });
   });
 
+  it("retries when the auth backend is unavailable", async () => {
+    getUserById.mockResolvedValue("unavailable");
+    expect(await deliver(new MemoryKv(), sessionBody())).toEqual({ ok: false, status: 500 });
+  });
+
   it("grants Plus until 31 August and ignores the same payment the second time", async () => {
     const kv = new MemoryKv();
-    await seedUser(kv, USER_A, "parent@example.com");
+    seedUser(USER_A, "parent@example.com");
     const body = sessionBody();
 
     expect(await deliver(kv, body)).toEqual({ ok: true });
@@ -217,7 +258,7 @@ describe("stripe webhook", () => {
 
   it("moves an expired plan to the next school year and adds a year while Plus is active", async () => {
     const kv = new MemoryKv();
-    await seedUser(kv, USER_A, "parent@example.com");
+    seedUser(USER_A, "parent@example.com");
     const later = "pi_3TestOrder1002aa";
 
     await deliver(
@@ -239,7 +280,7 @@ describe("stripe webhook", () => {
     });
 
     const extended = new MemoryKv();
-    await seedUser(extended, USER_A, "parent@example.com");
+    seedUser(USER_A, "parent@example.com");
     const first = "pi_3TestOrder2001aa";
     const second = "pi_3TestOrder2002aa";
     await deliver(
@@ -263,8 +304,8 @@ describe("stripe webhook", () => {
 
   it("refunds the user stored for that payment, not the user id in the payload", async () => {
     const kv = new MemoryKv();
-    await seedUser(kv, USER_A, "parent@example.com");
-    await seedUser(kv, USER_D, "other@example.com");
+    seedUser(USER_A, "parent@example.com");
+    seedUser(USER_D, "other@example.com");
     await kv.set(entitlementKey(USER_D), {
       status: "active",
       validUntil: "2028-08-31",
@@ -284,12 +325,12 @@ describe("stripe webhook", () => {
       status: "active",
       stripePaymentIntentId: "pi_3OtherOrder9999aa",
     });
-    expect(await kv.get(userEmailKey("stranger@example.com"))).toBeNull();
+    expect(ensureUserByEmail).not.toHaveBeenCalled();
   });
 
   it("keeps Plus when an older payment is refunded after a renewal", async () => {
     const kv = new MemoryKv();
-    await seedUser(kv, USER_A, "parent@example.com");
+    seedUser(USER_A, "parent@example.com");
     const later = "pi_3TestOrder1002aa";
     await deliver(
       kv,
@@ -315,13 +356,13 @@ describe("stripe webhook", () => {
 
   it("ignores another price and a user id that is not an account", async () => {
     const kv = new MemoryKv();
-    await seedUser(kv, USER_A, "parent@example.com");
+    seedUser(USER_A, "parent@example.com");
     const otherPrice = sessionBody({ email: "stranger@example.com" });
     expect(await deliver(kv, otherPrice, sign(otherPrice), async () => OTHER_PRICE)).toEqual({
       ok: true,
     });
     expect(await readEntitlement(USER_A, kv)).toBeNull();
-    expect(await kv.get(userEmailKey("stranger@example.com"))).toBeNull();
+    expect(ensureUserByEmail).not.toHaveBeenCalled();
 
     const unknown = "33333333-3333-4333-8333-333333333333";
     const body = sessionBody({
@@ -331,7 +372,7 @@ describe("stripe webhook", () => {
       email: "stranger@example.com",
     });
     expect(await deliver(kv, body)).toEqual({ ok: true });
-    expect(await kv.get(userEmailKey("stranger@example.com"))).toBeNull();
+    expect(ensureUserByEmail).not.toHaveBeenCalled();
     expect(await readEntitlement(unknown, kv)).toBeNull();
   });
 
@@ -349,7 +390,8 @@ describe("stripe webhook", () => {
         }),
       ),
     ).toEqual({ ok: true });
-    const userId = await kv.get<string>(userEmailKey("new.parent@example.com"));
+    expect(ensureUserByEmail).toHaveBeenCalledWith("new.parent@example.com");
+    const userId = usersByEmail.get("new.parent@example.com");
     expect(userId).toEqual(expect.any(String));
     expect(await readEntitlement(String(userId), kv)).toMatchObject({
       status: "active",
@@ -360,7 +402,7 @@ describe("stripe webhook", () => {
 
   it("does not grant a payment that was refunded first", async () => {
     const kv = new MemoryKv();
-    await seedUser(kv, USER_A, "parent@example.com");
+    seedUser(USER_A, "parent@example.com");
     await deliver(kv, refundBody());
     await deliver(kv, sessionBody());
     expect(await readEntitlement(USER_A, kv)).toBeNull();
@@ -368,7 +410,7 @@ describe("stripe webhook", () => {
 
   it("does not grant a session that is not paid yet and ignores a partial refund", async () => {
     const kv = new MemoryKv();
-    await seedUser(kv, USER_A, "parent@example.com");
+    seedUser(USER_A, "parent@example.com");
     const pending = sessionBody({ paymentStatus: "unpaid" });
     expect(await deliver(kv, pending, sign(pending), async () => {
       throw new Error("lookup touched");
@@ -380,7 +422,7 @@ describe("stripe webhook", () => {
 
   it("emails the buying account once per payment, including a renewal", async () => {
     const kv = new MemoryKv();
-    await seedUser(kv, USER_A, "parent@example.com");
+    seedUser(USER_A, "parent@example.com");
     const sent: { to: string; startedOn: string; endsOn: string; renewal: boolean }[] = [];
     const sendReceipt = async (mail: {
       to: string;
@@ -426,7 +468,7 @@ describe("stripe webhook", () => {
 
   it("retries the confirmation when the mail is not sent", async () => {
     const kv = new MemoryKv();
-    await seedUser(kv, USER_A, "parent@example.com");
+    seedUser(USER_A, "parent@example.com");
     let sent = 0;
     const sendReceipt = async () => {
       sent += 1;
@@ -446,7 +488,7 @@ describe("stripe webhook", () => {
 
   it("does not email a payment that was refunded first", async () => {
     const kv = new MemoryKv();
-    await seedUser(kv, USER_A, "parent@example.com");
+    seedUser(USER_A, "parent@example.com");
     const sendReceipt = async () => {
       throw new Error("receipt touched");
     };
@@ -459,7 +501,7 @@ describe("stripe webhook", () => {
 
   it("asks Stripe for the session price and retries when that call fails", async () => {
     const kv = new MemoryKv();
-    await seedUser(kv, USER_A, "parent@example.com");
+    seedUser(USER_A, "parent@example.com");
     const body = sessionBody();
     const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
       expect(url).toBe(

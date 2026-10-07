@@ -80,7 +80,7 @@ function jsonRequest(url: string, method: string, body: unknown) {
 }
 
 function asUser(userId = SESSION) {
-  getCurrentUser.mockResolvedValue({ userId, email: "parent@example.com" });
+  getCurrentUser.mockResolvedValue({ userId, email: "parent@example.com", role: "user" });
 }
 
 function asPlus(userId = SESSION) {

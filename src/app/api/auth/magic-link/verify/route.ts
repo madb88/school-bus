@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { loginWithMagicCode, loginWithMagicToken } from "@/lib/auth/flow";
+import { verifyCode, verifyLink } from "@/lib/auth/backend";
+import { AUTH_UNAVAILABLE } from "@/lib/auth/messages";
 import { applySessionCookie, jsonError } from "@/lib/auth/http";
 import { getClientIpFromHeaders } from "@/lib/auth/rate-limit";
 import { readRequestCookie } from "@/lib/auth/session-cookie";
-import { destroySession } from "@/lib/auth/store";
-import { openSessionId } from "@/lib/auth/token";
+import { readSessionToken } from "@/lib/auth/token";
 
 export const runtime = "nodejs";
 
@@ -18,29 +18,24 @@ function accountRedirect(
   return NextResponse.redirect(url, 303);
 }
 
-async function retirePreviousSession(request: Request, nextSessionId: string) {
-  const sealed = readRequestCookie(request.headers.get("cookie"));
-  if (!sealed) return;
-  const previous = openSessionId(sealed);
-  if (!previous || previous === nextSessionId) return;
-  await destroySession(previous);
+function previousSessionToken(request: Request): string | null {
+  return readSessionToken(readRequestCookie(request.headers.get("cookie")));
 }
 
 /** Consume a magic link from email and start a session in this browser. */
 export async function GET(request: Request) {
   const token = new URL(request.url).searchParams.get("token") ?? "";
-  const result = await loginWithMagicToken(token);
+  const result = await verifyLink(token, previousSessionToken(request));
   if (!result.ok) {
     return accountRedirect(
       request,
       "/login",
-      result.reason === "unavailable" ? "unavailable" : "invalid",
+      result.status === 400 ? "invalid" : "unavailable",
     );
   }
 
-  await retirePreviousSession(request, result.sessionId);
   const response = accountRedirect(request, "/profil");
-  if (!applySessionCookie(response, result.sessionId)) {
+  if (!applySessionCookie(response, result.data.sessionToken, result.data.expiresAt)) {
     return accountRedirect(request, "/login", "unavailable");
   }
   return response;
@@ -60,20 +55,20 @@ export async function POST(request: Request) {
   const rawEmail = typeof record.email === "string" ? record.email : "";
   const rawCode = typeof record.code === "string" ? record.code : "";
 
-  const result = await loginWithMagicCode({
+  const result = await verifyCode(
     rawEmail,
     rawCode,
-    ip: getClientIpFromHeaders(request.headers),
-  });
+    getClientIpFromHeaders(request.headers),
+    previousSessionToken(request),
+  );
 
   if (!result.ok) {
     return jsonError(result.error, result.status, result.retryAfterSec);
   }
 
-  await retirePreviousSession(request, result.sessionId);
   const response = NextResponse.json({ ok: true });
-  if (!applySessionCookie(response, result.sessionId)) {
-    return jsonError("Logowanie e-mailem nie jest teraz dostępne. Spróbuj później.", 503);
+  if (!applySessionCookie(response, result.data.sessionToken, result.data.expiresAt)) {
+    return jsonError(AUTH_UNAVAILABLE, 503);
   }
   return response;
 }

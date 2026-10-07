@@ -1,7 +1,7 @@
-import { userKey } from "@/lib/auth/constants";
+import { ensureUserByEmail, getUserById } from "@/lib/auth/backend";
 import { normalizeEmail } from "@/lib/auth/email";
-import { ensureUser, type AuthKv } from "@/lib/auth/store";
 import { deletePushRecordsForUser } from "@/lib/push/store";
+import type { Kv } from "@/lib/redis/kv";
 import { isCustomerId, isOrderId, isPriceId, isSessionId, isUserId, stripeOrderKey, stripeReceiptKey, STRIPE_RECEIPT_SENT } from "./constants";
 import { sendPlusPurchaseEmail } from "./receipt";
 import { stripeSignatureMatches } from "./signature";
@@ -139,28 +139,23 @@ function eventName(payload: unknown): string | null {
   return typeof name === "string" ? name : null;
 }
 
-function userShape(value: unknown): boolean {
-  const record = asRecord(value);
-  return typeof record?.email === "string" && typeof record.createdAt === "string";
-}
-
 async function resolveUser(
-  kv: AuthKv,
   payment: ParsedPayment,
 ): Promise<{ ok: true; userId: string } | { ok: false; retry: boolean }> {
   if (payment.customUser === "invalid") return { ok: false, retry: false };
   if (typeof payment.customUser === "object") {
-    const raw = await kv.get(userKey(payment.customUser.id));
-    if (!userShape(raw)) return { ok: false, retry: false };
-    return { ok: true, userId: payment.customUser.id };
+    const user = await getUserById(payment.customUser.id);
+    if (user === "unavailable") return { ok: false, retry: true };
+    if (!user) return { ok: false, retry: false };
+    return { ok: true, userId: user.id };
   }
   if (!payment.email) return { ok: false, retry: false };
-  const ensured = await ensureUser(payment.email, kv);
-  if (!ensured.ok) return { ok: false, retry: ensured.reason === "unavailable" };
-  return { ok: true, userId: ensured.userId };
+  const ensured = await ensureUserByEmail(payment.email);
+  if (ensured === "unavailable" || !ensured) return { ok: false, retry: true };
+  return { ok: true, userId: ensured.id };
 }
 
-async function loadOrder(kv: AuthKv, orderId: string): Promise<StripeOrder | null | "bad"> {
+async function loadOrder(kv: Kv, orderId: string): Promise<StripeOrder | null | "bad"> {
   const raw = await kv.get(stripeOrderKey(orderId));
   if (raw == null) return null;
   const parsed = parseStripeOrder(raw);
@@ -168,7 +163,7 @@ async function loadOrder(kv: AuthKv, orderId: string): Promise<StripeOrder | nul
   return parsed;
 }
 
-async function finishRefund(kv: AuthKv, userId: string, orderId: string): Promise<void> {
+async function finishRefund(kv: Kv, userId: string, orderId: string): Promise<void> {
   await revokeEntitlementForOrder(userId, orderId, kv);
   await clearPaymentReturn(userId, kv);
   const entitlement = await readEntitlement(userId, kv);
@@ -176,7 +171,7 @@ async function finishRefund(kv: AuthKv, userId: string, orderId: string): Promis
   await deletePushRecordsForUser(userId);
 }
 
-async function applyRefund(kv: AuthKv, orderId: string): Promise<void> {
+async function applyRefund(kv: Kv, orderId: string): Promise<void> {
   const existing = await loadOrder(kv, orderId);
   if (existing === "bad") throw new Error("order");
   if (existing?.status === "refunded") {
@@ -208,14 +203,8 @@ type ReceiptMail = {
   renewal: boolean;
 };
 
-function accountEmail(value: unknown): string | null {
-  const record = asRecord(value);
-  if (typeof record?.email !== "string") return null;
-  return normalizeEmail(record.email);
-}
-
 async function sendReceiptOnce(
-  kv: AuthKv,
+  kv: Kv,
   input: {
     orderId: string;
     userId: string;
@@ -229,7 +218,9 @@ async function sendReceiptOnce(
   const key = stripeReceiptKey(input.orderId);
   if ((await kv.get(key)) === STRIPE_RECEIPT_SENT) return "ok";
 
-  const to = accountEmail(await kv.get(userKey(input.userId)));
+  const account = await getUserById(input.userId);
+  if (account === "unavailable") return "retry";
+  const to = account ? normalizeEmail(account.email) : null;
   if (!to) {
     console.error("Billing receipt skipped: payer has no address");
     return "ok";
@@ -257,7 +248,7 @@ async function sendReceiptOnce(
 }
 
 async function applyPaid(
-  kv: AuthKv,
+  kv: Kv,
   payment: ParsedPayment,
   now: Date,
   send: (mail: ReceiptMail) => Promise<boolean>,
@@ -274,7 +265,7 @@ async function applyPaid(
 
   let userId = existing?.status === "paid" ? existing.userId : undefined;
   if (!userId) {
-    const resolved = await resolveUser(kv, payment);
+    const resolved = await resolveUser(payment);
     if (!resolved.ok) {
       if (!resolved.retry) console.error("Billing webhook skipped: payer not attached");
       return resolved.retry ? "retry" : "ok";
@@ -390,7 +381,7 @@ export async function handleStripeWebhook(input: {
   secret: string;
   priceId: string;
   apiKey: string;
-  kv: AuthKv | null;
+  kv: Kv | null;
   now?: Date;
   lookupPrice?: (sessionId: string) => Promise<PriceRead>;
   fetchImpl?: FetchImpl;
