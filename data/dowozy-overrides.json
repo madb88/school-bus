@@ -1,8 +1,8 @@
 {
-  "active": false,
+  "active": true,
   "reason": "Korekta czasów w związku z prośbami rodziców",
   "createdAt": "2026-09-27T09:00:00.000Z",
-  "expiresAt": "2026-10-10T09:00:00.000Z",
+  "expiresAt": "2026-10-11T09:00:00.000Z",
   "schedule": {
     "sourceUrl": "https://www.szkolaolimpijczykow.pl/dowozy/",
     "fetchedAt": "2026-09-27T08:59:30.958Z",
@@ -430,16 +430,6 @@
               "Marzęcin",
               "Barcikowice D."
             ]
-          },
-          {
-            "time": "15:30",
-            "places": [
-              "Zatonie",
-              "Marzęcin",
-              "Barcikowice D.",
-              "Książ",
-              "Barcikowice M."
-            ]
           }
         ]
       }
@@ -466,16 +456,6 @@
           {
             "time": "14:45",
             "places": ["Stary Kisielin", "Nowy Kisielin"]
-          },
-          {
-            "time": "15:40",
-            "places": [
-              "Sucha",
-              "Złote Piaski",
-              "Ługowo",
-              "Stary Kisielin",
-              "Nowy Kisielin"
-            ]
           }
         ]
       }
