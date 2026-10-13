@@ -36,11 +36,7 @@ import {
   sourceModeLabel,
 } from "@/components/schedule/labels";
 import { DirectionSection } from "@/components/schedule/section";
-import {
-  DropoffRunsList,
-  StopRow,
-  TimelineList,
-} from "@/components/schedule/trip-rows";
+import { TimelineList } from "@/components/schedule/trip-rows";
 import { WeekendPlaceholder } from "@/components/weekend-placeholder";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
@@ -98,7 +94,6 @@ import {
   type ScheduleSourceMode,
 } from "@/lib/dowozy/filter-url";
 import { buildBestTodayRecommendation } from "@/lib/dowozy/best-today";
-import { findNextTrip, stopDomId } from "@/lib/dowozy/next-trip";
 import {
   formatDayOptionLabel,
   isAbsoluteDateFilter,
@@ -488,30 +483,22 @@ export function ScheduleBoard({
     (rawMzkDropoffs.length - mzkDropoffs.length);
 
   const mzkDeparturesCount = mzkPickups.length + mzkDropoffs.length;
-  const mergedTimeline =
-    deferredSourceMode === "school-mzk"
-      ? buildMergedTimeline({
-          schedule: filtered,
-          mzkPickups,
-          mzkDropoffs,
-          direction: deferredDirection,
-        })
-      : null;
+  // Jedna oś czasu dla trybu szkolnego i Szkolny+MZK (bez osobnego
+  // zagnieżdżonego layoutu „kierowca → kurs → przystanek”).
+  const mergedTimeline = buildMergedTimeline({
+    schedule: filtered,
+    mzkPickups,
+    mzkDropoffs,
+    direction: deferredDirection,
+  });
   const schoolTripCount = countVisibleTrips(filtered);
   const tripCount = schoolTripCount + mzkDeparturesCount;
   const schoolEmpty = schoolTripCount === 0;
   const isEmpty = schoolEmpty && mzkDeparturesCount === 0;
   const isWeekendView = target !== null && !isSchoolDay(target.weekday);
 
-  const nextTrip =
-    deferredDateFilter === "today" &&
-    deferredSourceMode === "school" &&
-    !schoolEmpty
-      ? findNextTrip(filtered, now)
-      : null;
-
   const nextMerged =
-    deferredDateFilter === "today" && mergedTimeline
+    deferredDateFilter === "today" && !isEmpty
       ? findNextMergedEntry(mergedTimeline, now)
       : null;
 
@@ -1373,31 +1360,6 @@ export function ScheduleBoard({
                 {" · "}
                 {nextMerged.kind === "pickup" ? "dowóz" : "odwóz"}
               </p>
-            ) : nextTrip ? (
-              <p className="text-xs text-foreground sm:text-sm">
-                <span className="font-semibold text-bus-deep">
-                  Najbliższy kurs
-                </span>
-                {": "}
-                <a
-                  href={`#${nextTrip.id}`}
-                  className="font-display font-bold tabular-nums underline-offset-2 hover:underline"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    document.getElementById(nextTrip.id)?.scrollIntoView({
-                      behavior: "smooth",
-                      block: "center",
-                    });
-                  }}
-                >
-                  {nextTrip.time}
-                </a>
-                {" · "}
-                {nextTrip.places.join(", ")}
-                {" · "}
-                {nextTrip.kind === "pickup" ? "dowóz" : "odwóz"}
-                {nextTrip.context ? ` (${nextTrip.context})` : null}
-              </p>
             ) : null}
           </div>
         </div>
@@ -1415,6 +1377,16 @@ export function ScheduleBoard({
         </div>
       ) : null}
 
+      {/*
+        When the best-today widget is visible, keep the same ~20px page gap
+        as between filters and the widget (space-y-10 alone is too large;
+        negative margin was collapsing into the schedule).
+      */}
+      <div
+        className={
+          bestToday ? "mt-5! flex flex-col gap-10" : "contents"
+        }
+      >
       {showPlanHint || showMzkHint ? (
         <div className="grid gap-2 print:hidden">
           {showPlanHint ? (
@@ -1574,9 +1546,10 @@ export function ScheduleBoard({
             </>
           )}
         </p>
-      ) : sourceMode === "school-mzk" && mergedTimeline ? (
+      ) : (
         <div className="space-y-6">
-          {mzkRouteReady &&
+          {sourceMode === "school-mzk" &&
+          mzkRouteReady &&
           mzkDeparturesCount === 0 &&
           applyLessonFilter &&
           hiddenMzkCount > 0 &&
@@ -1596,7 +1569,8 @@ export function ScheduleBoard({
             </p>
           ) : null}
 
-          {mzkRouteReady &&
+          {sourceMode === "school-mzk" &&
+          mzkRouteReady &&
           mzkDeparturesCount === 0 &&
           !(applyLessonFilter && hiddenMzkCount > 0 && !showAllMzkConnections) ? (
             <p className="border-l-2 border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground print:hidden">
@@ -1659,7 +1633,7 @@ export function ScheduleBoard({
             ) : null}
           </div>
 
-          {mzkRouteReady ? (
+          {sourceMode === "school-mzk" && mzkRouteReady ? (
             <p className="text-center text-xs text-muted-foreground print:hidden">
               Kursy MZK (pon–pt, dni nauki) i szkolne są w jednej liście wg
               godziny.{" "}
@@ -1672,176 +1646,8 @@ export function ScheduleBoard({
             </p>
           ) : null}
         </div>
-      ) : (
-        <div>
-          <div
-            className={cn(
-              "grid items-start gap-4 print:gap-2",
-              filtered.pickups.length > 0 &&
-                (filtered.dropoffsByDate.length > 0 ||
-                  filtered.dropoffsWeekday.length > 0)
-                ? "lg:grid-cols-2 print:grid-cols-2"
-                : "grid-cols-1",
-            )}
-          >
-            {filtered.pickups.length > 0 ? (
-              <DirectionSection
-                headingId="pickups-heading"
-                title="Dowóz – rano"
-                subtitle="do szkoły"
-                tripCount={filtered.pickups.reduce(
-                  (sum, block) =>
-                    sum +
-                    block.courses.reduce(
-                      (courseSum, course) => courseSum + course.stops.length,
-                      0,
-                    ),
-                  0,
-                )}
-                icon={Sun}
-                iconClassName="fill-amber-400 text-amber-500 dark:fill-amber-400/45 dark:text-amber-400/70"
-              >
-                <div className="space-y-5 print:space-y-3">
-                  {filtered.pickups.map((block) => (
-                    <article
-                      key={`${block.kind}-${block.name}`}
-                      className="space-y-2.5"
-                    >
-                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                        <h3 className="font-display text-base font-semibold text-asphalt">
-                          {block.name}
-                        </h3>
-                        <span className="text-[0.65rem] font-medium tracking-wide text-muted-foreground uppercase">
-                          {block.kind === "vehicle" ? "pojazd" : "kierowca"}
-                        </span>
-                      </div>
-                      <div className="space-y-3">
-                        {block.courses.map((course) => (
-                          <div
-                            key={`${block.name}-${course.label}-${course.note ?? ""}`}
-                            className="space-y-2"
-                          >
-                            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                              <p className="text-sm font-medium text-foreground">
-                                {course.label}
-                              </p>
-                              {course.note ? (
-                                <p className="text-xs text-muted-foreground">
-                                  {course.note}
-                                </p>
-                              ) : null}
-                            </div>
-                            <ul className="flex flex-col gap-2 print:gap-1.5">
-                              {course.stops.map((stop, index) => {
-                                const stopId = stopDomId("pickup", [
-                                  block.name,
-                                  course.label,
-                                  String(index),
-                                  stop.time,
-                                ]);
-                                return (
-                                  <StopRow
-                                    key={stopId}
-                                    stopId={stopId}
-                                    stop={stop}
-                                    activePlace={deferredPlace}
-                                    onSelectPlace={selectPlace}
-                                    isNext={nextTrip?.id === stopId}
-                                  />
-                                );
-                              })}
-                            </ul>
-                          </div>
-                        ))}
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </DirectionSection>
-            ) : null}
-
-            {filtered.dropoffsByDate.length > 0 ||
-            filtered.dropoffsWeekday.length > 0 ? (
-              <DirectionSection
-                headingId="dropoffs-heading"
-                title="Odwóz – po lekcjach"
-                subtitle="do domu"
-                tripCount={
-                  filtered.dropoffsByDate.reduce(
-                    (sum, day) => sum + day.runs.length,
-                    0,
-                  ) +
-                  filtered.dropoffsWeekday.reduce(
-                    (sum, block) => sum + block.runs.length,
-                    0,
-                  )
-                }
-                icon={Moon}
-                iconClassName="text-indigo-400 dark:text-bus-deep"
-              >
-                <div className="space-y-5 print:space-y-3">
-                  {filtered.dropoffsByDate.map((day) => (
-                    <article key={day.dateLabel} className="space-y-2.5">
-                      <div>
-                        <h3 className="font-display text-base font-semibold text-asphalt">
-                          {day.dateLabel}
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                          {day.driver}
-                        </p>
-                      </div>
-                      <DropoffRunsList
-                        runs={day.runs}
-                        lessonEnd={planLessonEnd}
-                        activePlace={deferredPlace}
-                        onSelectPlace={selectPlace}
-                        nextTripId={nextTrip?.id}
-                        stopIdFor={(run, index) =>
-                          stopDomId("dropoff-date", [
-                            day.dateLabel,
-                            String(index),
-                            run.time,
-                          ])
-                        }
-                      />
-                    </article>
-                  ))}
-
-                  {filtered.dropoffsWeekday.map((block) => (
-                    <article
-                      key={`${block.title}-${block.driver}`}
-                      className="space-y-2.5"
-                    >
-                      <div>
-                        <h3 className="font-display text-base font-semibold text-asphalt">
-                          {block.title}
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                          {block.driver}
-                        </p>
-                      </div>
-                      <DropoffRunsList
-                        runs={block.runs}
-                        lessonEnd={planLessonEnd}
-                        activePlace={deferredPlace}
-                        onSelectPlace={selectPlace}
-                        nextTripId={nextTrip?.id}
-                        stopIdFor={(run, index) =>
-                          stopDomId("dropoff-weekday", [
-                            block.driver,
-                            String(index),
-                            run.time,
-                          ])
-                        }
-                      />
-                    </article>
-                  ))}
-                </div>
-              </DirectionSection>
-            ) : null}
-          </div>
-        </div>
       )}
+      </div>
     </div>
   );
 }

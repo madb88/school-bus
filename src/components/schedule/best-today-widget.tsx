@@ -29,24 +29,18 @@ function tripKindLabel(trip: BestTodayTrip): string {
   return "Szkolny";
 }
 
-function DirectionIcon({ direction }: { direction: "pickup" | "dropoff" }) {
-  if (direction === "pickup") {
-    return (
-      <Sun
-        className="size-3 shrink-0 fill-amber-400 text-amber-500 dark:fill-amber-400/45 dark:text-amber-400/70"
-        aria-hidden
-      />
-    );
+/** Short label for the widget — full route details live in the schedule below. */
+function compactTripLabel(trip: BestTodayTrip): string {
+  if (trip.source === "school") return trip.label;
+
+  const parts = trip.label.split("→").map((part) => part.trim());
+  if (parts.length === 2) {
+    return trip.direction === "pickup" ? parts[0]! : parts[1]!;
   }
-  return (
-    <Moon
-      className="size-3 shrink-0 text-indigo-400 dark:text-bus"
-      aria-hidden
-    />
-  );
+  return trip.label;
 }
 
-function TripItem({
+function TripCard({
   title,
   direction,
   trip,
@@ -55,42 +49,79 @@ function TripItem({
   direction: "pickup" | "dropoff";
   trip: BestTodayTrip | null;
 }) {
+  const Icon = direction === "pickup" ? Sun : Moon;
+
   if (!trip) {
     return (
-      <div className="flex min-w-0 items-center gap-2 py-0.5">
-        <DirectionIcon direction={direction} />
-        <span className="w-[4.75rem] shrink-0 text-[0.65rem] leading-none text-muted-foreground">
+      <div className="flex h-10 items-center gap-2 rounded-lg border border-dashed border-border/60 bg-muted/25 px-2.5 lg:h-11 lg:px-3 dark:bg-muted/15">
+        <Icon
+          className={cn(
+            "size-3.5 shrink-0",
+            direction === "pickup"
+              ? "fill-amber-400/50 text-amber-500/70 dark:fill-amber-400/30 dark:text-amber-400/50"
+              : "text-indigo-300 dark:text-bus/50",
+          )}
+          aria-hidden
+        />
+        <span className="min-w-0 truncate text-[12px] font-medium text-muted-foreground">
           {title}
         </span>
-        <span className="text-sm text-muted-foreground">Brak</span>
+        <span className="ml-auto text-sm text-muted-foreground">Brak</span>
       </div>
     );
   }
 
+  const isMzk = trip.source === "mzk";
+
   return (
     <button
       type="button"
-      className="flex w-full min-w-0 items-center gap-2 py-0.5 text-left outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-bus/40"
       onClick={() => scrollToTrip(trip.id)}
+      className={cn(
+        "group flex h-10 w-full min-w-0 items-center gap-2 rounded-lg border px-2.5 text-left outline-none transition-colors lg:h-11 lg:gap-2.5 lg:px-3",
+        "focus-visible:ring-2 focus-visible:ring-bus/40",
+        isMzk
+          ? "border-mzk/25 bg-mzk/[0.07] hover:bg-mzk/[0.11] dark:border-mzk/30 dark:bg-mzk/[0.09] dark:hover:bg-mzk/[0.14]"
+          : "border-bus/25 bg-bus/[0.07] hover:bg-bus/[0.11] dark:border-bus/30 dark:bg-bus/[0.09] dark:hover:bg-bus/[0.14]",
+      )}
     >
-      <DirectionIcon direction={direction} />
-      <span className="w-[4.75rem] shrink-0 text-[0.65rem] leading-none text-muted-foreground">
-        {title}
-      </span>
-      <span className="shrink-0 font-display text-[1.35rem] font-bold leading-none tracking-tight text-asphalt tabular-nums dark:text-foreground">
-        {trip.time}
-      </span>
+      <Icon
+        className={cn(
+          "size-3.5 shrink-0",
+          direction === "pickup"
+            ? "fill-amber-400 text-amber-500 dark:fill-amber-400/45 dark:text-amber-400/70"
+            : "text-indigo-400 dark:text-bus",
+        )}
+        aria-hidden
+      />
+
       <span
         className={cn(
-          "shrink-0 text-[0.65rem] font-semibold tracking-wide uppercase",
-          trip.source === "mzk" ? "text-mzk-deep/80" : "text-bus-deep/80",
+          "shrink-0 font-display text-[1.375rem] font-bold leading-none tracking-tight tabular-nums lg:text-[1.5rem]",
+          isMzk ? "text-mzk-deep" : "text-asphalt dark:text-foreground",
         )}
       >
-        {tripKindLabel(trip)}
+        {trip.time}
       </span>
-      <span className="min-w-0 truncate text-[0.65rem] text-muted-foreground/80">
-        {trip.label}
-      </span>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate text-[12px] font-medium text-muted-foreground">
+            {title}
+          </span>
+          <span
+            className={cn(
+              "shrink-0 rounded px-1 py-px text-[0.6rem] font-semibold tracking-wide uppercase",
+              isMzk ? "bg-mzk/15 text-mzk-deep" : "bg-bus/15 text-bus-deep",
+            )}
+          >
+            {tripKindLabel(trip)}
+          </span>
+        </div>
+        <span className="mt-0.5 block truncate text-[11px] leading-tight text-muted-foreground group-hover:text-foreground/80 lg:text-[12px]">
+          {compactTripLabel(trip)}
+        </span>
+      </div>
     </button>
   );
 }
@@ -110,8 +141,12 @@ function SourcePills({
     >
       {(
         [
-          { value: "school", label: "Szkolny" },
-          { value: "school-mzk", label: "Szkolny + MZK" },
+          { value: "school", label: "Szkolny", shortLabel: "Szkolny" },
+          {
+            value: "school-mzk",
+            label: "Szkolny + MZK",
+            shortLabel: "+ MZK",
+          },
         ] as const
       ).map((option) => {
         const active = sourceMode === option.value;
@@ -120,6 +155,8 @@ function SourcePills({
             key={option.value}
             type="button"
             aria-pressed={active}
+            aria-label={option.label}
+            title={option.label}
             className={cn(
               "rounded-full px-2 py-0.5 text-[0.65rem] font-semibold transition-colors",
               active
@@ -128,7 +165,8 @@ function SourcePills({
             )}
             onClick={() => onSourceModeChange(option.value)}
           >
-            {option.label}
+            <span className="sm:hidden">{option.shortLabel}</span>
+            <span className="hidden sm:inline">{option.label}</span>
           </button>
         );
       })}
@@ -147,7 +185,7 @@ export function BestTodayWidget({
   return (
     <section
       aria-labelledby="best-today-heading"
-      className="-mx-6 w-auto min-w-0 rounded-none border border-border/60 border-x-0 bg-white px-3 py-1 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] print:hidden sm:-mx-10 sm:px-3.5 sm:py-1.5 lg:mx-0 lg:rounded-2xl lg:border-x dark:border-border/40 dark:bg-card dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]"
+      className="-mx-6 w-auto min-w-0 rounded-none border border-border/60 border-x-0 bg-card px-3 py-1.5 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] print:hidden sm:-mx-10 sm:px-3.5 lg:mx-0 lg:rounded-2xl lg:border-x dark:border-border/40 dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]"
     >
       <div className="flex h-7 items-center gap-1.5">
         <button
@@ -187,14 +225,14 @@ export function BestTodayWidget({
       <div
         id={panelId}
         hidden={!expanded}
-        className="mt-0.5 grid min-w-0 grid-cols-1 gap-0 overflow-hidden lg:mt-1.5 lg:grid-cols-2 lg:gap-3 lg:border-t lg:border-border/40 lg:pt-1.5"
+        className="mt-1 grid min-w-0 grid-cols-1 gap-1 lg:mt-1.5 lg:grid-cols-2 lg:gap-2"
       >
-        <TripItem
+        <TripCard
           title="Do szkoły"
           direction="pickup"
           trip={recommendation.pickup}
         />
-        <TripItem
+        <TripCard
           title="Ze szkoły"
           direction="dropoff"
           trip={recommendation.dropoff}

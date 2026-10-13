@@ -73,6 +73,36 @@ describe("buildMergedTimeline", () => {
     expect(onlyPickups.pickups).toHaveLength(2);
     expect(onlyPickups.dropoffs).toHaveLength(0);
   });
+
+  it("includes course note in school pickup context", () => {
+    const withNote: Schedule = {
+      ...schedule,
+      pickups: [
+        {
+          name: "Kierowca A",
+          kind: "driver",
+          courses: [
+            {
+              label: "IV kurs",
+              note: "od poniedziałku do czwartku",
+              stops: [{ time: "11:10", places: ["Złote Piaski"] }],
+            },
+          ],
+        },
+      ],
+    };
+    const { pickups } = buildMergedTimeline({
+      schedule: withNote,
+      mzkPickups: [],
+      mzkDropoffs: [],
+      direction: "pickups",
+    });
+    expect(pickups[0]).toMatchObject({
+      kind: "school",
+      context:
+        "Kierowca A · IV kurs · od poniedziałku do czwartku",
+    });
+  });
 });
 
 describe("findNextMergedEntry", () => {

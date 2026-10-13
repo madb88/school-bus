@@ -66,7 +66,9 @@ export function buildMergedTimeline(options: {
               stop.time,
             ]),
             places: stop.places,
-            context: `${block.name} · ${course.label}`,
+            context: course.note
+              ? `${block.name} · ${course.label} · ${course.note}`
+              : `${block.name} · ${course.label}`,
           });
         }
       }

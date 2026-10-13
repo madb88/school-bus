@@ -1,4 +1,4 @@
-import { Flag } from "lucide-react";
+import { Flag, MapPin } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
 import { timeToMinutes } from "@/lib/child-schedule/match";
 import type { Stop } from "@/lib/dowozy/types";
@@ -9,6 +9,19 @@ import { cn } from "cn";
 
 const tripBadgeBaseClass =
   "trip-badge inline-flex shrink-0 items-center rounded-md px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-wide uppercase";
+
+/** Time column width — keep in sync with rail `before:` left offset. */
+const tripTimeColClass = "w-[4.75rem] shrink-0 sm:w-[5rem]";
+const tripRailColClass = "relative w-3 shrink-0";
+/**
+ * Timeline list with a continuous vertical rail (::before).
+ * Offset = time column + gap-3 + half of rail column (w-3).
+ */
+export const tripTimelineListClass = cn(
+  "trip-timeline-list relative flex flex-col",
+  "before:pointer-events-none before:absolute before:top-3 before:bottom-3 before:left-[calc(4.75rem+0.75rem+0.375rem)] before:w-px before:bg-border/70 before:content-['']",
+  "sm:before:left-[calc(5rem+0.75rem+0.375rem)] dark:before:bg-border/55",
+);
 
 export function TripBadge({
   variant,
@@ -30,14 +43,6 @@ export function TripBadge({
     </span>
   );
 }
-
-export const tripRowCardClass =
-  "rounded-lg border border-border/60 bg-card/80 px-3 py-2.5 sm:px-3.5 print:px-2 print:py-1.5";
-
-export const tripRowGridClass =
-  "grid grid-cols-[5rem_1fr] gap-2.5 sm:grid-cols-[5.25rem_1fr] sm:gap-3";
-
-export const timelineRailClass = "relative pl-3 sm:pl-3.5";
 
 /**
  * Index of the first run at/after lesson end, when a later run exists
@@ -63,20 +68,123 @@ export function findLessonsEndedAfterIndex(
   return firstAtOrAfter;
 }
 
+function TripRowShell({
+  time,
+  variant,
+  isNext,
+  stopId,
+  children,
+}: {
+  time: string;
+  variant: "school" | "mzk";
+  isNext?: boolean;
+  stopId?: string;
+  children: ReactNode;
+}) {
+  const accent = variant === "school" ? "bus" : "mzk";
+
+  return (
+    <li
+      id={stopId}
+      className={cn(
+        "relative flex gap-3 py-2.5 print:py-1.5",
+        isNext &&
+          (variant === "school"
+            ? "rounded-lg bg-bus/[0.06] -mx-1.5 px-1.5 sm:-mx-2 sm:px-2"
+            : "rounded-lg bg-mzk/[0.06] -mx-1.5 px-1.5 sm:-mx-2 sm:px-2"),
+      )}
+    >
+      <div className={cn(tripTimeColClass, "flex flex-col gap-0.5 pt-px")}>
+        <time
+          className={cn(
+            "font-display text-lg font-semibold tabular-nums tracking-tight text-asphalt sm:text-xl print:text-base",
+            isNext &&
+              (variant === "school" ? "text-bus-deep" : "text-mzk-deep"),
+          )}
+        >
+          {time}
+        </time>
+        {isNext ? (
+          <span
+            className={cn(
+              "text-[0.65rem] font-semibold tracking-[0.12em] uppercase",
+              variant === "school" ? "text-bus-deep" : "text-mzk-deep",
+            )}
+          >
+            Najbliższy
+          </span>
+        ) : null}
+      </div>
+      <div className={tripRailColClass} aria-hidden>
+        <span
+          className={cn(
+            "absolute top-1 left-1/2 z-10 flex size-[11px] -translate-x-1/2 items-center justify-center rounded-full bg-card",
+            isNext &&
+              (accent === "bus" ? "ring-2 ring-bus/30" : "ring-2 ring-mzk/30"),
+          )}
+        >
+          <span
+            className={cn(
+              "timeline-dot size-2 rounded-full",
+              accent === "bus" ? "bg-bus" : "bg-mzk",
+            )}
+          />
+        </span>
+      </div>
+      <div className="min-w-0 flex-1 self-center">{children}</div>
+    </li>
+  );
+}
+
 export function LessonsEndedRow() {
   return (
     <li
       role="separator"
       aria-label="Koniec zajęć lekcyjnych"
-      className="flex items-center gap-2 py-1.5"
+      className="relative flex gap-3 py-2 print:py-1"
     >
-      <div className="h-px flex-1 bg-border/60" />
-      <span className="inline-flex shrink-0 items-center gap-1 text-[0.7rem] font-medium text-muted-foreground">
-        <Flag className="size-3 text-bus-deep/70" aria-hidden />
-        Koniec zajęć lekcyjnych
-      </span>
-      <div className="h-px flex-1 bg-border/60" />
+      <div className={tripTimeColClass} aria-hidden />
+      <div className={tripRailColClass} aria-hidden>
+        <span className="absolute top-0.5 left-1/2 z-10 flex size-4 -translate-x-1/2 items-center justify-center rounded-full bg-card ring-[3px] ring-card">
+          <Flag className="size-2.5 text-muted-foreground" />
+        </span>
+      </div>
+      <div className="flex min-w-0 flex-1 items-center gap-2 self-center">
+        <span className="shrink-0 text-[0.7rem] font-medium text-muted-foreground">
+          Koniec zajęć lekcyjnych
+        </span>
+        <span className="h-px min-w-4 flex-1 bg-border/50" aria-hidden />
+      </div>
     </li>
+  );
+}
+
+function PlacesRow({
+  places,
+  activePlace,
+  onSelectPlace,
+}: {
+  places: string[];
+  activePlace: string | null;
+  onSelectPlace: (place: string) => void;
+}) {
+  if (places.length === 0) return null;
+
+  return (
+    <div className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1">
+      <MapPin
+        className="size-3 shrink-0 text-muted-foreground/80"
+        aria-hidden
+      />
+      {places.map((item) => (
+        <PlaceChip
+          key={item}
+          place={item}
+          highlight={activePlace !== null && item === activePlace}
+          onSelect={onSelectPlace}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -101,7 +209,7 @@ export function DropoffRunsList({
   );
 
   return (
-    <ul className="flex flex-col gap-2 print:gap-1.5">
+    <ul className={tripTimelineListClass}>
       {runs.map((run, index) => {
         const stopId = stopIdFor(run, index);
         return (
@@ -168,55 +276,21 @@ export function StopRow({
   stopId?: string;
 }) {
   return (
-    <li
-      id={stopId}
-      className={cn(
-        tripRowCardClass,
-        timelineRailClass,
-        "border-l-2 border-l-bus/40 bg-bus/3",
-        isNext && "border-l-bus bg-bus/10",
-      )}
+    <TripRowShell
+      stopId={stopId}
+      time={stop.time}
+      variant="school"
+      isNext={isNext}
     >
-      <div className={tripRowGridClass}>
-        <div className="relative flex flex-col gap-0.5">
-          <span
-            aria-hidden
-            className={cn(
-              "timeline-dot absolute top-1.5 -left-4 size-1.5 rounded-full bg-bus sm:-left-4.5",
-              isNext && "ring-2 ring-bus/30",
-            )}
-          />
-          <time
-            className={cn(
-              "font-display text-lg font-bold tabular-nums tracking-tight text-asphalt sm:text-xl print:text-base",
-              isNext && "text-bus-deep",
-            )}
-          >
-            {stop.time}
-          </time>
-          {isNext ? (
-            <span className="text-[0.65rem] font-semibold tracking-[0.12em] text-bus-deep uppercase">
-              Najbliższy
-            </span>
-          ) : null}
-        </div>
-        <div className="flex min-w-0 flex-col gap-1 self-center">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <TripBadge variant="school">Szkolny</TripBadge>
-          </div>
-          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-            {stop.places.map((item) => (
-              <PlaceChip
-                key={item}
-                place={item}
-                highlight={activePlace !== null && item === activePlace}
-                onSelect={onSelectPlace}
-              />
-            ))}
-          </div>
-        </div>
+      <div className="flex min-w-0 flex-col gap-1">
+        <TripBadge variant="school">Szkolny</TripBadge>
+        <PlacesRow
+          places={stop.places}
+          activePlace={activePlace}
+          onSelectPlace={onSelectPlace}
+        />
       </div>
-    </li>
+    </TripRowShell>
   );
 }
 
@@ -233,60 +307,33 @@ export function MzkDepartureRow({
     departure.departTime,
     departure.arriveTime,
   );
-  const headsign =
-    departure.headsign ||
-    `${departure.boardStopName} → ${departure.alightStopName}`;
+  const headsign = departure.headsign.trim();
 
   return (
-    <li
-      id={stopId}
-      className={cn(
-        tripRowCardClass,
-        timelineRailClass,
-        "border-l-2 border-l-mzk/40 bg-mzk/3",
-        isNext && "border-l-mzk bg-mzk/10",
-      )}
+    <TripRowShell
+      stopId={stopId}
+      time={departure.departTime}
+      variant="mzk"
+      isNext={isNext}
     >
-      <div className={tripRowGridClass}>
-        <div className="relative flex flex-col gap-0.5">
-          <span
-            aria-hidden
-            className={cn(
-              "timeline-dot absolute top-1.5 -left-4 size-1.5 rounded-full bg-mzk sm:-left-4.5",
-              isNext && "ring-2 ring-mzk/30",
-            )}
-          />
-          <time
-            className={cn(
-              "font-display text-lg font-bold tabular-nums tracking-tight text-asphalt sm:text-xl print:text-base",
-              isNext && "text-mzk-deep",
-            )}
-          >
-            {departure.departTime}
-          </time>
-          {isNext ? (
-            <span className="text-[0.65rem] font-semibold tracking-[0.12em] text-mzk-deep uppercase">
-              Najbliższy
-            </span>
-          ) : null}
-        </div>
-        <div className="flex min-w-0 flex-col gap-0.5 self-center">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <TripBadge variant="mzk">MZK {departure.route}</TripBadge>
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <TripBadge variant="mzk">MZK {departure.route}</TripBadge>
+          {headsign ? (
             <span className="min-w-0 text-sm font-medium text-foreground">
               {headsign}
             </span>
-          </div>
-          <p className="text-xs tabular-nums text-muted-foreground">
-            ~ {departure.arriveTime}
-            {duration ? ` · ${duration}` : null}
-          </p>
-          <p className="truncate text-xs text-muted-foreground">
-            {departure.boardStopName} → {departure.alightStopName}
-          </p>
+          ) : null}
         </div>
+        <p className="text-xs tabular-nums text-muted-foreground">
+          ok. {departure.arriveTime}
+          {duration ? ` · ${duration}` : null}
+        </p>
+        <p className="text-xs break-words text-muted-foreground">
+          {departure.boardStopName} → {departure.alightStopName}
+        </p>
       </div>
-    </li>
+    </TripRowShell>
   );
 }
 
@@ -302,60 +349,28 @@ export function SchoolTimelineRow({
   isNext?: boolean;
 }) {
   return (
-    <li
-      id={entry.stopId}
-      className={cn(
-        tripRowCardClass,
-        timelineRailClass,
-        "border-l-2 border-l-bus/40 bg-bus/3",
-        isNext && "border-l-bus bg-bus/10",
-      )}
+    <TripRowShell
+      stopId={entry.stopId}
+      time={entry.time}
+      variant="school"
+      isNext={isNext}
     >
-      <div className={tripRowGridClass}>
-        <div className="relative flex flex-col gap-0.5">
-          <span
-            aria-hidden
-            className={cn(
-              "timeline-dot absolute top-1.5 -left-4 size-1.5 rounded-full bg-bus sm:-left-4.5",
-              isNext && "ring-2 ring-bus/30",
-            )}
-          />
-          <time
-            className={cn(
-              "font-display text-lg font-bold tabular-nums tracking-tight text-asphalt sm:text-xl print:text-base",
-              isNext && "text-bus-deep",
-            )}
-          >
-            {entry.time}
-          </time>
-          {isNext ? (
-            <span className="text-[0.65rem] font-semibold tracking-[0.12em] text-bus-deep uppercase">
-              Najbliższy
+      <div className="flex min-w-0 flex-col gap-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <TripBadge variant="school">Szkolny</TripBadge>
+          {entry.context ? (
+            <span className="min-w-0 text-xs text-muted-foreground">
+              {entry.context}
             </span>
           ) : null}
         </div>
-        <div className="flex min-w-0 flex-col gap-1 self-center">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <TripBadge variant="school">Szkolny</TripBadge>
-            {entry.context ? (
-              <span className="min-w-0 truncate text-xs text-muted-foreground">
-                {entry.context}
-              </span>
-            ) : null}
-          </div>
-          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-            {entry.places.map((item) => (
-              <PlaceChip
-                key={item}
-                place={item}
-                highlight={activePlace !== null && item === activePlace}
-                onSelect={onSelectPlace}
-              />
-            ))}
-          </div>
-        </div>
+        <PlacesRow
+          places={entry.places}
+          activePlace={activePlace}
+          onSelectPlace={onSelectPlace}
+        />
       </div>
-    </li>
+    </TripRowShell>
   );
 }
 
@@ -378,7 +393,7 @@ export function TimelineList({
   );
 
   return (
-    <ul className="flex flex-col gap-2 print:gap-1.5">
+    <ul className={tripTimelineListClass}>
       {entries.map((entry, index) => {
         const showLessonsEnded = lessonsEndedAfterIndex === index;
 

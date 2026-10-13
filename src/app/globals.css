@@ -257,12 +257,18 @@
     break-inside: avoid;
   }
 
-  /* Timeline dots use background fills — force them onto paper */
+  /* Timeline dots / rail use fills — force them onto paper */
   .timeline-dot {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
     background-color: #0b1f3a !important;
     border-color: #0b1f3a !important;
+  }
+
+  .trip-timeline-list::before {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    background-color: #c9d6e6 !important;
   }
 
   /* Schedule badges / section cards keep light fills on color printers */

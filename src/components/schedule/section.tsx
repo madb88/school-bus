@@ -19,11 +19,11 @@ export function SectionHeading({
   iconClassName?: string;
 }) {
   return (
-    <div className="mb-4 flex items-start justify-between gap-3 border-b border-border/50 pb-3 print:mb-2 print:pb-2">
+    <div className="mb-3 flex items-start justify-between gap-3 border-b border-border/40 pb-2.5 print:mb-2 print:pb-2">
       <div className="min-w-0">
         <h2
           id={id}
-          className="flex items-center gap-2 font-display text-lg font-bold tracking-tight text-asphalt sm:text-xl print:text-base"
+          className="flex items-center gap-2 font-display text-lg font-semibold tracking-tight text-asphalt sm:text-xl print:text-base"
         >
           <Icon
             className={cn("size-5 shrink-0 print:size-4", iconClassName)}
@@ -62,7 +62,7 @@ export function DirectionSection({
   return (
     <section
       aria-labelledby={headingId}
-      className="schedule-direction-section -mx-6 min-w-0 rounded-none border border-border/70 border-x-0 bg-card/90 p-3 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:-mx-10 sm:p-4 lg:mx-0 lg:rounded-xl lg:border-x print:mx-0 print:break-inside-avoid print:rounded-none print:border-x print:p-2 print:shadow-none dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]"
+      className="schedule-direction-section -mx-6 min-w-0 rounded-none border border-border/60 border-x-0 bg-card p-3 sm:-mx-10 sm:p-4 lg:mx-0 lg:rounded-xl lg:border-x lg:shadow-[0_1px_2px_color-mix(in_srgb,var(--foreground)_4%,transparent)] print:mx-0 print:break-inside-avoid print:rounded-none print:border-x print:p-2 print:shadow-none dark:lg:shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
     >
       <SectionHeading
         id={headingId}
