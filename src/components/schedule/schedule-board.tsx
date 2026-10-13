@@ -1365,28 +1365,18 @@ export function ScheduleBoard({
         </div>
       </div>
 
+      {/* Shared offset under filters so widget and schedule share the same gap. */}
+      <div className="-mt-8 flex flex-col gap-5 md:-mt-7">
       {bestToday ? (
-        <div className="-mt-8 md:-mt-7">
-          <BestTodayWidget
-            recommendation={bestToday}
-            sourceMode={sourceMode}
-            onSourceModeChange={(next) => {
-              startTransition(() => setSourceMode(next));
-            }}
-          />
-        </div>
+        <BestTodayWidget
+          recommendation={bestToday}
+          sourceMode={sourceMode}
+          onSourceModeChange={(next) => {
+            startTransition(() => setSourceMode(next));
+          }}
+        />
       ) : null}
 
-      {/*
-        When the best-today widget is visible, keep the same ~20px page gap
-        as between filters and the widget (space-y-10 alone is too large;
-        negative margin was collapsing into the schedule).
-      */}
-      <div
-        className={
-          bestToday ? "mt-5! flex flex-col gap-10" : "contents"
-        }
-      >
       {showPlanHint || showMzkHint ? (
         <div className="grid gap-2 print:hidden">
           {showPlanHint ? (
