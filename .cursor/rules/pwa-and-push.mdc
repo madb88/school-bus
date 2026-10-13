@@ -36,7 +36,7 @@ Nagłówki no-cache dla `/sw.js` w `next.config.ts` zostaw.
 1. Browser permission + `PushManager.subscribe` (VAPID public)
 2. `POST /api/push/subscribe` → Redis (`school-bus:push:*` + `userId`) tylko przy sesji i aktywnym Planie Plus
 3. Sync planu / kinds: `api/push/plan`, `api/push/kinds` — ta sama bramka; cudzego endpointu nie da się podmienić
-4. QStash co 5 min (Pn–Pt) → `api/push/dispatch` → `web-push`
+4. QStash co 5 min (Pn–Pt, 06:00–16:55 Europe/Warsaw) → `api/push/dispatch` → `web-push`; pusty index / poza oknem → early exit bez locka
 5. Fingerprint rozkładu wykrywa zmiany godzin
 
 Rozszerzaj `src/lib/push/*` — nie buduj drugiego magazynu subskrypcji ani drugiego SW.

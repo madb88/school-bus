@@ -4,6 +4,7 @@ import type { Schedule } from "@/lib/dowozy/types";
 import { schoolScheduleFingerprint } from "./schedule-fingerprint";
 
 const acquireDispatchLock = vi.fn();
+const countPushSubscriptions = vi.fn();
 const listPushRecords = vi.fn();
 const releaseDispatchLock = vi.fn();
 const loadScheduleSnapshot = vi.fn();
@@ -18,6 +19,7 @@ vi.mock("@/lib/dowozy/load-schedule", () => ({
 
 vi.mock("./store", () => ({
   acquireDispatchLock: (...args: unknown[]) => acquireDispatchLock(...args),
+  countPushSubscriptions: (...args: unknown[]) => countPushSubscriptions(...args),
   deletePushRecord: (...args: unknown[]) => deletePushRecord(...args),
   listPushRecords: (...args: unknown[]) => listPushRecords(...args),
   releaseDispatchLock: (...args: unknown[]) => releaseDispatchLock(...args),
@@ -93,6 +95,7 @@ describe("dispatchReminders", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     readEntitlement.mockResolvedValue(activePlus);
+    countPushSubscriptions.mockResolvedValue(1);
   });
 
   it("skips Redis work on Saturday (Warsaw)", async () => {
@@ -108,6 +111,7 @@ describe("dispatchReminders", () => {
       skipped: "weekend",
       scheduleSource: null,
     });
+    expect(countPushSubscriptions).not.toHaveBeenCalled();
     expect(acquireDispatchLock).not.toHaveBeenCalled();
     expect(listPushRecords).not.toHaveBeenCalled();
     expect(loadScheduleSnapshot).not.toHaveBeenCalled();
@@ -127,8 +131,46 @@ describe("dispatchReminders", () => {
       skipped: "weekend",
       scheduleSource: null,
     });
+    expect(countPushSubscriptions).not.toHaveBeenCalled();
     expect(acquireDispatchLock).not.toHaveBeenCalled();
     expect(listPushRecords).not.toHaveBeenCalled();
+  });
+
+  it("skips Redis work outside school hours (Warsaw)", async () => {
+    const { dispatchReminders } = await import("./dispatch");
+    const evening = new Date("2026-09-28T18:00:00+02:00");
+
+    const summary = await dispatchReminders(evening);
+
+    expect(summary).toEqual({
+      checked: 0,
+      sent: 0,
+      removed: 0,
+      skipped: "off-hours",
+      scheduleSource: null,
+    });
+    expect(countPushSubscriptions).not.toHaveBeenCalled();
+    expect(acquireDispatchLock).not.toHaveBeenCalled();
+  });
+
+  it("skips lock when the push index is empty", async () => {
+    countPushSubscriptions.mockResolvedValue(0);
+    const { dispatchReminders } = await import("./dispatch");
+    const monday = new Date("2026-09-28T10:00:00+02:00");
+
+    const summary = await dispatchReminders(monday);
+
+    expect(summary).toEqual({
+      checked: 0,
+      sent: 0,
+      removed: 0,
+      skipped: "empty",
+      scheduleSource: null,
+    });
+    expect(countPushSubscriptions).toHaveBeenCalledOnce();
+    expect(acquireDispatchLock).not.toHaveBeenCalled();
+    expect(listPushRecords).not.toHaveBeenCalled();
+    expect(loadScheduleSnapshot).not.toHaveBeenCalled();
   });
 
   it("fingerprints the effective override schedule, not the scrape base", async () => {
@@ -229,6 +271,7 @@ describe("dispatchReminders", () => {
       source: "scrape",
       overrideStatus: "none",
     });
+    // Index looked non-empty (SCARD), but members vanished before SMEMBERS.
     listPushRecords.mockResolvedValue([]);
 
     const { dispatchReminders } = await import("./dispatch");
@@ -243,6 +286,7 @@ describe("dispatchReminders", () => {
       skipped: null,
       scheduleSource: "scrape",
     });
+    expect(acquireDispatchLock).toHaveBeenCalledOnce();
   });
 
   it("removes a subscription with no account and does not send", async () => {

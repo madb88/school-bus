@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { CircleUser, Monitor, Moon, Sun } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "cn";
 import { useTheme, type ThemePreference } from "@/components/theme-provider";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,32 +29,9 @@ const THEME_OPTIONS: {
 
 export function AccountButton({ email }: { email: string | null }) {
   const pathname = usePathname();
+  const router = useRouter();
   const signedIn = email !== null;
   const active = signedIn ? pathname === "/profil" : pathname === "/login";
-
-  if (!signedIn) {
-    return (
-      <Link
-        href="/login"
-        aria-label="Logowanie"
-        title="Logowanie"
-        aria-current={active ? "page" : undefined}
-        className={cn(
-          buttonVariants({ variant: "outline", size: "icon" }),
-          "size-9 shrink-0 border-border/80 bg-card/70 backdrop-blur-sm",
-          active && "border-transparent bg-bus text-bus-foreground hover:bg-bus/90",
-        )}
-      >
-        <CircleUser aria-hidden className="size-4" />
-      </Link>
-    );
-  }
-
-  return <AccountMenu email={email} active={active} />;
-}
-
-function AccountMenu({ email, active }: { email: string; active: boolean }) {
-  const router = useRouter();
   const { preference, setThemePreference } = useTheme();
   const [pending, setPending] = useState(false);
 
@@ -92,8 +68,8 @@ function AccountMenu({ email, active }: { email: string; active: boolean }) {
             type="button"
             variant="outline"
             size="icon"
-            aria-label="Konto"
-            title="Konto"
+            aria-label={signedIn ? "Konto" : "Menu konta"}
+            title={signedIn ? "Konto" : "Menu konta"}
             className={cn(
               "size-9 shrink-0 border-border/80 bg-card/70 backdrop-blur-sm",
               active && "border-transparent bg-bus text-bus-foreground hover:bg-bus/90",
@@ -104,23 +80,28 @@ function AccountMenu({ email, active }: { email: string; active: boolean }) {
         <CircleUser aria-hidden className="size-4" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64 min-w-64">
-        <div className="px-2 py-1.5">
-          <p className="truncate text-sm font-medium text-foreground" title={email}>
-            {email}
-          </p>
-        </div>
-        <DropdownMenuSeparator />
-        <DropdownMenuLinkItem
-          href="/profil"
-          closeOnClick
-          className="px-2 py-1.5"
-          onClick={(event) => {
-            event.preventDefault();
-            router.push("/profil");
-          }}
-        >
-          Profil
-        </DropdownMenuLinkItem>
+        {signedIn ? (
+          <>
+            <div className="px-2 py-1.5">
+              <p className="truncate text-sm font-medium text-foreground" title={email}>
+                {email}
+              </p>
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuLinkItem
+              href="/profil"
+              closeOnClick
+              className="px-2 py-1.5"
+              onClick={(event) => {
+                event.preventDefault();
+                router.push("/profil");
+              }}
+            >
+              Profil
+            </DropdownMenuLinkItem>
+          </>
+        ) : null}
+
         <div className="flex items-center justify-between gap-3 px-2 py-1.5">
           <span className="text-sm">Motyw</span>
           <ToggleGroup
@@ -144,14 +125,30 @@ function AccountMenu({ email, active }: { email: string; active: boolean }) {
             })}
           </ToggleGroup>
         </div>
+
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          disabled={pending}
-          className="px-2 py-1.5"
-          onClick={() => void logout()}
-        >
-          {pending ? "Wylogowuję…" : "Wyloguj"}
-        </DropdownMenuItem>
+
+        {signedIn ? (
+          <DropdownMenuItem
+            disabled={pending}
+            className="px-2 py-1.5"
+            onClick={() => void logout()}
+          >
+            {pending ? "Wylogowuję…" : "Wyloguj"}
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuLinkItem
+            href="/login"
+            closeOnClick
+            className="px-2 py-1.5"
+            onClick={(event) => {
+              event.preventDefault();
+              router.push("/login");
+            }}
+          >
+            Zaloguj się
+          </DropdownMenuLinkItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

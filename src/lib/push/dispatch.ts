@@ -2,11 +2,13 @@ import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { getWarsawParts, isSchoolDay } from "@/lib/dowozy/schedule-dates";
 import type { Schedule } from "@/lib/dowozy/types";
 import { userHasActivePlus } from "./access";
+import { isWithinPushDispatchHours } from "./dispatch-window";
 import { dueTripsForPlan, warsawDateKey } from "./due-trips";
 import { schoolScheduleFingerprint } from "./schedule-fingerprint";
 import { sendPush } from "./send";
 import {
   acquireDispatchLock,
+  countPushSubscriptions,
   deletePushRecord,
   listPushRecords,
   releaseDispatchLock,
@@ -19,7 +21,7 @@ export type DispatchSummary = {
   checked: number;
   sent: number;
   removed: number;
-  skipped: "no-schedule" | "locked" | "weekend" | null;
+  skipped: "no-schedule" | "locked" | "weekend" | "off-hours" | "empty" | null;
   /** Effective timetable source used for fingerprints and trip reminders. */
   scheduleSource: "scrape" | "override" | null;
 };
@@ -41,6 +43,14 @@ export async function dispatchReminders(
 ): Promise<DispatchSummary> {
   if (!isSchoolDay(getWarsawParts(now).weekday)) {
     return emptySummary("weekend");
+  }
+
+  if (!isWithinPushDispatchHours(now)) {
+    return emptySummary("off-hours");
+  }
+
+  if ((await countPushSubscriptions()) === 0) {
+    return emptySummary("empty");
   }
 
   const locked = await acquireDispatchLock();

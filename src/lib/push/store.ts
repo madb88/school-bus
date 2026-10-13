@@ -160,6 +160,13 @@ export async function deletePushRecordsForUser(userId: string): Promise<void> {
   await redis.del(key);
 }
 
+/** Cheap check before acquiring the dispatch lock. */
+export async function countPushSubscriptions(): Promise<number> {
+  const redis = getPushRedis();
+  if (!redis) return 0;
+  return redis.scard(INDEX_KEY);
+}
+
 export async function listPushRecords(): Promise<PushRecord[]> {
   const redis = getPushRedis();
   if (!redis) return [];

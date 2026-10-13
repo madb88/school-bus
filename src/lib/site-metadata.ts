@@ -31,8 +31,7 @@ export const siteTagline = "Dojazdy do szkoły";
 export const rootTitle = `${siteName} – ${siteTagline}`;
 
 /** Visible scope note for the school timetable (home + footer). */
-export const schoolScopeLabel =
-  "Szkoła Olimpijczyków · Drzonków";
+export const schoolScopeLabel = "Szkoła Podstawowa";
 
 export const rootDescription =
   "Rozkłady autobusów szkolnych i komunikacji miejskiej oraz planowanie dojazdów dziecka do szkoły.";

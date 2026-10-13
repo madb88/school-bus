@@ -28,6 +28,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
+import { BestTodayWidget } from "@/components/schedule/best-today-widget";
 import {
   dateLabel,
   directionLabel,
@@ -96,6 +97,7 @@ import {
   serializeFilterParams,
   type ScheduleSourceMode,
 } from "@/lib/dowozy/filter-url";
+import { buildBestTodayRecommendation } from "@/lib/dowozy/best-today";
 import { findNextTrip, stopDomId } from "@/lib/dowozy/next-trip";
 import {
   formatDayOptionLabel,
@@ -572,6 +574,29 @@ export function ScheduleBoard({
           place,
           windowMin: effectiveWindowMin,
           now,
+        })
+      : null;
+
+  const bestToday =
+    filtersReady &&
+    !isWeekendView &&
+    deferredDateFilter === "today" &&
+    deferredMatch &&
+    dayTimes
+      ? buildBestTodayRecommendation({
+          schedule,
+          place: deferredPlace,
+          dateFilter: deferredDateFilter,
+          now,
+          lessonPlan,
+          windowMin: deferredWindowMin,
+          sourceMode: deferredSourceMode,
+          lessonStart: dayTimes.start,
+          lessonEnd: dayTimes.end,
+          mzkPickups:
+            deferredSourceMode === "school-mzk" ? mzkOd.pickups : [],
+          mzkDropoffs:
+            deferredSourceMode === "school-mzk" ? mzkOd.dropoffs : [],
         })
       : null;
 
@@ -1377,6 +1402,18 @@ export function ScheduleBoard({
           </div>
         </div>
       </div>
+
+      {bestToday ? (
+        <div className="-mt-8 md:-mt-7">
+          <BestTodayWidget
+            recommendation={bestToday}
+            sourceMode={sourceMode}
+            onSourceModeChange={(next) => {
+              startTransition(() => setSourceMode(next));
+            }}
+          />
+        </div>
+      ) : null}
 
       {showPlanHint || showMzkHint ? (
         <div className="grid gap-2 print:hidden">
