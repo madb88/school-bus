@@ -11,6 +11,8 @@ import { cn } from "cn";
 
 type BestTodayWidgetProps = {
   recommendation: BestTodayRecommendation;
+  /** Pill next to the title — mirrors the active date filter (Dziś / Jutro / …). */
+  dateLabel: string;
   sourceMode: ScheduleSourceMode;
   onSourceModeChange: (mode: ScheduleSourceMode) => void;
 };
@@ -176,6 +178,7 @@ function SourcePills({
 
 export function BestTodayWidget({
   recommendation,
+  dateLabel,
   sourceMode,
   onSourceModeChange,
 }: BestTodayWidgetProps) {
@@ -202,8 +205,8 @@ export function BestTodayWidget({
           >
             Najlepsze połączenia
           </h2>
-          <span className="inline-flex shrink-0 items-center rounded-full bg-bus px-1.5 py-px text-[0.6rem] font-semibold tracking-wide text-bus-foreground uppercase">
-            Dziś
+          <span className="inline-flex max-w-[9.5rem] shrink-0 items-center truncate rounded-full bg-bus px-1.5 py-px text-[0.6rem] font-semibold tracking-wide text-bus-foreground sm:max-w-[12rem]">
+            {dateLabel}
           </span>
           <ChevronDown
             className={cn(

@@ -567,7 +567,7 @@ export function ScheduleBoard({
   const bestToday =
     filtersReady &&
     !isWeekendView &&
-    deferredDateFilter === "today" &&
+    deferredDateFilter !== "all" &&
     deferredMatch &&
     dayTimes
       ? buildBestTodayRecommendation({
@@ -1370,6 +1370,7 @@ export function ScheduleBoard({
       {bestToday ? (
         <BestTodayWidget
           recommendation={bestToday}
+          dateLabel={dateLabel(deferredDateFilter)}
           sourceMode={sourceMode}
           onSourceModeChange={(next) => {
             startTransition(() => setSourceMode(next));

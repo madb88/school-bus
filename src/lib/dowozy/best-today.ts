@@ -111,8 +111,8 @@ function filterMzkDropoffsForPlan(
 }
 
 /**
- * Plan-aware recommendation for today: latest fitting morning trip and
- * earliest fitting afternoon trip (school only, or school + MZK).
+ * Plan-aware recommendation for a selected school day: latest fitting
+ * morning trip and earliest fitting afternoon trip (school only, or school + MZK).
  */
 export function buildBestTodayRecommendation(options: {
   schedule: Schedule;
