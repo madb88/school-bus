@@ -8,11 +8,13 @@ import type {
 } from "@/lib/dowozy/best-today";
 import type { ScheduleSourceMode } from "@/lib/dowozy/filter-url";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  Popover,
+  PopoverContent,
+  PopoverDescription,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "cn";
 
 const BEST_CONNECTION_HELP =
@@ -224,24 +226,30 @@ export function BestTodayWidget({
             />
           </button>
 
-          <TooltipProvider delay={200}>
-            <Tooltip>
-              <TooltipTrigger
-                type="button"
-                aria-label="Jak wybieramy najlepsze połączenie"
-                className="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-bus/40"
-              >
-                <CircleHelp className="size-3.5" aria-hidden />
-              </TooltipTrigger>
-              <TooltipContent
-                side="bottom"
-                align="start"
-                className="max-w-[16.5rem] px-2.5 py-2 text-left leading-snug"
-              >
-                {BEST_CONNECTION_HELP}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Popover>
+            <PopoverTrigger
+              type="button"
+              aria-label="Jak wybieramy najlepsze połączenie"
+              className="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-bus/40 aria-expanded:text-foreground"
+            >
+              <CircleHelp className="size-3.5" aria-hidden />
+            </PopoverTrigger>
+            <PopoverContent
+              side="bottom"
+              align="start"
+              sideOffset={6}
+              className="w-[min(18rem,calc(100vw-2rem))] gap-1 p-3"
+            >
+              <PopoverHeader>
+                <PopoverTitle className="text-xs font-semibold">
+                  Jak wybieramy połączenie
+                </PopoverTitle>
+                <PopoverDescription className="text-xs leading-snug">
+                  {BEST_CONNECTION_HELP}
+                </PopoverDescription>
+              </PopoverHeader>
+            </PopoverContent>
+          </Popover>
 
           <span className="inline-flex max-w-[9.5rem] shrink-0 items-center truncate rounded-full bg-bus px-1.5 py-px text-[0.6rem] font-semibold tracking-wide text-bus-foreground sm:max-w-[12rem]">
             {dateLabel}
