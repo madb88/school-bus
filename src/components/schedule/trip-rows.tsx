@@ -11,16 +11,16 @@ const tripBadgeBaseClass =
   "trip-badge inline-flex shrink-0 items-center rounded-md px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-wide uppercase";
 
 /** Time column width — keep in sync with rail `before:` left offset. */
-const tripTimeColClass = "w-[4.75rem] shrink-0 sm:w-[5rem]";
+const tripTimeColClass = "w-[3.5rem] shrink-0 sm:w-[3.75rem]";
 const tripRailColClass = "relative w-3 shrink-0";
 /**
  * Timeline list with a continuous vertical rail (::before).
- * Offset = time column + gap-3 + half of rail column (w-3).
+ * Offset = time column + gap-2.5 + half of rail column (w-3).
  */
 export const tripTimelineListClass = cn(
   "trip-timeline-list relative flex flex-col",
-  "before:pointer-events-none before:absolute before:top-3 before:bottom-3 before:left-[calc(4.75rem+0.75rem+0.375rem)] before:w-px before:bg-border/70 before:content-['']",
-  "sm:before:left-[calc(5rem+0.75rem+0.375rem)] dark:before:bg-border/55",
+  "before:pointer-events-none before:absolute before:top-3 before:bottom-3 before:left-[calc(3.5rem+0.625rem+0.375rem)] before:w-px before:bg-border/70 before:content-['']",
+  "sm:before:left-[calc(3.75rem+0.625rem+0.375rem)] dark:before:bg-border/55",
 );
 
 export function TripBadge({
@@ -87,14 +87,19 @@ function TripRowShell({
     <li
       id={stopId}
       className={cn(
-        "relative flex gap-3 py-2.5 print:py-1.5",
+        "relative flex gap-2.5 py-2.5 print:py-1.5",
         isNext &&
           (variant === "school"
             ? "rounded-lg bg-bus/[0.06] -mx-1.5 px-1.5 sm:-mx-2 sm:px-2"
             : "rounded-lg bg-mzk/[0.06] -mx-1.5 px-1.5 sm:-mx-2 sm:px-2"),
       )}
     >
-      <div className={cn(tripTimeColClass, "flex flex-col gap-0.5 pt-px")}>
+      <div
+        className={cn(
+          tripTimeColClass,
+          "flex flex-col items-end gap-0.5 pt-px text-right",
+        )}
+      >
         <time
           className={cn(
             "font-display text-lg font-semibold tabular-nums tracking-tight text-asphalt sm:text-xl print:text-base",
@@ -141,7 +146,7 @@ export function LessonsEndedRow() {
     <li
       role="separator"
       aria-label="Koniec zajęć lekcyjnych"
-      className="relative flex gap-3 py-2 print:py-1"
+      className="relative flex gap-2.5 py-2 print:py-1"
     >
       <div className={tripTimeColClass} aria-hidden />
       <div className={tripRailColClass} aria-hidden>
