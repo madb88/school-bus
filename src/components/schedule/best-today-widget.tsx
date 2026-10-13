@@ -1,13 +1,22 @@
 "use client";
 
-import { ChevronDown, Moon, Sparkles, Sun } from "lucide-react";
+import { ChevronDown, CircleHelp, Moon, Sparkles, Sun } from "lucide-react";
 import { useId, useState } from "react";
 import type {
   BestTodayRecommendation,
   BestTodayTrip,
 } from "@/lib/dowozy/best-today";
 import type { ScheduleSourceMode } from "@/lib/dowozy/filter-url";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "cn";
+
+const BEST_CONNECTION_HELP =
+  "Wybieramy kursy pasujące do planu lekcji w oknie dopasowania: do szkoły — najpóźniejszy, który jeszcze zdąży przed startem zajęć; ze szkoły — najwcześniejszy po ich końcu. Źródło (szkolny / szkolny + MZK) bierzesz z przełącznika obok.";
 
 type BestTodayWidgetProps = {
   recommendation: BestTodayRecommendation;
@@ -191,31 +200,53 @@ export function BestTodayWidget({
       className="-mx-6 w-auto min-w-0 rounded-none border border-border/60 border-x-0 bg-card px-3 py-1.5 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] print:hidden sm:-mx-10 sm:px-3.5 lg:mx-0 lg:rounded-2xl lg:border-x dark:border-border/40 dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]"
     >
       <div className="flex h-7 items-center gap-1.5">
-        <button
-          type="button"
-          className="flex min-w-0 flex-1 items-center gap-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-bus/40"
-          aria-expanded={expanded}
-          aria-controls={panelId}
-          onClick={() => setExpanded((current) => !current)}
-        >
-          <Sparkles className="size-3 shrink-0 text-bus" aria-hidden />
-          <h2
-            id="best-today-heading"
-            className="truncate font-display text-[0.8125rem] font-semibold tracking-tight text-asphalt dark:text-foreground"
+        <div className="flex min-w-0 flex-1 items-center gap-1">
+          <button
+            type="button"
+            className="flex min-w-0 items-center gap-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-bus/40"
+            aria-expanded={expanded}
+            aria-controls={panelId}
+            onClick={() => setExpanded((current) => !current)}
           >
-            Najlepsze połączenia
-          </h2>
+            <Sparkles className="size-3 shrink-0 text-bus" aria-hidden />
+            <h2
+              id="best-today-heading"
+              className="truncate font-display text-[0.8125rem] font-semibold tracking-tight text-asphalt dark:text-foreground"
+            >
+              Najlepsze połączenia
+            </h2>
+            <ChevronDown
+              className={cn(
+                "size-3.5 shrink-0 text-muted-foreground transition-transform",
+                expanded && "rotate-180",
+              )}
+              aria-hidden
+            />
+          </button>
+
+          <TooltipProvider delay={200}>
+            <Tooltip>
+              <TooltipTrigger
+                type="button"
+                aria-label="Jak wybieramy najlepsze połączenie"
+                className="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-bus/40"
+              >
+                <CircleHelp className="size-3.5" aria-hidden />
+              </TooltipTrigger>
+              <TooltipContent
+                side="bottom"
+                align="start"
+                className="max-w-[16.5rem] px-2.5 py-2 text-left leading-snug"
+              >
+                {BEST_CONNECTION_HELP}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
           <span className="inline-flex max-w-[9.5rem] shrink-0 items-center truncate rounded-full bg-bus px-1.5 py-px text-[0.6rem] font-semibold tracking-wide text-bus-foreground sm:max-w-[12rem]">
             {dateLabel}
           </span>
-          <ChevronDown
-            className={cn(
-              "size-3.5 shrink-0 text-muted-foreground transition-transform",
-              expanded && "rotate-180",
-            )}
-            aria-hidden
-          />
-        </button>
+        </div>
 
         <div className="shrink-0">
           <SourcePills
