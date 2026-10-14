@@ -2,11 +2,13 @@ import { PageShell } from "@/components/page-shell";
 import { ScheduleBoard } from "@/components/schedule-board";
 import { ScheduleStatusBanner } from "@/components/schedule-status-banner";
 import { SiteHeader } from "@/components/site-header";
+import { getWarsawParts } from "@/lib/dowozy/schedule-dates";
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { overrideFreshnessInfo } from "@/lib/dowozy/override-freshness";
 import { DOWOZY_SOURCE_URL } from "@/lib/dowozy/types";
 import { loadMzkScheduleMeta } from "@/lib/mzk/load-schedule";
 import {
+  type FreshnessInfo,
   mzkScheduleFreshness,
   schoolScheduleFreshness,
 } from "@/lib/schedule-freshness";
@@ -22,6 +24,19 @@ export const metadata = buildPageMetadata({
   path: "/",
 });
 
+/** One-day notice: Dzień Edukacji Narodowej (no school bus runs). */
+function educationDayNotice(now: Date = new Date()): FreshnessInfo | null {
+  const { year, month, day } = getWarsawParts(now);
+  if (year !== 2026 || month !== 9 || day !== 14) return null;
+  return {
+    level: "stale",
+    message:
+      "Z okazji Dnia Edukacji Narodowej szkoła ma dziś wolne — kursów autobusów szkolnych nie ma.",
+    messageCompact: "Dziś wolne — brak kursów szkolnych",
+    detail: "14 października — Dzień Edukacji Narodowej.",
+  };
+}
+
 export default async function Home() {
   const [loaded, mzkMeta] = await Promise.all([
     loadScheduleSnapshot(),
@@ -29,6 +44,7 @@ export default async function Home() {
   ]);
   const schedule = loaded?.schedule ?? null;
   const freshness = [
+    educationDayNotice(),
     schedule ? schoolScheduleFreshness(schedule.fetchedAt) : null,
     loaded ? overrideFreshnessInfo(loaded) : null,
     mzkMeta
@@ -60,6 +76,10 @@ export default async function Home() {
               <p className="text-xs font-medium tracking-tight text-foreground/70">
                 {schoolScopeLabel}
               </p>
+              <ScheduleStatusBanner
+                items={freshness}
+                className="mb-2 print:hidden"
+              />
               <p className="text-muted-foreground">
                 Rozkład szkolny jest chwilowo niedostępny. Spróbuj ponownie
                 później albo sprawdź źródło na stronie{" "}
