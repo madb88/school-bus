@@ -52,6 +52,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AnalyticsEvent, trackEvent } from "@/lib/analytics/events";
 import {
   dropoffFitsLessonEnd,
   formatTimeInput,
@@ -658,6 +659,7 @@ export function ScheduleBoard({
           text: shareNote,
           url: absolute,
         });
+        trackEvent(AnalyticsEvent.scheduleShareCopied, { method: "share" });
         setCopiedFlash(true);
         window.setTimeout(() => setCopiedFlash(false), 2000);
         return;
@@ -671,6 +673,7 @@ export function ScheduleBoard({
 
     try {
       await navigator.clipboard.writeText(absolute);
+      trackEvent(AnalyticsEvent.scheduleShareCopied, { method: "clipboard" });
       setCopiedFlash(true);
       window.setTimeout(() => setCopiedFlash(false), 2000);
       toast.message("Link skopiowany", { description: shareNote });
@@ -919,6 +922,9 @@ export function ScheduleBoard({
               value={sourceMode}
               onValueChange={(next) => {
                 if (next === "school" || next === "school-mzk") {
+                  trackEvent(AnalyticsEvent.scheduleSourceModeChanged, {
+                    mode: next,
+                  });
                   startTransition(() => setSourceMode(next));
                 }
               }}
@@ -1013,6 +1019,9 @@ export function ScheduleBoard({
           className="bg-card"
           aria-label="Drukuj"
           onClick={() => {
+            trackEvent(AnalyticsEvent.schedulePrintClicked, {
+              mode: sourceMode,
+            });
             window.print();
           }}
         >

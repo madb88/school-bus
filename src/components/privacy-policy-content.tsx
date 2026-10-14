@@ -134,7 +134,9 @@ const SECTIONS: Section[] = [
       "Korzystamy z Vercel Web Analytics oraz Vercel Speed Insights, wbudowanych w aplikację, aby rozumieć, jak działa serwis i jak go ulepszać (np. popularność stron, podstawowe metryki wydajności).",
       "Według aktualnej dokumentacji Vercel Web Analytics: dane są zbierane w sposób zagregowany, bez third-party cookies; odwiedzający są rozróżniani hashem żądania, a nie trwałym identyfikatorem osobowym. Do punktu danych mogą należeć m.in. znacznik czasu, adres URL / ścieżka, referrer, przybliżona lokalizacja (np. kraj / region / miasto), system i przeglądarka oraz typ urządzenia. Sesja odwiedzającego nie jest przechowywana trwale — według dokumentacji jest odrzucana po 24 godzinach.",
       "Według dokumentacji Vercel Speed Insights: zbierane są anonimowe pomiary wydajności (m.in. trasa i URL, typ urządzenia, przeglądarka, kraj, wybrane Web Vitals), bez wiązania ich z konkretną osobą.",
-      "Szczegóły mogą zależeć od aktualnej wersji usług Vercel. Nie stosujemy w aplikacji własnego banera zgody na te narzędzia. Ocena, czy w Twojej sytuacji wymagana jest dodatkowa zgoda, należy do administratora (ew. konsultacja prawna) — niniejszy dokument nie stanowi porady prawnej.",
+      "Dodatkowo korzystamy z PostHog (hosting w UE), aby zbierać pageviewy oraz zdarzenia produktowe (np. zmiana trybu rozkładu, zapis planu lekcji, kliknięcie „Drukuj”, otwarcie formularza opinii). Konfiguracja w aplikacji używa wyłącznie pamięci sesji przeglądarki (persistence „memory”) — nie ustawiamy ciasteczek PostHoga ani nie zapisujemy trwałego identyfikatora w localStorage. Po odświeżeniu strony lub nowej wizycie użytkownik może otrzymać nowy identyfikator sesji analitycznej.",
+      "Z PostHogiem mogą być powiązane m.in.: ścieżka URL, referrer, typ urządzenia / przeglądarka, przybliżona lokalizacja wynikająca z adresu IP po stronie dostawcy oraz nazwy zdarzeń i ich właściwości (bez treści planu lekcji, wiadomości z formularza opinii ani adresu e-mail).",
+      "Nie włączamy w aplikacji nagrywania sesji (session replay) ani map ciepła opartych o nagrania. Nie stosujemy banera zgody wyłącznie pod te narzędzia analityczne w obecnym trybie (bez ciasteczek PostHoga). Ocena, czy w Twojej sytuacji wymagana jest dodatkowa zgoda, należy do administratora (ew. konsultacja prawna) — niniejszy dokument nie stanowi porady prawnej.",
     ],
   },
   {
@@ -145,6 +147,7 @@ const SECTIONS: Section[] = [
     ],
     bullets: [
       "Vercel — hosting aplikacji oraz Analytics i Speed Insights,",
+      "PostHog — analityka produktowa (pageviewy i zdarzenia; hosting w UE),",
       "Upstash — Redis (konto, sesja, Plan Plus, transfer ustawień, limity zapytań, rekordy Push) oraz QStash (harmonogram wysyłki przypomnień),",
       "Resend — wysyłka maili logowania, potwierdzeń zakupu, formularza opinii i reklamacji,",
       "Stripe — obsługa płatności za Plan Plus (Checkout i powiązane dane płatności),",
@@ -169,7 +172,7 @@ const SECTIONS: Section[] = [
       "opcjonalne powiadomienia Push — art. 6 ust. 1 lit. a RODO (zgoda; możesz ją wycofać, wyłączając powiadomienia) oraz w powiązaniu z umową Planu Plus lit. b,",
       "formularz opinii i reklamacje — art. 6 ust. 1 lit. a lub f albo b RODO (zgoda / prawnie uzasadniony interes / wykonanie umowy),",
       "bezpieczeństwo i ograniczenie nadużyć (limity IP, Turnstile) — art. 6 ust. 1 lit. f RODO,",
-      "statystyki i wydajność (Vercel Analytics / Speed Insights) — art. 6 ust. 1 lit. f RODO (prawnie uzasadniony interes: utrzymanie i rozwój serwisu), z zastrzeżeniem oceny administratora co do ewentualnej zgody.",
+      "statystyki i wydajność (Vercel Analytics / Speed Insights oraz PostHog) — art. 6 ust. 1 lit. f RODO (prawnie uzasadniony interes: utrzymanie i rozwój serwisu), z zastrzeżeniem oceny administratora co do ewentualnej zgody.",
     ],
   },
   {
@@ -185,6 +188,7 @@ const SECTIONS: Section[] = [
       "Rekordy Web Push: do wyłączenia powiadomień, wygaśnięcia / cofnięcia Planu Plus lub unieważnienia subskrypcji przez dostawcę Push — bez automatycznego TTL w aplikacji.",
       "Wiadomości z formularza opinii i reklamacji: do rozpatrzenia i usunięcia przez administratora (brak sztywnego terminu w kodzie).",
       "Dane Analytics / Speed Insights: zgodnie z polityką i konfiguracją Vercel.",
+      "Dane PostHog: zgodnie z polityką i konfiguracją PostHog (projekt w UE); retencja w panelu PostHog zależy od ustawień projektu.",
     ],
   },
   {
@@ -247,7 +251,7 @@ export function PrivacyPolicyContent() {
       ))}
 
       <p className="border-t border-border/50 pt-8 text-xs text-muted-foreground sm:pt-10">
-        Ostatnia aktualizacja: 30 września 2026
+        Ostatnia aktualizacja: 14 października 2026
       </p>
     </article>
   );

@@ -4,6 +4,7 @@ import { MessageSquare } from "lucide-react";
 import { useState } from "react";
 import { FeedbackForm } from "@/components/feedback-form";
 import { Button } from "@/components/ui/button";
+import { AnalyticsEvent, trackEvent } from "@/lib/analytics/events";
 import {
   Sheet,
   SheetContent,
@@ -23,6 +24,7 @@ export function FeedbackFab() {
       onOpenChange={(next) => {
         setOpen(next);
         if (next) {
+          trackEvent(AnalyticsEvent.feedbackOpened);
           setFormInstance((n) => n + 1);
         }
       }}

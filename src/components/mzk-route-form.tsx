@@ -30,6 +30,7 @@ import {
 } from "@/lib/mzk/route-preference";
 import { suggestMzkRoutes } from "@/lib/mzk/route-suggestions";
 import { mzkNearestPlaceNote } from "@/lib/mzk/place-map";
+import { AnalyticsEvent, trackEvent } from "@/lib/analytics/events";
 import {
   clearMzkRoutePreference,
   hasConfiguredMzkRoute,
@@ -152,6 +153,9 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
         route,
       };
       saveMzkRoutePreference(normalized);
+      trackEvent(AnalyticsEvent.mzkRouteSaved, {
+        has_route: Boolean(normalized.route),
+      });
       setDraft(null);
       toast.success("Trasa MZK zapisana");
     });

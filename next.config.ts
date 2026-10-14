@@ -3,17 +3,17 @@ import type { NextConfig } from "next";
 const isProd = process.env.NODE_ENV === "production";
 
 /**
- * Browser hardening — keep CSP in sync with Turnstile + Vercel Analytics/Insights.
+ * Browser hardening — keep CSP in sync with Turnstile, Vercel Analytics/Insights, PostHog.
  * HSTS + upgrade-insecure-requests only in production (they break http://localhost).
  */
 const contentSecurityPolicy = [
   "default-src 'self'",
   // React DevTools / stack reconstruction need eval only in development.
-  `script-src 'self' 'unsafe-inline'${isProd ? "" : " 'unsafe-eval'"} https://challenges.cloudflare.com https://va.vercel-scripts.com`,
+  `script-src 'self' 'unsafe-inline'${isProd ? "" : " 'unsafe-eval'"} https://challenges.cloudflare.com https://va.vercel-scripts.com https://*.i.posthog.com`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self'",
-  "connect-src 'self' https://challenges.cloudflare.com https://vitals.vercel-insights.com https://va.vercel-scripts.com",
+  "connect-src 'self' https://challenges.cloudflare.com https://vitals.vercel-insights.com https://va.vercel-scripts.com https://*.i.posthog.com",
   "frame-src https://challenges.cloudflare.com",
   "worker-src 'self'",
   "manifest-src 'self'",

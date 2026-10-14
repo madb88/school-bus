@@ -18,6 +18,7 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from "@/components/ui/native-select";
+import { AnalyticsEvent, trackEvent } from "@/lib/analytics/events";
 import {
   clearLessonPlan,
   hasConfiguredLessons,
@@ -181,6 +182,9 @@ export function LessonPlanForm({
         savePreferredPlace(normalized.place);
       }
       void syncStoredPushPlan(normalized);
+      trackEvent(AnalyticsEvent.lessonPlanSaved, {
+        day_count: Object.keys(normalized.days).length,
+      });
       setDraft(null);
       setSaveError(null);
 
@@ -230,6 +234,7 @@ export function LessonPlanForm({
   }, []);
 
   function handlePrint(mode: LessonPlanPrintMode) {
+    trackEvent(AnalyticsEvent.lessonPlanPrintClicked, { mode });
     document.body.dataset.printMode = mode;
     window.print();
   }
