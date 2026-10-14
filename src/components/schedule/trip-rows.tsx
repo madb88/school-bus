@@ -112,7 +112,7 @@ function TripRowShell({
         {isNext ? (
           <span
             className={cn(
-              "text-[0.65rem] font-semibold tracking-[0.12em] uppercase",
+              "text-[0.55rem] leading-none font-medium tracking-[0.04em] uppercase",
               variant === "school" ? "text-bus-deep" : "text-mzk-deep",
             )}
           >
