@@ -14,7 +14,8 @@ alwaysApply: false
 
 ## Sekrety
 
-- Tylko po stronie serwera: `RESEND_*`, `TURNSTILE_SECRET_KEY`, `SETTINGS_TRANSFER_SECRET`, `BACKEND_API_URL`, `BACKEND_SERVICE_KEY`, `STRIPE_*`, `VAPID_PRIVATE_KEY`, `QSTASH_*`, Upstash tokeny
+- Tylko po stronie serwera: `RESEND_*`, `TURNSTILE_SECRET_KEY`, `SETTINGS_TRANSFER_SECRET`, `BACKEND_API_URL`, `BACKEND_SERVICE_KEY`, `VAPID_PRIVATE_KEY`, `QSTASH_*`, Upstash tokeny
+- Stripe (`BILLING__STRIPE_*`) i webhook płatności są wyłącznie w backendzie — Next nie trzyma sekretów Stripe
 - `NEXT_PUBLIC_*` wyłącznie dla rzeczy naprawdę publicznych (Turnstile site key, VAPID **public**, site URL)
 - Nigdy nie commitować `.env.local`; nowe zmienne → `.env.example` + krótki opis
 - Nie ujawniać `FEEDBACK_TO_EMAIL` ani sekretów w HTML / odpowiedziach API
@@ -28,8 +29,7 @@ alwaysApply: false
 | `api/auth/magic-link` | BFF → backend magic-link (ta sama odpowiedź) |
 | `api/auth/magic-link/verify` | GET link / POST kod → cookie `sb_session` (token z backendu) |
 | `api/auth/logout` | BFF → backend logout + clear cookie |
-| `api/billing/checkout` | Stripe Checkout; `user_id` i e-mail tylko z sesji |
-| `api/billing/webhook` | podpis `Stripe-Signature`, potem opłacona sesja albo pełny zwrot |
+| `api/billing/checkout` | BFF → backend Checkout; sesja wymagana, URL tylko `checkout.stripe.com` |
 | `api/settings-transfer` | create / peek / redeem QR |
 | `api/mzk-departures` | odjazdy z snapshotu MZK (lub z zewnętrznego API gdy `DOWOZY_API_BASE_URL`) |
 | `api/push/subscribe\|plan\|kinds\|test\|dispatch` | Web Push + QStash; zapis wymaga sesji i aktywnego Plus |
@@ -40,9 +40,9 @@ Rozszerzaj te ścieżki zamiast mnożyć równoległe API.
 
 Lokalnie (nie Next routes): `GET /health`, `GET /api/v1/dowozy/schedule`, `GET /api/v1/mzk/schedule`, `GET /api/v1/mzk/meta`. Przy ustawionym base URL brak fallbacku na `data/*.json`.
 
-### Auth backend (`BACKEND_API_URL` + `BACKEND_SERVICE_KEY`)
+### Auth / billing backend (`BACKEND_API_URL` + `BACKEND_SERVICE_KEY`)
 
-Next jest BFF: przeglądarka woła `/api/auth/*`; serwer woła `/api/v1/auth/*` i `/api/v1/users/*` z `X-Service-Key` i opcjonalnie `Authorization: Bearer` + `X-Client-IP`. Cookie `sb_session` trzyma surowy `sessionToken` z backendu.
+Next jest BFF: przeglądarka woła `/api/auth/*` i `/api/billing/checkout`; serwer woła `/api/v1/auth/*`, `/api/v1/users/*` i `/api/v1/billing/*` z `X-Service-Key`, opcjonalnie `Authorization: Bearer` + `X-Client-IP`. Cookie `sb_session` trzyma surowy `sessionToken` z backendu. Webhook Stripe trafia bezpośrednio na backend (`/api/v1/billing/webhook`), nie na Next.
 
 ## Walidacja i błędy
 

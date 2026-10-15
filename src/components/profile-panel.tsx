@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/sheet";
 import { isAllowedCheckoutUrl } from "@/lib/billing/checkout-url";
 import { PLUS_PRICE_LABEL } from "@/lib/billing/constants";
-import { formatRemainingMonthsLabel } from "@/lib/billing/school-year";
+import { formatRemainingMonthsLabel } from "@/lib/billing/format";
 import type { PlusPanelState } from "@/lib/billing/status";
 import { cn } from "cn";
 
@@ -57,14 +57,19 @@ const YELLOW_CTA =
 
 const BLUE_CTA = "h-11 gap-2 rounded-full px-6 font-semibold";
 
-
-function openingSection(focusNotifications: boolean, focusPlus: boolean): Section {
+function openingSection(
+  focusNotifications: boolean,
+  focusPlus: boolean,
+): Section {
   if (focusNotifications) return "powiadomienia";
   if (focusPlus) return "plus";
   return "profil";
 }
 
-async function readError(response: Response, fallback: string): Promise<string> {
+async function readError(
+  response: Response,
+  fallback: string,
+): Promise<string> {
   try {
     const data = (await response.json()) as { error?: string };
     return data.error ?? fallback;
@@ -74,7 +79,9 @@ async function readError(response: Response, fallback: string): Promise<string> 
 }
 
 function scrollToId(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  document
+    .getElementById(id)
+    ?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 export function ProfilePanel({
@@ -100,7 +107,8 @@ export function ProfilePanel({
 
   useEffect(() => {
     const url = new URL(window.location.href);
-    if (!url.searchParams.has("plus") && !url.searchParams.has("powiadomienia")) return;
+    if (!url.searchParams.has("plus") && !url.searchParams.has("powiadomienia"))
+      return;
     url.searchParams.delete("plus");
     url.searchParams.delete("powiadomienia");
     const next = url.search ? `${url.pathname}${url.search}` : url.pathname;
@@ -136,7 +144,9 @@ export function ProfilePanel({
         error?: string;
       } | null;
       if (!response.ok || !data?.url || !isAllowedCheckoutUrl(data.url)) {
-        setError(data?.error ?? "Nie udało się rozpocząć płatności. Spróbuj później.");
+        setError(
+          data?.error ?? "Nie udało się rozpocząć płatności. Spróbuj później.",
+        );
         return;
       }
       window.location.assign(data.url);
@@ -153,7 +163,12 @@ export function ProfilePanel({
     try {
       const response = await fetch("/api/auth/logout", { method: "POST" });
       if (!response.ok) {
-        setError(await readError(response, "Nie udało się wylogować. Spróbuj ponownie."));
+        setError(
+          await readError(
+            response,
+            "Nie udało się wylogować. Spróbuj ponownie.",
+          ),
+        );
         return;
       }
       toast.success("Wylogowano");
@@ -432,7 +447,9 @@ function ActivePlanHero({
             iconClassName="bg-emerald-500/12 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
             label="Ważny do"
             value={validUntilLabel}
-            hint={remainingLabel ? `Pozostało ${remainingLabel}` : "Aktywny plan"}
+            hint={
+              remainingLabel ? `Pozostało ${remainingLabel}` : "Aktywny plan"
+            }
           />
         </div>
         <div className="border-t border-border/35 pt-6 md:border-t-0 md:px-8 md:pt-0">
@@ -441,7 +458,7 @@ function ActivePlanHero({
             iconClassName="bg-violet-500/12 text-violet-700 dark:bg-violet-500/15 dark:text-violet-400"
             label="Płatność"
             value="Jednorazowa"
-            hint={`${PLUS_PRICE_LABEL} za 12 miesięcy`}
+            hint={`${PLUS_PRICE_LABEL} za rok szkolny`}
           />
         </div>
         <div className="border-t border-border/35 pt-6 md:border-t-0 md:pl-8 md:pt-0">
@@ -458,9 +475,7 @@ function ActivePlanHero({
   );
 }
 
-const PLUS_FEATURE_LABELS = [
-  "Powiadomienia o zmianach w kursach",
-] as const;
+const PLUS_FEATURE_LABELS = ["Powiadomienia o zmianach w kursach"] as const;
 
 const PLUS_COMING_SOON = [
   {
@@ -507,14 +522,26 @@ function PlusIncludesCard() {
 function PlusComingSoonCard() {
   return (
     <section className={PANEL_CARD}>
-      <SectionHeading icon={Clock} iconClassName="bg-muted text-muted-foreground">
+      <SectionHeading
+        icon={Clock}
+        iconClassName="bg-muted text-muted-foreground"
+      >
         Wkrótce
       </SectionHeading>
       <ul className="mt-6 grid gap-4 sm:grid-cols-3 sm:gap-5">
         {PLUS_COMING_SOON.map(({ icon: Icon, title }) => (
           <li key={title} className="flex items-start gap-3">
-            <span className={cn(ICON_WELL, "size-10 bg-muted/80 text-muted-foreground")}>
-              <Icon aria-hidden className="size-[1.125rem]" strokeWidth={1.75} />
+            <span
+              className={cn(
+                ICON_WELL,
+                "size-10 bg-muted/80 text-muted-foreground",
+              )}
+            >
+              <Icon
+                aria-hidden
+                className="size-[1.125rem]"
+                strokeWidth={1.75}
+              />
             </span>
             <span className="pt-2 text-sm font-medium leading-snug text-foreground sm:text-base">
               {title}
@@ -544,13 +571,16 @@ function ActivePlusView({
         remainingLabel={remainingLabel}
       />
 
-      <section id="zarzadzaj-planem" className={cn(PANEL_CARD, "scroll-mt-6 space-y-5")}>
+      <section
+        id="zarzadzaj-planem"
+        className={cn(PANEL_CARD, "scroll-mt-6 space-y-5")}
+      >
         <SectionHeading icon={Settings} iconClassName="bg-bus/10 text-bus">
           Zarządzaj planem
         </SectionHeading>
         <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-          Masz aktywny Plan Plus. Plan nie odnawia się automatycznie — po wygaśnięciu możesz
-          kupić kolejny plan na tym ekranie.
+          Masz aktywny Plan Plus. Plan nie odnawia się automatycznie — po
+          wygaśnięciu możesz kupić kolejny plan na tym ekranie.
         </p>
 
         <div className="flex items-start gap-3.5 rounded-2xl bg-bus/6 px-4 py-4 sm:px-5 sm:py-5 dark:bg-bus/10">
@@ -562,8 +592,8 @@ function ActivePlusView({
               Plan odnowisz po wygaśnięciu
             </p>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Obecnie korzystasz z aktywnego Planu Plus. Możesz wrócić do tego ekranu, aby
-              kupić kolejny plan, gdy obecny plan wygaśnie.
+              Obecnie korzystasz z aktywnego Planu Plus. Możesz wrócić do tego
+              ekranu, aby kupić kolejny plan, gdy obecny plan wygaśnie.
             </p>
           </div>
         </div>
@@ -591,7 +621,8 @@ const PLUS_BENEFITS = [
     icon: BookOpen,
     title: "Więcej niż jeden plan lekcji",
     description: "Dodaj kilka planów, jeśli masz więcej niż jedno dziecko.",
-    iconClassName: "bg-emerald-500/12 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400",
+    iconClassName:
+      "bg-emerald-500/12 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400",
   },
   {
     icon: Star,
@@ -607,7 +638,12 @@ function InactivePlusHero({ onCta }: { onCta: () => void }) {
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-10">
         <div className="min-w-0 space-y-3.5">
           <div className="flex flex-wrap items-center gap-3">
-            <span className={cn(ICON_WELL, "bg-amber-400/15 text-amber-600 dark:text-amber-400")}>
+            <span
+              className={cn(
+                ICON_WELL,
+                "bg-amber-400/15 text-amber-600 dark:text-amber-400",
+              )}
+            >
               <Crown aria-hidden className="size-5" />
             </span>
             <h2 className="font-display text-2xl font-bold tracking-tight text-asphalt sm:text-[1.75rem]">
@@ -615,8 +651,8 @@ function InactivePlusHero({ onCta }: { onCta: () => void }) {
             </h2>
           </div>
           <p className="max-w-xl text-base leading-relaxed text-muted-foreground">
-            Korzystasz z darmowej wersji. Wykup Plan Plus, aby włączyć powiadomienia i dodać
-            więcej niż jeden plan lekcji.
+            Korzystasz z darmowej wersji. Wykup Plan Plus, aby włączyć
+            powiadomienia i dodać więcej niż jeden plan lekcji.
           </p>
         </div>
 
@@ -641,21 +677,23 @@ function PlusBenefitsGrid() {
         Co zyskasz z Planem Plus?
       </h3>
       <div className="mt-6 grid gap-6 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-7">
-        {PLUS_BENEFITS.map(({ icon: Icon, title, description, iconClassName }) => (
-          <div key={title} className="flex items-start gap-3.5">
-            <span className={cn(ICON_WELL, iconClassName)}>
-              <Icon aria-hidden className="size-[1.125rem]" />
-            </span>
-            <div className="min-w-0 pt-0.5">
-              <p className="text-sm font-semibold text-asphalt sm:text-base dark:text-foreground">
-                {title}
-              </p>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                {description}
-              </p>
+        {PLUS_BENEFITS.map(
+          ({ icon: Icon, title, description, iconClassName }) => (
+            <div key={title} className="flex items-start gap-3.5">
+              <span className={cn(ICON_WELL, iconClassName)}>
+                <Icon aria-hidden className="size-[1.125rem]" />
+              </span>
+              <div className="min-w-0 pt-0.5">
+                <p className="text-sm font-semibold text-asphalt sm:text-base dark:text-foreground">
+                  {title}
+                </p>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                  {description}
+                </p>
+              </div>
             </div>
-          </div>
-        ))}
+          ),
+        )}
       </div>
     </section>
   );
@@ -684,7 +722,12 @@ function PriceCard({
         <div className="grid lg:grid-cols-[1.15fr_0.95fr]">
           <div className="border-b border-border/40 px-5 py-6 sm:px-7 sm:py-7 lg:border-r lg:border-b-0">
             <div className="flex items-center gap-2.5">
-              <span className={cn(ICON_WELL, "size-9 bg-amber-400/15 text-amber-600 dark:text-amber-400")}>
+              <span
+                className={cn(
+                  ICON_WELL,
+                  "size-9 bg-amber-400/15 text-amber-600 dark:text-amber-400",
+                )}
+              >
                 <Crown aria-hidden className="size-4" />
               </span>
               <p className="font-display text-base font-semibold text-asphalt sm:text-lg">
@@ -724,11 +767,15 @@ function PriceCard({
                 za 12 miesięcy
               </p>
             </div>
-            <p className="mt-1.5 text-sm text-muted-foreground">Płatność jednorazowa</p>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              Płatność jednorazowa
+            </p>
 
             <p className="mt-5 flex items-start gap-2 text-sm leading-relaxed text-muted-foreground">
               <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-bus" />
-              <span>Płatność obsługuje Stripe. Po opłaceniu wrócisz na tę stronę.</span>
+              <span>
+                Płatność obsługuje Stripe. Po opłaceniu wrócisz na tę stronę.
+              </span>
             </p>
 
             <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-border/50 bg-card/90 p-4">
@@ -740,9 +787,9 @@ function PriceCard({
                 onChange={(event) => onAcceptedChange(event.target.checked)}
               />
               <span className="text-xs leading-relaxed text-foreground sm:text-sm">
-                Chcę, aby świadczenie usługi rozpoczęło się od razu po dokonaniu płatności.
-                Przyjmuję do wiadomości, że po rozpoczęciu świadczenia utracę prawo
-                odstąpienia od umowy.
+                Chcę, aby świadczenie usługi rozpoczęło się od razu po dokonaniu
+                płatności. Przyjmuję do wiadomości, że po rozpoczęciu
+                świadczenia utracę prawo odstąpienia od umowy.
               </span>
             </label>
 
@@ -818,11 +865,15 @@ function HelpContactCard() {
             Pomoc i kontakt
             <ArrowRight aria-hidden className="size-4" />
           </SheetTrigger>
-          <SheetContent side="right" className="gap-0 overflow-y-auto sm:max-w-md">
+          <SheetContent
+            side="right"
+            className="gap-0 overflow-y-auto sm:max-w-md"
+          >
             <SheetHeader>
               <SheetTitle>Pomoc i kontakt</SheetTitle>
               <SheetDescription>
-                Napisz, w czym możemy pomóc — wiadomość trafi do autora aplikacji.
+                Napisz, w czym możemy pomóc — wiadomość trafi do autora
+                aplikacji.
               </SheetDescription>
             </SheetHeader>
             <FeedbackForm key={formInstance} onSuccess={() => setOpen(false)} />
@@ -939,7 +990,12 @@ function NotificationsSection({
           <p className="text-base leading-relaxed text-foreground">
             Powiadomienia wymagają aktywnego Planu Plus.
           </p>
-          <Button type="button" variant="outline" size="lg" onClick={onOpenPlus}>
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            onClick={onOpenPlus}
+          >
             Zobacz Pakiet Plus
           </Button>
         </div>
@@ -970,7 +1026,8 @@ function LogoutSection({
           Wyloguj
         </h2>
         <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-          Ta sesja jest tylko na tym urządzeniu. Wylogowanie nie wylogowuje pozostałych.
+          Ta sesja jest tylko na tym urządzeniu. Wylogowanie nie wylogowuje
+          pozostałych.
         </p>
       </div>
       {error ? (

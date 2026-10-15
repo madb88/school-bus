@@ -7,7 +7,11 @@ import {
 import {
   backendConfig,
   backendFetch,
+  createCheckout,
   fetchMe,
+  fetchPlus,
+  fetchPlusForUser,
+  rememberPaymentReturn,
   requestMagicLink,
   verifyLink,
 } from "./backend";
@@ -162,5 +166,77 @@ describe("auth backend client", () => {
       error: AUTH_TOO_MANY,
       retryAfterSec: 9,
     });
+  });
+
+  it("createCheckout returns the URL and maps a bad body to 503", async () => {
+    const fetchMock = vi.fn<typeof fetch>(
+      async () =>
+        new Response(JSON.stringify({ url: "https://checkout.stripe.com/c/pay/cs_test" }), {
+          status: 200,
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    expect(await createCheckout(TOKEN, "203.0.113.9")).toEqual({
+      ok: true,
+      url: "https://checkout.stripe.com/c/pay/cs_test",
+    });
+    const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers);
+    expect(headers.get("Authorization")).toBe(`Bearer ${TOKEN}`);
+    expect(headers.get("X-Client-IP")).toBe("203.0.113.9");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({}), { status: 200 })),
+    );
+    expect(await createCheckout(TOKEN, "1.1.1.1")).toEqual({
+      ok: false,
+      status: 503,
+      error: "Nie udało się rozpocząć płatności. Spróbuj później.",
+    });
+  });
+
+  it("fetchPlus maps shapes and treats 401 / bad body as unavailable", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ state: "active", validUntil: "2027-08-31" }), {
+            status: 200,
+          }),
+      ),
+    );
+    expect(await fetchPlus(TOKEN)).toEqual({
+      state: "active",
+      validUntil: "2027-08-31",
+    });
+
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("", { status: 401 })));
+    expect(await fetchPlus(TOKEN)).toBe("unavailable");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ state: "active" }), { status: 200 })),
+    );
+    expect(await fetchPlus(TOKEN)).toBe("unavailable");
+  });
+
+  it("rememberPaymentReturn and fetchPlusForUser hit the billing routes", async () => {
+    const fetchMock = vi.fn<typeof fetch>(
+      async () => new Response(JSON.stringify({ state: "pending" }), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    expect(await rememberPaymentReturn(TOKEN)).toEqual({ state: "pending" });
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://backend.test/api/v1/billing/plus/return",
+    );
+
+    expect(
+      await fetchPlusForUser("11111111-1111-4111-8111-111111111111"),
+    ).toEqual({ state: "pending" });
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(
+      "http://backend.test/api/v1/billing/users/11111111-1111-4111-8111-111111111111/plus",
+    );
   });
 });

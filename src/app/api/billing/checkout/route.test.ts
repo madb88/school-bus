@@ -1,35 +1,103 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createCheckout } from "@/lib/auth/backend";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { createPlanCheckout } from "@/lib/billing/checkout";
-import { resetCheckoutRateLimitCache } from "@/lib/billing/rate-limit";
 import { POST } from "./route";
 
 vi.mock("@/lib/auth/current-user", () => ({
   getCurrentUser: vi.fn(),
 }));
 
-vi.mock("@/lib/billing/checkout", () => ({
-  createPlanCheckout: vi.fn(),
+vi.mock("@/lib/auth/backend", () => ({
+  createCheckout: vi.fn(),
 }));
 
 const SESSION_USER = "11111111-1111-4111-8111-111111111111";
+const TOKEN = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG";
+
+function asUser() {
+  vi.mocked(getCurrentUser).mockResolvedValue({
+    userId: SESSION_USER,
+    email: "parent@example.com",
+    role: "user",
+    sessionToken: TOKEN,
+  });
+}
 
 describe("POST /api/billing/checkout", () => {
   beforeEach(() => {
-    vi.stubEnv("UPSTASH_REDIS_REST_URL", "");
-    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "");
-    resetCheckoutRateLimitCache();
     vi.mocked(getCurrentUser).mockReset();
-    vi.mocked(createPlanCheckout).mockReset();
+    vi.mocked(createCheckout).mockReset();
   });
 
-  it("ignores user_id and email from the body", async () => {
-    vi.mocked(getCurrentUser).mockResolvedValue({
-      userId: SESSION_USER,
-      email: "parent@example.com",
-      role: "user",
+  it("returns 401 without a session", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue(null);
+
+    const response = await POST(
+      new Request("http://localhost:3000/api/billing/checkout", { method: "POST" }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(createCheckout).not.toHaveBeenCalled();
+  });
+
+  it("passes through 429 with Retry-After", async () => {
+    asUser();
+    vi.mocked(createCheckout).mockResolvedValue({
+      ok: false,
+      status: 429,
+      error: "Zbyt wiele prób. Spróbuj ponownie za chwilę.",
+      retryAfterSec: 42,
     });
-    vi.mocked(createPlanCheckout).mockResolvedValue({
+
+    const response = await POST(
+      new Request("http://localhost:3000/api/billing/checkout", { method: "POST" }),
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("42");
+    expect(await response.json()).toEqual({
+      error: "Zbyt wiele prób. Spróbuj ponownie za chwilę.",
+    });
+  });
+
+  it("passes through 503", async () => {
+    asUser();
+    vi.mocked(createCheckout).mockResolvedValue({
+      ok: false,
+      status: 503,
+      error: "Płatność nie jest teraz dostępna. Spróbuj później.",
+    });
+
+    const response = await POST(
+      new Request("http://localhost:3000/api/billing/checkout", { method: "POST" }),
+    );
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: "Płatność nie jest teraz dostępna. Spróbuj później.",
+    });
+  });
+
+  it("rejects a non-Stripe checkout URL", async () => {
+    asUser();
+    vi.mocked(createCheckout).mockResolvedValue({
+      ok: true,
+      url: "https://evil.example/pay",
+    });
+
+    const response = await POST(
+      new Request("http://localhost:3000/api/billing/checkout", { method: "POST" }),
+    );
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: "Nie udało się rozpocząć płatności. Spróbuj później.",
+    });
+  });
+
+  it("returns the hosted Checkout URL", async () => {
+    asUser();
+    vi.mocked(createCheckout).mockResolvedValue({
       ok: true,
       url: "https://checkout.stripe.com/c/pay/cs_test_abc",
     });
@@ -37,11 +105,7 @@ describe("POST /api/billing/checkout", () => {
     const response = await POST(
       new Request("http://localhost:3000/api/billing/checkout", {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          user_id: "22222222-2222-4222-8222-222222222222",
-          email: "evil@example.com",
-        }),
+        headers: { "x-forwarded-for": "203.0.113.9" },
       }),
     );
 
@@ -49,26 +113,6 @@ describe("POST /api/billing/checkout", () => {
     expect(await response.json()).toEqual({
       url: "https://checkout.stripe.com/c/pay/cs_test_abc",
     });
-    expect(createPlanCheckout).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(createPlanCheckout).mock.calls[0]?.[0]).toEqual({
-      userId: SESSION_USER,
-      email: "parent@example.com",
-      origin: "http://localhost:3000",
-    });
-  });
-
-  it("does not start checkout without a session, even with a user_id in the body", async () => {
-    vi.mocked(getCurrentUser).mockResolvedValue(null);
-
-    const response = await POST(
-      new Request("http://localhost:3000/api/billing/checkout", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ user_id: SESSION_USER, email: "parent@example.com" }),
-      }),
-    );
-
-    expect(response.status).toBe(401);
-    expect(createPlanCheckout).not.toHaveBeenCalled();
+    expect(createCheckout).toHaveBeenCalledWith(TOKEN, "203.0.113.9");
   });
 });

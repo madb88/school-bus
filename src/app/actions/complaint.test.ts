@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { resetCheckoutRateLimitCache } from "@/lib/billing/rate-limit";
 import { loadPlusPanel } from "@/lib/billing/status";
+import { resetComplaintRateLimitCache } from "@/lib/feedback/complaint-rate-limit";
 import { sendComplaintEmail } from "@/lib/feedback/send-email";
 import { sendComplaint } from "./complaint";
 
@@ -18,6 +18,7 @@ vi.mock("@/lib/feedback/send-email", () => ({
 }));
 
 const SESSION_USER = "11111111-1111-4111-8111-111111111111";
+const TOKEN = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG";
 const idle = { ok: false, message: "" };
 
 function form(message: string, extra?: Record<string, string>) {
@@ -31,7 +32,7 @@ describe("sendComplaint", () => {
   beforeEach(() => {
     vi.stubEnv("UPSTASH_REDIS_REST_URL", "");
     vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "");
-    resetCheckoutRateLimitCache();
+    resetComplaintRateLimitCache();
     vi.mocked(getCurrentUser).mockReset();
     vi.mocked(loadPlusPanel).mockReset();
     vi.mocked(sendComplaintEmail).mockReset();
@@ -39,11 +40,13 @@ describe("sendComplaint", () => {
       userId: SESSION_USER,
       email: "parent@example.com",
       role: "user",
+      sessionToken: TOKEN,
     });
     vi.mocked(loadPlusPanel).mockResolvedValue({
       state: "active",
       validUntil: "2027-08-31",
       validUntilLabel: "31 sierpnia 2027",
+      remainingLabel: "11 miesięcy",
     });
     vi.mocked(sendComplaintEmail).mockResolvedValue({ ok: true });
   });

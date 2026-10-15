@@ -1,8 +1,8 @@
 "use server";
 
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { checkComplaintRateLimit } from "@/lib/billing/rate-limit";
 import { loadPlusPanel } from "@/lib/billing/status";
+import { checkComplaintRateLimit } from "@/lib/feedback/complaint-rate-limit";
 import { sendComplaintEmail } from "@/lib/feedback/send-email";
 
 const MESSAGE_MAX = 2000;
@@ -41,7 +41,7 @@ export async function sendComplaint(
     return { ok: false, message: "Zaloguj się, żeby wysłać reklamację." };
   }
 
-  const plus = await loadPlusPanel(user.userId, false);
+  const plus = await loadPlusPanel(user.sessionToken);
   if (plus.state === "unknown") {
     return {
       ok: false,

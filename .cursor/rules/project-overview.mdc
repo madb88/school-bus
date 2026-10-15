@@ -45,8 +45,8 @@ Nawigacja: `NAV_ITEMS` w `src/components/site-nav.tsx`. Layout stron: `PageShell
 ## Integracje zewnętrzne
 
 - Resend + Turnstile — feedback (server action)
-- Upstash Redis — rate limit, transfer QR (TTL 15 min, AES-GCM), subskrypcje push, billing entitlements
-- Backend (`BACKEND_API_URL` + `BACKEND_SERVICE_KEY`) — users, magic-link, sesje (Next BFF `/api/auth/*`)
+- Upstash Redis — rate limit, transfer QR (TTL 15 min, AES-GCM), subskrypcje push
+- Backend (`BACKEND_API_URL` + `BACKEND_SERVICE_KEY`) — users, magic-link, sesje, Plan Plus / Stripe (Next BFF `/api/auth/*`, `/api/billing/checkout`)
 - QStash — cron `POST /api/push/dispatch` (Pn–Pt, 06:00–16:55 Europe/Warsaw)
 - Vercel Analytics / Speed Insights
 

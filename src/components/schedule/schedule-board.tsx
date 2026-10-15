@@ -35,7 +35,11 @@ import {
   formatTripCount,
   sourceModeLabel,
 } from "@/components/schedule/labels";
-import { DirectionSection } from "@/components/schedule/section";
+import {
+  DirectionEmptyState,
+  DirectionSection,
+  type DirectionEmptyKind,
+} from "@/components/schedule/section";
 import { TimelineList } from "@/components/schedule/trip-rows";
 import { WeekendPlaceholder } from "@/components/weekend-placeholder";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -94,7 +98,10 @@ import {
   serializeFilterParams,
   type ScheduleSourceMode,
 } from "@/lib/dowozy/filter-url";
-import { buildBestTodayRecommendation } from "@/lib/dowozy/best-today";
+import {
+  buildBestTodayRecommendation,
+  detectBestTodayWindowGaps,
+} from "@/lib/dowozy/best-today";
 import {
   formatDayOptionLabel,
   isAbsoluteDateFilter,
@@ -414,6 +421,21 @@ export function ScheduleBoard({
     now,
   });
 
+  const filteredWithoutWindow =
+    deferredMatch &&
+    lessonMatchWindowEnabled &&
+    Number.isFinite(deferredWindowMin)
+      ? filterSchedule(schedule, {
+          place: deferredPlace,
+          direction: deferredDirection,
+          dateFilter: deferredDateFilter,
+          lessonPlan,
+          matchLessonPlan: true,
+          lessonMatchWindowMin: Number.POSITIVE_INFINITY,
+          now,
+        })
+      : null;
+
   const target = resolveTargetDay(deferredDateFilter, now);
   const dayTimes =
     deferredMatch && target
@@ -493,9 +515,93 @@ export function ScheduleBoard({
     direction: deferredDirection,
   });
   const schoolTripCount = countVisibleTrips(filtered);
+  const hiddenSchoolCount = filteredWithoutWindow
+    ? countVisibleTrips(filteredWithoutWindow) - schoolTripCount
+    : 0;
   const tripCount = schoolTripCount + mzkDeparturesCount;
   const schoolEmpty = schoolTripCount === 0;
   const isEmpty = schoolEmpty && mzkDeparturesCount === 0;
+
+  const timelineWithoutWindow = filteredWithoutWindow
+    ? buildMergedTimeline({
+        schedule: filteredWithoutWindow,
+        mzkPickups:
+          applyLessonFilter && lessonStart
+            ? rawMzkPickups.filter((d) =>
+                pickupFitsLessonStart(
+                  d.arriveTime,
+                  lessonStart,
+                  Number.POSITIVE_INFINITY,
+                ),
+              )
+            : mzkPickups,
+        mzkDropoffs:
+          applyLessonFilter && lessonEnd
+            ? rawMzkDropoffs.filter((d) =>
+                dropoffFitsLessonEnd(
+                  d.departTime,
+                  lessonEnd,
+                  Number.POSITIVE_INFINITY,
+                ),
+              )
+            : mzkDropoffs,
+        direction: deferredDirection,
+      })
+    : null;
+  const pickupHiddenByWindow =
+    mergedTimeline.pickups.length === 0 &&
+    (timelineWithoutWindow?.pickups.length ?? 0) > 0;
+  const dropoffHiddenByWindow =
+    mergedTimeline.dropoffs.length === 0 &&
+    (timelineWithoutWindow?.dropoffs.length ?? 0) > 0;
+
+  // Baseline: same day, no place / lesson-match — to tell filter empty vs none.
+  const baselineFiltered = filterSchedule(schedule, {
+    place: null,
+    direction: deferredDirection,
+    dateFilter: deferredDateFilter,
+    lessonPlan,
+    matchLessonPlan: false,
+    now,
+  });
+  const baselineTimeline = buildMergedTimeline({
+    schedule: baselineFiltered,
+    mzkPickups: mzkFetchEnabled ? rawMzkPickups : [],
+    mzkDropoffs: mzkFetchEnabled ? rawMzkDropoffs : [],
+    direction: deferredDirection,
+  });
+
+  function resolveDirectionEmptyKind(
+    hasTrips: boolean,
+    hiddenByWindow: boolean,
+    baselineCount: number,
+  ): DirectionEmptyKind | null {
+    if (hasTrips) return null;
+    if (hiddenByWindow) return "window";
+    if (baselineCount > 0) return "filters";
+    return "none";
+  }
+
+  const pickupEmptyKind = resolveDirectionEmptyKind(
+    mergedTimeline.pickups.length > 0,
+    pickupHiddenByWindow,
+    baselineTimeline.pickups.length,
+  );
+  const dropoffEmptyKind = resolveDirectionEmptyKind(
+    mergedTimeline.dropoffs.length > 0,
+    dropoffHiddenByWindow,
+    baselineTimeline.dropoffs.length,
+  );
+
+  // When „Wszystkie” is selected, keep both direction slots so an empty
+  // side (e.g. odwóz ukryty oknem) is still visible as a dashed placeholder.
+  const showBothDirectionSlots = deferredDirection === "all";
+  const showPickupSection =
+    mergedTimeline.pickups.length > 0 ||
+    (showBothDirectionSlots && mergedTimeline.dropoffs.length > 0);
+  const showDropoffSection =
+    mergedTimeline.dropoffs.length > 0 ||
+    (showBothDirectionSlots && mergedTimeline.pickups.length > 0);
   const isWeekendView = target !== null && !isSchoolDay(target.weekday);
 
   const nextMerged =
@@ -565,19 +671,18 @@ export function ScheduleBoard({
         })
       : null;
 
-  const bestToday =
+  const bestTodayOptions =
     filtersReady &&
     !isWeekendView &&
     deferredDateFilter !== "all" &&
     deferredMatch &&
     dayTimes
-      ? buildBestTodayRecommendation({
+      ? {
           schedule,
           place: deferredPlace,
           dateFilter: deferredDateFilter,
           now,
           lessonPlan,
-          windowMin: deferredWindowMin,
           sourceMode: deferredSourceMode,
           lessonStart: dayTimes.start,
           lessonEnd: dayTimes.end,
@@ -585,8 +690,33 @@ export function ScheduleBoard({
             deferredSourceMode === "school-mzk" ? mzkOd.pickups : [],
           mzkDropoffs:
             deferredSourceMode === "school-mzk" ? mzkOd.dropoffs : [],
+        }
+      : null;
+
+  const bestToday = bestTodayOptions
+    ? buildBestTodayRecommendation({
+        ...bestTodayOptions,
+        windowMin: deferredWindowMin,
+      })
+    : null;
+
+  const bestTodayWithoutWindow =
+    bestTodayOptions &&
+    lessonMatchWindowEnabled &&
+    Number.isFinite(deferredWindowMin)
+      ? buildBestTodayRecommendation({
+          ...bestTodayOptions,
+          windowMin: Number.POSITIVE_INFINITY,
         })
       : null;
+
+  const bestTodayWindowGaps = detectBestTodayWindowGaps(
+    bestToday,
+    bestTodayWithoutWindow,
+  );
+  const showBestTodayWindowHint =
+    lessonMatchWindowEnabled &&
+    (bestTodayWindowGaps.pickup || bestTodayWindowGaps.dropoff);
 
   const mobileDirectionItems = [
     { label: "Wszystkie", value: "all" as const },
@@ -605,6 +735,23 @@ export function ScheduleBoard({
     );
     setWindowDraft(null);
     saveLessonMatchWindow(next);
+  }
+
+  function openLessonWindowFilters() {
+    setFiltersOpen(true);
+    setFiltersPinnedOpen(true);
+    // Wait for mobile panel expand before focusing the window input.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const input = document.getElementById(
+          "schedule-lesson-match-window",
+        ) as HTMLInputElement | null;
+        if (!input || input.disabled) return;
+        input.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        input.focus();
+        input.select();
+      });
+    });
   }
 
   function enableMatchPlan() {
@@ -721,6 +868,7 @@ export function ScheduleBoard({
           <span>okno</span>
         </label>
         <input
+          id="schedule-lesson-match-window"
           type="number"
           inputMode="numeric"
           min={MIN_LESSON_MATCH_WINDOW_MIN}
@@ -1384,6 +1532,16 @@ export function ScheduleBoard({
           onSourceModeChange={(next) => {
             startTransition(() => setSourceMode(next));
           }}
+          windowGapHint={
+            showBestTodayWindowHint
+              ? {
+                  windowMin: lessonMatchWindowMin,
+                  pickup: bestTodayWindowGaps.pickup,
+                  dropoff: bestTodayWindowGaps.dropoff,
+                }
+              : null
+          }
+          onOpenWindowFilters={openLessonWindowFilters}
         />
       ) : null}
 
@@ -1526,23 +1684,53 @@ export function ScheduleBoard({
               >
                 Pokaż wszystkie połączenia MZK
               </button>
+              {lessonMatchWindowEnabled ? (
+                <>
+                  {" "}
+                  lub{" "}
+                  <button
+                    type="button"
+                    className="font-medium text-foreground underline underline-offset-2 hover:text-bus-deep"
+                    onClick={openLessonWindowFilters}
+                  >
+                    zmień okno w filtrach
+                  </button>
+                </>
+              ) : null}
             </>
           ) : (
             <>
-              Brak kursów dla wybranego filtra.
-              {matchActive && !dayTimes && target ? (
+              {hiddenSchoolCount > 0 && lessonMatchWindowEnabled ? (
                 <>
-                  {" "}
-                  Uzupełnij godziny na{" "}
-                  <Link
-                    href="/lekcje"
-                    className="underline underline-offset-2 hover:text-foreground"
+                  Brak kursów w oknie czasowym (±{lessonMatchWindowMin} min).
+                  Kursy mogą być poza oknem —{" "}
+                  <button
+                    type="button"
+                    className="font-medium text-foreground underline underline-offset-2 hover:text-bus-deep"
+                    onClick={openLessonWindowFilters}
                   >
-                    planie lekcji
-                  </Link>
+                    zmień okno w filtrach
+                  </button>
                   .
                 </>
-              ) : null}
+              ) : (
+                <>
+                  Brak kursów dla wybranego filtra.
+                  {matchActive && !dayTimes && target ? (
+                    <>
+                      {" "}
+                      Uzupełnij godziny na{" "}
+                      <Link
+                        href="/lekcje"
+                        className="underline underline-offset-2 hover:text-foreground"
+                      >
+                        planie lekcji
+                      </Link>
+                      .
+                    </>
+                  ) : null}
+                </>
+              )}
             </>
           )}
         </p>
@@ -1566,6 +1754,19 @@ export function ScheduleBoard({
               >
                 Pokaż wszystkie połączenia MZK
               </button>
+              {lessonMatchWindowEnabled ? (
+                <>
+                  {" "}
+                  lub{" "}
+                  <button
+                    type="button"
+                    className="font-medium text-foreground underline underline-offset-2 hover:text-bus-deep"
+                    onClick={openLessonWindowFilters}
+                  >
+                    zmień okno w filtrach
+                  </button>
+                </>
+              ) : null}
             </p>
           ) : null}
 
@@ -1589,46 +1790,81 @@ export function ScheduleBoard({
           <div
             className={cn(
               "grid items-start gap-4 print:gap-2",
-              mergedTimeline.pickups.length > 0 &&
-                mergedTimeline.dropoffs.length > 0
+              showPickupSection && showDropoffSection
                 ? "lg:grid-cols-2 print:grid-cols-2"
                 : "grid-cols-1",
             )}
           >
-            {mergedTimeline.pickups.length > 0 ? (
+            {showPickupSection ? (
               <DirectionSection
                 headingId="pickups-heading"
                 title="Dowóz – rano"
                 subtitle="do szkoły"
                 tripCount={mergedTimeline.pickups.length}
                 icon={Sun}
-                iconClassName="fill-amber-400 text-amber-500 dark:fill-amber-400/45 dark:text-amber-400/70"
+                iconClassName={
+                  mergedTimeline.pickups.length > 0
+                    ? "fill-amber-400 text-amber-500 dark:fill-amber-400/45 dark:text-amber-400/70"
+                    : "fill-amber-400/50 text-amber-500/70 dark:fill-amber-400/30 dark:text-amber-400/50"
+                }
+                className={
+                  mergedTimeline.pickups.length === 0
+                    ? "print:hidden"
+                    : undefined
+                }
               >
-                <TimelineList
-                  entries={mergedTimeline.pickups}
-                  activePlace={deferredPlace}
-                  onSelectPlace={selectPlace}
-                  nextTripId={nextMerged?.id}
-                />
+                {mergedTimeline.pickups.length > 0 ? (
+                  <TimelineList
+                    entries={mergedTimeline.pickups}
+                    activePlace={deferredPlace}
+                    onSelectPlace={selectPlace}
+                    nextTripId={nextMerged?.id}
+                  />
+                ) : pickupEmptyKind ? (
+                  <DirectionEmptyState
+                    kind={pickupEmptyKind}
+                    windowMin={lessonMatchWindowMin}
+                    onChangeWindow={openLessonWindowFilters}
+                    onClearFilters={clearFilters}
+                  />
+                ) : null}
               </DirectionSection>
             ) : null}
 
-            {mergedTimeline.dropoffs.length > 0 ? (
+            {showDropoffSection ? (
               <DirectionSection
                 headingId="dropoffs-heading"
                 title="Odwóz – po lekcjach"
                 subtitle="do domu"
                 tripCount={mergedTimeline.dropoffs.length}
                 icon={Moon}
-                iconClassName="text-indigo-400 dark:text-bus-deep"
+                iconClassName={
+                  mergedTimeline.dropoffs.length > 0
+                    ? "text-indigo-400 dark:text-bus-deep"
+                    : "text-indigo-300 dark:text-bus/50"
+                }
+                className={
+                  mergedTimeline.dropoffs.length === 0
+                    ? "print:hidden"
+                    : undefined
+                }
               >
-                <TimelineList
-                  entries={mergedTimeline.dropoffs}
-                  activePlace={deferredPlace}
-                  onSelectPlace={selectPlace}
-                  nextTripId={nextMerged?.id}
-                  lessonEnd={planLessonEnd}
-                />
+                {mergedTimeline.dropoffs.length > 0 ? (
+                  <TimelineList
+                    entries={mergedTimeline.dropoffs}
+                    activePlace={deferredPlace}
+                    onSelectPlace={selectPlace}
+                    nextTripId={nextMerged?.id}
+                    lessonEnd={planLessonEnd}
+                  />
+                ) : dropoffEmptyKind ? (
+                  <DirectionEmptyState
+                    kind={dropoffEmptyKind}
+                    windowMin={lessonMatchWindowMin}
+                    onChangeWindow={openLessonWindowFilters}
+                    onClearFilters={clearFilters}
+                  />
+                ) : null}
               </DirectionSection>
             ) : null}
           </div>

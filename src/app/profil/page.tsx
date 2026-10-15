@@ -4,8 +4,8 @@ import { PageEyebrow } from "@/components/page-eyebrow";
 import { PageShell } from "@/components/page-shell";
 import { ProfilePanel } from "@/components/profile-panel";
 import { SiteHeader } from "@/components/site-header";
+import { rememberPaymentReturn } from "@/lib/auth/backend";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { rememberPaymentReturn } from "@/lib/billing/store";
 import { loadPlusPanel } from "@/lib/billing/status";
 import { isPushNotificationsUiEnabled } from "@/lib/push/feature";
 import { buildPageMetadata } from "@/lib/site-metadata";
@@ -29,13 +29,16 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
   const params = await searchParams;
   const paid = params.paid === "1";
-  const plus = await loadPlusPanel(user.userId, paid);
 
-  if (paid && plus.state === "active") redirect("/profil?plus=1");
-  if (paid && plus.state === "pending") {
-    const remembered = await rememberPaymentReturn(user.userId);
-    if (remembered) redirect("/profil");
+  if (paid) {
+    const status = await rememberPaymentReturn(user.sessionToken);
+    if (status !== "unavailable" && status.state === "active") {
+      redirect("/profil?plus=1");
+    }
+    redirect("/profil");
   }
+
+  const plus = await loadPlusPanel(user.sessionToken);
 
   const focusNotifications = params.powiadomienia === "1";
   const focusPlus =

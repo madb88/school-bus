@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { ChildLessonPlan } from "@/lib/child-schedule/types";
 import type { MzkOdDeparture } from "@/lib/mzk/types";
-import { buildBestTodayRecommendation } from "./best-today";
+import {
+  buildBestTodayRecommendation,
+  detectBestTodayWindowGaps,
+} from "./best-today";
 import type { Schedule } from "./types";
 
 const schedule: Schedule = {
@@ -178,5 +181,41 @@ describe("buildBestTodayRecommendation", () => {
         lessonEnd: "13:30",
       }),
     ).toBeNull();
+  });
+
+  it("detects dropoff hidden by a tight match window while pickup still fits", () => {
+    const earlyEndPlan: ChildLessonPlan = {
+      place: "Zatonie",
+      days: {
+        1: { start: "08:00", end: "12:00" },
+      },
+    };
+    const options = {
+      schedule,
+      place: "Zatonie",
+      dateFilter: "today" as const,
+      now: mondayNoon,
+      lessonPlan: earlyEndPlan,
+      sourceMode: "school" as const,
+      lessonStart: "08:00",
+      lessonEnd: "12:00",
+    };
+
+    const withWindow = buildBestTodayRecommendation({
+      ...options,
+      windowMin: 50,
+    });
+    const withoutWindow = buildBestTodayRecommendation({
+      ...options,
+      windowMin: Number.POSITIVE_INFINITY,
+    });
+
+    expect(withWindow?.pickup?.time).toBe("07:20");
+    expect(withWindow?.dropoff).toBeNull();
+    expect(withoutWindow?.dropoff?.time).toBe("14:10");
+    expect(detectBestTodayWindowGaps(withWindow, withoutWindow)).toEqual({
+      pickup: false,
+      dropoff: true,
+    });
   });
 });

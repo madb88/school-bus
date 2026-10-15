@@ -8,6 +8,7 @@ export type CurrentUser = {
   userId: string;
   email: string;
   role: "user" | "admin";
+  sessionToken: string;
 };
 
 let warnedUnavailable = false;
@@ -27,7 +28,12 @@ async function loadCurrentUser(): Promise<CurrentUser | null> {
   }
   if (!user) return null;
 
-  return { userId: user.id, email: user.email, role: user.role };
+  return {
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+    sessionToken: token,
+  };
 }
 
 /** Per-request memoization so SiteHeader and page gates share one /users/me call. */

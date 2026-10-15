@@ -23,7 +23,7 @@ export default async function InstalacjaPage() {
     if (!user) {
       pushEntry = "login";
     } else {
-      const plus = await loadPlusPanel(user.userId, false);
+      const plus = await loadPlusPanel(user.sessionToken);
       pushEntry = plus.state === "active" ? "manage" : "profil";
     }
   }

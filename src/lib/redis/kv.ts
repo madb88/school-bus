@@ -21,7 +21,7 @@ export function resetRedisCache(): void {
   redisClient = undefined;
 }
 
-/** Commands billing (and similar) use. Upstash Redis implements them. */
+/** Commands push (and similar) use. Upstash Redis implements them. */
 export type Kv = {
   get<T = unknown>(key: string): Promise<T | null>;
   set(

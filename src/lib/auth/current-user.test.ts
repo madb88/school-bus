@@ -71,6 +71,7 @@ describe("getCurrentUser", () => {
       userId: "11111111-1111-4111-8111-111111111111",
       email: "parent@example.com",
       role: "user",
+      sessionToken: TOKEN,
     });
     expect(fetchMe).toHaveBeenCalledWith(TOKEN);
   });

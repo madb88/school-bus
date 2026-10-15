@@ -6,7 +6,7 @@ import { DELETE, POST as subscribe } from "./subscribe/route";
 import { POST as sendTest } from "./test/route";
 
 const getCurrentUser = vi.fn();
-const readEntitlement = vi.fn();
+const fetchPlus = vi.fn();
 const getPushRecord = vi.fn();
 const savePushRecord = vi.fn();
 const deletePushRecord = vi.fn();
@@ -16,8 +16,8 @@ vi.mock("@/lib/auth/current-user", () => ({
   getCurrentUser: () => getCurrentUser(),
 }));
 
-vi.mock("@/lib/billing/store", () => ({
-  readEntitlement: (...args: unknown[]) => readEntitlement(...args),
+vi.mock("@/lib/auth/backend", () => ({
+  fetchPlus: (...args: unknown[]) => fetchPlus(...args),
 }));
 
 vi.mock("@/lib/push/rate-limit", () => ({
@@ -48,6 +48,7 @@ vi.mock("@/lib/push/store", async () => {
 
 const SESSION = "11111111-1111-4111-8111-111111111111";
 const OTHER = "22222222-2222-4222-8222-222222222222";
+const TOKEN = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG";
 
 const subscription = {
   endpoint: "https://push.example/device",
@@ -80,12 +81,17 @@ function jsonRequest(url: string, method: string, body: unknown) {
 }
 
 function asUser(userId = SESSION) {
-  getCurrentUser.mockResolvedValue({ userId, email: "parent@example.com", role: "user" });
+  getCurrentUser.mockResolvedValue({
+    userId,
+    email: "parent@example.com",
+    role: "user",
+    sessionToken: TOKEN,
+  });
 }
 
 function asPlus(userId = SESSION) {
   asUser(userId);
-  readEntitlement.mockResolvedValue({ status: "active", validUntil: "2099-08-31" });
+  fetchPlus.mockResolvedValue({ state: "active", validUntil: "2099-08-31" });
 }
 
 describe("push Plus gate", () => {
@@ -106,13 +112,13 @@ describe("push Plus gate", () => {
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: PUSH_LOGIN_REQUIRED });
-    expect(readEntitlement).not.toHaveBeenCalled();
+    expect(fetchPlus).not.toHaveBeenCalled();
     expect(savePushRecord).not.toHaveBeenCalled();
   });
 
   it("refuses subscribe without an active Plan Plus", async () => {
     asUser();
-    readEntitlement.mockResolvedValue(null);
+    fetchPlus.mockResolvedValue({ state: "inactive" });
 
     const response = await subscribe(
       jsonRequest("http://localhost:3000/api/push/subscribe", "POST", {
@@ -126,9 +132,9 @@ describe("push Plus gate", () => {
     expect(savePushRecord).not.toHaveBeenCalled();
   });
 
-  it("refuses subscribe when Plan Plus has expired", async () => {
+  it("refuses subscribe when Plan Plus is unavailable", async () => {
     asUser();
-    readEntitlement.mockResolvedValue({ status: "active", validUntil: "2020-08-31" });
+    fetchPlus.mockResolvedValue("unavailable");
 
     const response = await subscribe(
       jsonRequest("http://localhost:3000/api/push/subscribe", "POST", {
@@ -218,7 +224,7 @@ describe("push Plus gate", () => {
     expect(sendPush).not.toHaveBeenCalled();
 
     asUser();
-    readEntitlement.mockResolvedValue({ status: "revoked", validUntil: "2099-08-31" });
+    fetchPlus.mockResolvedValue({ state: "inactive" });
     const blocked = await updatePlan(
       jsonRequest("http://localhost:3000/api/push/plan", "PUT", { subscription, plan }),
     );
@@ -257,7 +263,7 @@ describe("push Plus gate", () => {
 
   it("deletes the caller's subscription without an active Plan Plus", async () => {
     asUser();
-    readEntitlement.mockResolvedValue(null);
+    fetchPlus.mockResolvedValue({ state: "inactive" });
     getPushRecord.mockResolvedValue(stored(SESSION));
 
     const response = await DELETE(

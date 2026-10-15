@@ -273,3 +273,87 @@ export async function ensureUserByEmail(
   if (!result.ok) return "unavailable";
   return parseUser(result.data) ?? "unavailable";
 }
+
+export type PlusStatus = {
+  state: "active" | "pending" | "inactive";
+  validUntil?: string;
+};
+
+const CHECKOUT_FAILED = "Nie udało się rozpocząć płatności. Spróbuj później.";
+const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function parsePlusStatus(value: unknown): PlusStatus | null {
+  const record = asRecord(value);
+  if (!record) return null;
+  if (record.state !== "active" && record.state !== "pending" && record.state !== "inactive") {
+    return null;
+  }
+  if (record.state === "active") {
+    if (typeof record.validUntil !== "string" || !YMD_RE.test(record.validUntil)) {
+      return null;
+    }
+    return { state: "active", validUntil: record.validUntil };
+  }
+  return { state: record.state };
+}
+
+async function plusFromResult(
+  result: BackendAuthResult<unknown>,
+): Promise<PlusStatus | "unavailable"> {
+  if (!result.ok) return "unavailable";
+  return parsePlusStatus(result.data) ?? "unavailable";
+}
+
+/** Start hosted Stripe Checkout for the session user. */
+export async function createCheckout(
+  sessionToken: string,
+  clientIp: string,
+): Promise<{ ok: true; url: string } | BackendAuthError> {
+  const result = await backendFetch("/api/v1/billing/checkout", {
+    method: "POST",
+    sessionToken,
+    clientIp,
+  });
+  if (!result.ok) return result;
+  const record = asRecord(result.data);
+  if (typeof record?.url !== "string" || !record.url) {
+    return { ok: false, status: 503, error: CHECKOUT_FAILED };
+  }
+  return { ok: true, url: record.url };
+}
+
+/** Plan Plus status for the Bearer session. */
+export async function fetchPlus(
+  sessionToken: string,
+): Promise<PlusStatus | "unavailable"> {
+  const result = await backendFetch("/api/v1/billing/plus", {
+    method: "GET",
+    sessionToken,
+  });
+  return plusFromResult(result);
+}
+
+/**
+ * Plan Plus of any user (service key only). Used by push dispatch, which has no
+ * browser session — see backend GET /api/v1/billing/users/{user_id}/plus.
+ */
+export async function fetchPlusForUser(
+  userId: string,
+): Promise<PlusStatus | "unavailable"> {
+  const result = await backendFetch(
+    `/api/v1/billing/users/${encodeURIComponent(userId)}/plus`,
+    { method: "GET" },
+  );
+  return plusFromResult(result);
+}
+
+/** Remember a Checkout return; returns the same shape as fetchPlus. */
+export async function rememberPaymentReturn(
+  sessionToken: string,
+): Promise<PlusStatus | "unavailable"> {
+  const result = await backendFetch("/api/v1/billing/plus/return", {
+    method: "POST",
+    sessionToken,
+  });
+  return plusFromResult(result);
+}

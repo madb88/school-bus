@@ -11,7 +11,7 @@ const loadScheduleSnapshot = vi.fn();
 const sendPush = vi.fn();
 const savePushRecord = vi.fn();
 const deletePushRecord = vi.fn();
-const readEntitlement = vi.fn();
+const fetchPlusForUser = vi.fn();
 
 vi.mock("@/lib/dowozy/load-schedule", () => ({
   loadScheduleSnapshot: (...args: unknown[]) => loadScheduleSnapshot(...args),
@@ -27,8 +27,8 @@ vi.mock("./store", () => ({
   subscriptionId: vi.fn(() => "sub-1"),
 }));
 
-vi.mock("@/lib/billing/store", () => ({
-  readEntitlement: (...args: unknown[]) => readEntitlement(...args),
+vi.mock("@/lib/auth/backend", () => ({
+  fetchPlusForUser: (...args: unknown[]) => fetchPlusForUser(...args),
 }));
 
 vi.mock("./send", () => ({
@@ -87,14 +87,14 @@ const subscription = {
 };
 
 const activePlus = {
-  status: "active" as const,
+  state: "active" as const,
   validUntil: "2099-08-31",
 };
 
 describe("dispatchReminders", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    readEntitlement.mockResolvedValue(activePlus);
+    fetchPlusForUser.mockResolvedValue(activePlus);
     countPushSubscriptions.mockResolvedValue(1);
   });
 
@@ -314,20 +314,17 @@ describe("dispatchReminders", () => {
     expect(sendPush).not.toHaveBeenCalled();
     expect(savePushRecord).not.toHaveBeenCalled();
     expect(deletePushRecord).toHaveBeenCalledWith("sub-1");
-    expect(readEntitlement).not.toHaveBeenCalled();
+    expect(fetchPlusForUser).not.toHaveBeenCalled();
   });
 
-  it("removes a subscription when Plan Plus has expired and does not send", async () => {
+  it("removes a subscription when Plan Plus is inactive and does not send", async () => {
     acquireDispatchLock.mockResolvedValue(true);
     loadScheduleSnapshot.mockResolvedValue({
       schedule: baseSchedule,
       source: "scrape",
       overrideStatus: "none",
     });
-    readEntitlement.mockResolvedValue({
-      status: "active",
-      validUntil: "2026-08-31",
-    });
+    fetchPlusForUser.mockResolvedValue({ state: "inactive" });
     listPushRecords.mockResolvedValue([
       {
         subscription,
@@ -344,7 +341,7 @@ describe("dispatchReminders", () => {
     const summary = await dispatchReminders(new Date("2026-09-28T07:10:00+02:00"));
 
     expect(summary).toMatchObject({ checked: 1, sent: 0, removed: 1 });
-    expect(readEntitlement).toHaveBeenCalledWith(USER);
+    expect(fetchPlusForUser).toHaveBeenCalledWith(USER);
     expect(sendPush).not.toHaveBeenCalled();
     expect(savePushRecord).not.toHaveBeenCalled();
     expect(deletePushRecord).toHaveBeenCalledWith("sub-1");

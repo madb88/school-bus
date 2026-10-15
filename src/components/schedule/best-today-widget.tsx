@@ -26,6 +26,13 @@ type BestTodayWidgetProps = {
   dateLabel: string;
   sourceMode: ScheduleSourceMode;
   onSourceModeChange: (mode: ScheduleSourceMode) => void;
+  /** Shown when a direction is empty only because the lesson match window is tight. */
+  windowGapHint?: {
+    windowMin: number;
+    pickup: boolean;
+    dropoff: boolean;
+  } | null;
+  onOpenWindowFilters?: () => void;
 };
 
 function scrollToTrip(id: string) {
@@ -192,9 +199,14 @@ export function BestTodayWidget({
   dateLabel,
   sourceMode,
   onSourceModeChange,
+  windowGapHint = null,
+  onOpenWindowFilters,
 }: BestTodayWidgetProps) {
   const [expanded, setExpanded] = useState(true);
   const panelId = useId();
+  const showWindowGapHint = Boolean(
+    windowGapHint && (windowGapHint.pickup || windowGapHint.dropoff),
+  );
 
   return (
     <section
@@ -279,6 +291,20 @@ export function BestTodayWidget({
           direction="dropoff"
           trip={recommendation.dropoff}
         />
+        {showWindowGapHint && windowGapHint ? (
+          <p className="text-xs leading-snug text-muted-foreground lg:col-span-2">
+            Kursy mogą być poza oknem (±{windowGapHint.windowMin} min).{" "}
+            {onOpenWindowFilters ? (
+              <button
+                type="button"
+                className="font-medium text-foreground underline underline-offset-2 hover:text-bus-deep"
+                onClick={onOpenWindowFilters}
+              >
+                Zmień okno w filtrach
+              </button>
+            ) : null}
+          </p>
+        ) : null}
       </div>
     </section>
   );

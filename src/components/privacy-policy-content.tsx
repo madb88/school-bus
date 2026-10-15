@@ -78,10 +78,10 @@ const SECTIONS: Section[] = [
     title: "5. Konto, e-mail i Plan Plus",
     paragraphs: [
       "Możesz zalogować się adresem e-mail bez hasła (tzw. magic link: jednorazowy link i 6-cyfrowy kod w wiadomości). E-mail jest identyfikatorem konta.",
-      "Przy pierwszym udanym logowaniu tworzymy w magazynie serwera (Upstash Redis) rekord konta powiązany z znormalizowanym adresem e-mail oraz sesję. Jedno konto może mieć wiele sesji na różnych urządzeniach; wylogowanie kończy tylko bieżącą sesję.",
-      "Plan Plus to opcjonalna, płatna funkcja (jednorazowa opłata za rok szkolny). Po opłaceniu zapisujemy na serwerze uprawnienie (entitlement) z datą ważności — aby wiedzieć, czy Plan Plus jest aktywny, oraz aby umożliwić funkcje zastrzeżone dla Plus (w tym powiadomienia).",
+      "Przy pierwszym udanym logowaniu tworzymy w magazynie serwera (MongoDB w backendzie aplikacji) rekord konta powiązany z znormalizowanym adresem e-mail oraz sesję. Jedno konto może mieć wiele sesji na różnych urządzeniach; wylogowanie kończy tylko bieżącą sesję.",
+      "Plan Plus to opcjonalna, płatna funkcja (jednorazowa opłata za rok szkolny). Po opłaceniu zapisujemy w backendzie (MongoDB) uprawnienie (entitlement) z datą ważności — aby wiedzieć, czy Plan Plus jest aktywny, oraz aby umożliwić funkcje zastrzeżone dla Plus (w tym powiadomienia).",
       "Checkout prowadzi Stripe. Z naszej aplikacji do Stripe trafiają dane potrzebne do płatności (m.in. e-mail konta oraz wewnętrzny identyfikator użytkownika w metadanych zamówienia). Stripe przetwarza dane karty / metody płatności zgodnie ze swoją polityką — nie przechowujemy numeru karty w naszej aplikacji.",
-      "Po udanej płatności możemy wysłać na e-mail konta potwierdzenie zakupu (Resend). Przy aktywnym Planie Plus możesz też zgłosić reklamację dotyczącą tej usługi z poziomu profilu.",
+      "Po udanej płatności możemy wysłać na e-mail konta potwierdzenie zakupu (Resend, z backendu). Przy aktywnym Planie Plus możesz też zgłosić reklamację dotyczącą tej usługi z poziomu profilu.",
     ],
   },
   {
@@ -148,7 +148,8 @@ const SECTIONS: Section[] = [
     bullets: [
       "Vercel — hosting aplikacji oraz Analytics i Speed Insights,",
       "PostHog — analityka produktowa (pageviewy i zdarzenia; hosting w UE),",
-      "Upstash — Redis (konto, sesja, Plan Plus, transfer ustawień, limity zapytań, rekordy Push) oraz QStash (harmonogram wysyłki przypomnień),",
+      "hosting backendu / MongoDB — konto, sesja, Plan Plus (entitlement, zamówienia Stripe, potwierdzenia zakupu),",
+      "Upstash — Redis (transfer ustawień, limity zapytań, rekordy Push) oraz QStash (harmonogram wysyłki przypomnień),",
       "Resend — wysyłka maili logowania, potwierdzeń zakupu, formularza opinii i reklamacji,",
       "Stripe — obsługa płatności za Plan Plus (Checkout i powiązane dane płatności),",
       "Cloudflare — Turnstile przy formularzu opinii,",

@@ -20,8 +20,8 @@ src/lib/
   feedback/
   push/
   auth/            # BFF magic-link / sesja → backend
-  billing/         # Plan Plus: Stripe Checkout, entitlement (Redis)
-  redis/           # wspólny klient Upstash (billing itd.)
+  billing/         # Plan Plus UI helpers (status, checkout URL); płatność w backendzie
+  redis/           # wspólny klient Upstash (push, transfer, limity)
   scripts/           # CLI: scrape-dowozy, fetch-mzk-gtfs, migrate-users
   data/              # snapshoty JSON (wynik, nie logika)
 ```

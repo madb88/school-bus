@@ -179,3 +179,17 @@ export function buildBestTodayRecommendation(options: {
     lessonEnd: lessonEnd ? formatTimeInput(lessonEnd) : null,
   };
 }
+
+/**
+ * Directions that are empty with the current window but would have a trip
+ * if the lesson match window were unlimited.
+ */
+export function detectBestTodayWindowGaps(
+  withWindow: BestTodayRecommendation | null,
+  withoutWindow: BestTodayRecommendation | null,
+): { pickup: boolean; dropoff: boolean } {
+  return {
+    pickup: Boolean(!withWindow?.pickup && withoutWindow?.pickup),
+    dropoff: Boolean(!withWindow?.dropoff && withoutWindow?.dropoff),
+  };
+}
