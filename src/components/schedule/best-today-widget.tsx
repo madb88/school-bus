@@ -1,7 +1,13 @@
 "use client";
 
 import { ChevronDown, CircleHelp, Moon, Sparkles, Sun } from "lucide-react";
-import { useId, useState } from "react";
+import {
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type {
   BestTodayRecommendation,
   BestTodayTrip,
@@ -18,7 +24,7 @@ import {
 import { cn } from "cn";
 
 const BEST_CONNECTION_HELP =
-  "Wybieramy kursy pasujące do planu lekcji w oknie dopasowania: do szkoły — najpóźniejszy, który jeszcze zdąży przed startem zajęć; ze szkoły — najwcześniejszy po ich końcu. Źródło (szkolny / szkolny + MZK) bierzesz z przełącznika obok.";
+  "Wybieramy kursy pasujące do planu lekcji w oknie dopasowania: do szkoły — najpóźniejszy, który jeszcze zdąży przed startem zajęć; ze szkoły — najwcześniejszy po ich końcu. Źródło (szkolny / szkolny + MZK) bierzesz z przełącznika w tym widgecie.";
 
 export type BestTodayPlanOption = {
   label: string;
@@ -158,15 +164,20 @@ function TripCard({
 function SourcePills({
   sourceMode,
   onSourceModeChange,
+  className,
 }: {
   sourceMode: ScheduleSourceMode;
   onSourceModeChange: (mode: ScheduleSourceMode) => void;
+  className?: string;
 }) {
   return (
     <div
       role="group"
       aria-label="Źródło połączeń"
-      className="inline-flex shrink-0 rounded-full bg-muted/70 p-0.5 dark:bg-muted/40"
+      className={cn(
+        "flex w-full rounded-full bg-muted/70 p-0.5 md:inline-flex md:w-auto dark:bg-muted/40",
+        className,
+      )}
     >
       {(
         [
@@ -187,19 +198,55 @@ function SourcePills({
             aria-label={option.label}
             title={option.label}
             className={cn(
-              "rounded-full px-2 py-0.5 text-[0.65rem] font-semibold transition-colors",
+              "min-w-0 flex-1 truncate rounded-full px-1.5 py-0.5 text-[0.65rem] font-semibold transition-colors md:flex-none md:px-2",
               active
                 ? "bg-bus text-bus-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
             )}
             onClick={() => onSourceModeChange(option.value)}
           >
-            <span className="sm:hidden">{option.shortLabel}</span>
-            <span className="hidden sm:inline">{option.label}</span>
+            <span className="md:hidden">{option.shortLabel}</span>
+            <span className="hidden md:inline">{option.label}</span>
           </button>
         );
       })}
     </div>
+  );
+}
+
+const planPillBaseClass =
+  "min-w-0 max-w-full truncate rounded-md px-1.5 py-0.5 text-[0.6875rem] font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50";
+
+function planPillToneClass(active: boolean) {
+  return active
+    ? "bg-amber-400/20 text-amber-900 ring-1 ring-amber-500/40 dark:bg-amber-400/15 dark:text-amber-200 dark:ring-amber-400/35"
+    : "bg-amber-400/10 text-amber-900/55 hover:bg-amber-400/20 hover:text-amber-900 dark:bg-amber-400/10 dark:text-amber-200/55 dark:hover:bg-amber-400/15 dark:hover:text-amber-200";
+}
+
+function PlanPillButton({
+  plan,
+  active,
+  onPlanChange,
+}: {
+  plan: BestTodayPlanOption;
+  active: boolean;
+  onPlanChange: (index: number) => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      aria-label={`Plan: ${plan.label}`}
+      title={plan.label}
+      className={cn(
+        planPillBaseClass,
+        "h-full min-w-0 flex-1",
+        planPillToneClass(active),
+      )}
+      onClick={() => onPlanChange(plan.index)}
+    >
+      {plan.label}
+    </button>
   );
 }
 
@@ -214,34 +261,117 @@ function PlanPills({
   onPlanChange: (index: number) => void;
   className?: string;
 }) {
-  return (
-    <div
-      role="group"
-      aria-label="Plan lekcji"
-      className={cn("flex min-w-0 flex-wrap gap-1", className)}
-    >
-      {plans.map((plan) => {
-        const active = activePlanIndex === plan.index;
-        return (
-          <button
+  const hostRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
+  const [collapsed, setCollapsed] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useLayoutEffect(() => {
+    const host = hostRef.current;
+    const measure = measureRef.current;
+    if (!host || !measure) return;
+
+    const update = () => {
+      setCollapsed(measure.scrollWidth > host.clientWidth + 1);
+    };
+
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, [plans]);
+
+  const activePlan =
+    plans.find((plan) => plan.index === activePlanIndex) ?? plans[0] ?? null;
+
+  let visible: ReactNode;
+  if (collapsed && activePlan) {
+    visible = (
+      <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+        <PopoverTrigger
+          type="button"
+          aria-label={`Plan lekcji: ${activePlan.label}. Pokaż listę planów.`}
+          title={activePlan.label}
+          className={cn(
+            planPillBaseClass,
+            "inline-flex h-7 w-full max-w-full items-center justify-between gap-0.5",
+            planPillToneClass(true),
+          )}
+        >
+          <span className="min-w-0 truncate">{activePlan.label}</span>
+          <ChevronDown className="size-3 shrink-0 opacity-70" aria-hidden />
+        </PopoverTrigger>
+        <PopoverContent
+          side="bottom"
+          align="start"
+          sideOffset={6}
+          className="w-auto min-w-[9rem] max-w-[min(16rem,calc(100vw-2rem))] gap-1 p-1.5"
+        >
+          <div role="listbox" aria-label="Plan lekcji" className="flex flex-col gap-0.5">
+            {plans.map((plan) => {
+              const active = activePlanIndex === plan.index;
+              return (
+                <button
+                  key={plan.index}
+                  type="button"
+                  role="option"
+                  aria-selected={active}
+                  className={cn(
+                    "rounded-md px-2 py-1.5 text-left text-xs font-medium transition-colors",
+                    "outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50",
+                    active
+                      ? "bg-amber-400/20 text-amber-900 dark:bg-amber-400/15 dark:text-amber-200"
+                      : "text-foreground hover:bg-muted",
+                  )}
+                  onClick={() => {
+                    onPlanChange(plan.index);
+                    setMenuOpen(false);
+                  }}
+                >
+                  {plan.label}
+                </button>
+              );
+            })}
+          </div>
+        </PopoverContent>
+      </Popover>
+    );
+  } else {
+    visible = (
+      <div
+        role="group"
+        aria-label="Plan lekcji"
+        className="flex h-7 w-full flex-nowrap items-center gap-1"
+      >
+        {plans.map((plan) => (
+          <PlanPillButton
             key={plan.index}
-            type="button"
-            aria-pressed={active}
-            aria-label={`Plan: ${plan.label}`}
-            title={plan.label}
-            className={cn(
-              "max-w-[8rem] truncate rounded-md px-1.5 py-0.5 text-[0.6875rem] font-medium transition-colors sm:max-w-[10rem]",
-              "outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50",
-              active
-                ? "bg-amber-400/20 text-amber-900 ring-1 ring-amber-500/40 dark:bg-amber-400/15 dark:text-amber-200 dark:ring-amber-400/35"
-                : "bg-amber-400/10 text-amber-900/55 hover:bg-amber-400/20 hover:text-amber-900 dark:bg-amber-400/10 dark:text-amber-200/55 dark:hover:bg-amber-400/15 dark:hover:text-amber-200",
-            )}
-            onClick={() => onPlanChange(plan.index)}
+            plan={plan}
+            active={activePlanIndex === plan.index}
+            onPlanChange={onPlanChange}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div ref={hostRef} className={cn("relative min-w-0", className)}>
+      <div
+        ref={measureRef}
+        aria-hidden
+        className="pointer-events-none absolute top-0 left-0 flex flex-nowrap gap-1 opacity-0"
+      >
+        {plans.map((plan) => (
+          <span
+            key={plan.index}
+            className={cn(planPillBaseClass, planPillToneClass(false))}
           >
             {plan.label}
-          </button>
-        );
-      })}
+          </span>
+        ))}
+      </div>
+      {visible}
     </div>
   );
 }
@@ -273,41 +403,52 @@ export function BestTodayWidget({
     >
       <div className="flex flex-col gap-1.5">
         <div className="flex min-h-7 items-center gap-1.5">
-          <div className="flex min-w-0 flex-1 items-center gap-1">
-            <button
-              type="button"
-              className="flex min-w-0 items-center gap-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-bus/40"
-              aria-expanded={expanded}
-              aria-controls={panelId}
-              onClick={() => setExpanded((current) => !current)}
+          <div className="flex min-w-0 flex-1 items-center gap-1 md:flex-none md:shrink">
+            <Sparkles className="size-3 shrink-0 text-bus" aria-hidden />
+            <h2
+              id="best-today-heading"
+              className="truncate font-display text-[0.8125rem] font-semibold tracking-tight text-asphalt dark:text-foreground"
             >
-              <Sparkles className="size-3 shrink-0 text-bus" aria-hidden />
-              <h2
-                id="best-today-heading"
-                className="truncate font-display text-[0.8125rem] font-semibold tracking-tight text-asphalt dark:text-foreground"
-              >
-                Najlepsze połączenia
-              </h2>
-              <ChevronDown
-                className={cn(
-                  "size-3.5 shrink-0 text-muted-foreground transition-transform",
-                  expanded && "rotate-180",
-                )}
-                aria-hidden
-              />
-            </button>
+              Najlepsze połączenia
+            </h2>
+          </div>
 
+          <span className="inline-flex max-w-[9.5rem] shrink-0 items-center truncate rounded-full bg-bus px-1.5 py-px text-[0.6rem] font-semibold tracking-wide text-bus-foreground md:hidden">
+            {dateLabel}
+          </span>
+
+          {expanded ? (
+            <div className="hidden min-w-0 flex-1 items-center justify-end gap-1.5 md:flex">
+              <span className="inline-flex h-7 max-w-[12rem] shrink-0 items-center truncate rounded-full bg-bus px-1.5 text-[0.65rem] font-semibold tracking-wide text-bus-foreground">
+                {dateLabel}
+              </span>
+              {showPlanPills ? (
+                <PlanPills
+                  plans={plans}
+                  activePlanIndex={activePlanIndex}
+                  onPlanChange={onPlanChange!}
+                  className="min-w-0 max-w-[18rem]"
+                />
+              ) : null}
+              <SourcePills
+                sourceMode={sourceMode}
+                onSourceModeChange={onSourceModeChange}
+              />
+            </div>
+          ) : null}
+
+          <div className="flex shrink-0 items-center gap-0.5">
             <Popover>
               <PopoverTrigger
                 type="button"
                 aria-label="Jak wybieramy najlepsze połączenie"
-                className="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-bus/40 aria-expanded:text-foreground"
+                className="inline-flex size-7 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-bus/40 aria-expanded:text-foreground"
               >
                 <CircleHelp className="size-3.5" aria-hidden />
               </PopoverTrigger>
               <PopoverContent
                 side="bottom"
-                align="start"
+                align="end"
                 sideOffset={6}
                 className="w-[min(18rem,calc(100vw-2rem))] gap-1 p-3"
               >
@@ -322,18 +463,42 @@ export function BestTodayWidget({
               </PopoverContent>
             </Popover>
 
-            <span className="inline-flex max-w-[9.5rem] shrink-0 items-center truncate rounded-full bg-bus px-1.5 py-px text-[0.6rem] font-semibold tracking-wide text-bus-foreground sm:max-w-[12rem]">
-              {dateLabel}
-            </span>
+            <button
+              type="button"
+              className="inline-flex size-7 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-bus/40"
+              aria-expanded={expanded}
+              aria-controls={panelId}
+              aria-label={
+                expanded
+                  ? "Zwiń najlepsze połączenia"
+                  : "Rozwiń najlepsze połączenia"
+              }
+              onClick={() => setExpanded((current) => !current)}
+            >
+              <ChevronDown
+                className={cn(
+                  "size-3.5 transition-transform",
+                  expanded && "rotate-180",
+                )}
+                aria-hidden
+              />
+            </button>
           </div>
+        </div>
 
-          <div className="flex min-w-0 shrink-0 items-center justify-end gap-1.5">
+        <div id={panelId} hidden={!expanded} className="flex flex-col gap-1.5">
+          <div
+            className={cn(
+              "grid min-w-0 w-full gap-2 md:hidden",
+              showPlanPills ? "grid-cols-2" : "grid-cols-1",
+            )}
+          >
             {showPlanPills ? (
               <PlanPills
                 plans={plans}
                 activePlanIndex={activePlanIndex}
                 onPlanChange={onPlanChange!}
-                className="hidden max-w-[min(100%,14rem)] justify-end sm:flex sm:max-w-[18rem]"
+                className="min-w-0 w-full"
               />
             ) : null}
             <SourcePills
@@ -341,57 +506,44 @@ export function BestTodayWidget({
               onSourceModeChange={onSourceModeChange}
             />
           </div>
-        </div>
 
-        {showPlanPills ? (
-          <PlanPills
-            plans={plans}
-            activePlanIndex={activePlanIndex}
-            onPlanChange={onPlanChange!}
-            className="justify-end py-1 sm:hidden"
-          />
-        ) : null}
-      </div>
-
-      <div
-        id={panelId}
-        hidden={!expanded}
-        className="mt-1 grid min-w-0 grid-cols-1 gap-1 lg:mt-1.5 lg:grid-cols-2 lg:gap-2"
-      >
-        {recommendation ? (
-          <>
-            <TripCard
-              title="Do szkoły"
-              direction="pickup"
-              trip={recommendation.pickup}
-            />
-            <TripCard
-              title="Ze szkoły"
-              direction="dropoff"
-              trip={recommendation.dropoff}
-            />
-            {showWindowGapHint && windowGapHint ? (
-              <p className="text-xs leading-snug text-muted-foreground lg:col-span-2">
-                Kursy mogą być poza oknem (±{windowGapHint.windowMin} min).{" "}
-                {onOpenWindowFilters ? (
-                  <button
-                    type="button"
-                    className="font-medium text-foreground underline underline-offset-2 hover:text-bus-deep"
-                    onClick={onOpenWindowFilters}
-                  >
-                    Zmień okno w filtrach
-                  </button>
+          <div className="grid min-w-0 grid-cols-1 gap-1 lg:grid-cols-2 lg:gap-2">
+            {recommendation ? (
+              <>
+                <TripCard
+                  title="Do szkoły"
+                  direction="pickup"
+                  trip={recommendation.pickup}
+                />
+                <TripCard
+                  title="Ze szkoły"
+                  direction="dropoff"
+                  trip={recommendation.dropoff}
+                />
+                {showWindowGapHint && windowGapHint ? (
+                  <p className="text-xs leading-snug text-muted-foreground lg:col-span-2">
+                    Kursy mogą być poza oknem (±{windowGapHint.windowMin} min).{" "}
+                    {onOpenWindowFilters ? (
+                      <button
+                        type="button"
+                        className="font-medium text-foreground underline underline-offset-2 hover:text-bus-deep"
+                        onClick={onOpenWindowFilters}
+                      >
+                        Zmień okno w filtrach
+                      </button>
+                    ) : null}
+                  </p>
                 ) : null}
+              </>
+            ) : (
+              <p className="text-xs leading-snug text-muted-foreground lg:col-span-2">
+                {activePlanIndex == null
+                  ? "Wybierz plan, żeby zobaczyć najlepsze połączenie."
+                  : "Brak dopasowanego połączenia dla tego planu."}
               </p>
-            ) : null}
-          </>
-        ) : (
-          <p className="text-xs leading-snug text-muted-foreground lg:col-span-2">
-            {activePlanIndex == null
-              ? "Wybierz plan, żeby zobaczyć najlepsze połączenie."
-              : "Brak dopasowanego połączenia dla tego planu."}
-          </p>
-        )}
+            )}
+          </div>
+        </div>
       </div>
     </section>
   );

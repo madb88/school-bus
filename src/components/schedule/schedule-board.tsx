@@ -973,7 +973,7 @@ export function ScheduleBoard({
     (hiddenMzkCount > 0 || showAllMzkConnections);
 
   const hoursFilterBody = matchActive && dayTimes ? (
-    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+    <div className="flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 max-md:justify-between md:flex-nowrap">
       <div className="inline-flex items-center gap-x-1.5">
         <FilterTimeDisplay value={dayTimes.start} emptyLabel="—" />
         <span className="text-muted-foreground" aria-hidden>
@@ -981,9 +981,12 @@ export function ScheduleBoard({
         </span>
         <FilterTimeDisplay value={dayTimes.end} emptyLabel="—" />
       </div>
-      <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
-      <div className="inline-flex min-w-0 shrink items-center gap-1.5 text-xs text-muted-foreground">
-        <label className="inline-flex cursor-pointer items-center gap-1.5">
+      <span
+        className="hidden h-5 w-px shrink-0 bg-border md:block"
+        aria-hidden
+      />
+      <div className="inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground max-md:min-w-[8rem] max-md:flex-1 md:shrink">
+        <label className="inline-flex shrink-0 cursor-pointer items-center gap-1.5">
           <input
             type="checkbox"
             className="size-3.5 shrink-0 accent-bus"
@@ -1012,9 +1015,9 @@ export function ScheduleBoard({
               event.currentTarget.blur();
             }
           }}
-          className="h-8 w-12 min-w-0 max-w-full rounded-lg border border-border bg-card px-1 text-center text-sm tabular-nums text-foreground outline-hidden focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="h-8 w-12 min-w-0 max-w-full flex-1 rounded-lg border border-border bg-card px-1 text-center text-sm tabular-nums text-foreground outline-hidden focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:flex-none"
         />
-        <span>min</span>
+        <span className="shrink-0">min</span>
       </div>
     </div>
   ) : matchActive && isWeekendView ? (
@@ -1055,70 +1058,146 @@ export function ScheduleBoard({
     </p>
   );
 
-  const primaryFilters = (
-    <div className="flex flex-col gap-4 p-3 sm:p-4 md:flex-row md:items-start md:gap-0 md:divide-x md:divide-border/70">
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5 md:pr-4">
-        <FilterFieldLabel id="schedule-place-filter-label" icon={MapPin}>
-          Miejsce
-        </FilterFieldLabel>
-        <PlaceMultiSelect
-          places={places}
-          value={placesFilter}
-          labelledBy="schedule-place-filter-label"
-          onChange={(next) => {
-            startTransition(() => {
-              setPlacesOverride(next);
-              persistPlace(next?.[0] ?? null);
-            });
-          }}
-        />
-      </div>
+  function applyPlanSelectValue(next: string) {
+    if (next === "off") {
+      startTransition(() => {
+        setPlanMatch("off");
+        setShowAllMzkConnections(false);
+      });
+      return;
+    }
+    if (next === "all") {
+      enableMatchPlan("all");
+      return;
+    }
+    const index = Number.parseInt(next, 10);
+    if (Number.isInteger(index) && index >= 0) {
+      enableMatchPlan(index);
+    }
+  }
 
-      <div className="flex shrink-0 flex-col gap-1.5 md:px-4">
-        <FilterFieldLabel id="schedule-date-filter-label" icon={CalendarDays}>
-          Kiedy?
-        </FilterFieldLabel>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <ButtonGroup aria-labelledby="schedule-date-filter-label">
-            {(
-              [
-                ["today", "Dziś"],
-                ["tomorrow", "Jutro"],
-              ] as const
-            ).map(([value, label]) => (
-              <Button
-                key={value}
-                type="button"
-                variant="outline"
-                aria-pressed={dateFilter === value}
-                className={cn(dateFilter === value && filterToggleActiveClass)}
-                onClick={() => {
-                  startTransition(() => setDateFilter(value));
+  function applySourceSelectValue(next: string) {
+    if (next === "school" || next === "school-mzk") {
+      trackEvent(AnalyticsEvent.scheduleSourceModeChanged, {
+        mode: next,
+      });
+      startTransition(() => setSourceMode(next));
+    }
+  }
+
+  function renderSourceAndPlanFilters(
+    idPrefix: string,
+    options?: { stacked?: boolean },
+  ) {
+    const stacked = options?.stacked ?? false;
+    const sourceId = `${idPrefix}-source`;
+    const planId = `${idPrefix}-plan`;
+    const sourceLabelId = `${idPrefix}-source-filter-label`;
+    const planLabelId = `${idPrefix}-lesson-plan-label`;
+
+    const mzkPlanToggle = showMzkPlanToggle ? (
+      <Button
+        type="button"
+        variant="outline"
+        aria-pressed={showAllMzkConnections}
+        className={cn(
+          stacked && "w-full",
+          showAllMzkConnections && filterToggleActiveClass,
+        )}
+        onClick={() => {
+          startTransition(() =>
+            setShowAllMzkConnections((current) => !current),
+          );
+        }}
+      >
+        {showAllMzkConnections
+          ? "Tylko do planu"
+          : `Wszystkie MZK${hiddenMzkCount > 0 ? ` (+${hiddenMzkCount})` : ""}`}
+      </Button>
+    ) : null;
+
+    if (stacked) {
+      return (
+        <div className="flex w-full flex-col gap-3">
+          <div className="flex w-full flex-col gap-1">
+            <Label
+              htmlFor={sourceId}
+              className="text-xs text-muted-foreground"
+            >
+              Autobus
+            </Label>
+            <NativeSelect
+              id={sourceId}
+              size="sm"
+              className="w-full max-w-full"
+              value={sourceMode}
+              onChange={(event) => {
+                applySourceSelectValue(event.target.value);
+              }}
+            >
+              {sourceItems.map((item) => (
+                <NativeSelectOption key={item.value} value={item.value}>
+                  {item.label}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </div>
+
+          <div className="flex w-full flex-col gap-1">
+            <Label htmlFor={planId} className="text-xs text-muted-foreground">
+              Plan lekcji
+            </Label>
+            {planReady ? (
+              <NativeSelect
+                id={planId}
+                size="sm"
+                className="w-full max-w-full"
+                value={planSelectValue}
+                onChange={(event) => {
+                  applyPlanSelectValue(event.target.value);
                 }}
               >
-                {label}
-              </Button>
-            ))}
-          </ButtonGroup>
+                {planItems.map((item) => (
+                  <NativeSelectOption key={item.value} value={item.value}>
+                    {item.label}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            ) : (
+              <Link
+                href="/lekcje"
+                className="inline-flex h-8 w-full items-center justify-center rounded-lg border border-border bg-card px-2.5 text-sm font-medium hover:bg-muted"
+              >
+                Ustaw plan
+              </Link>
+            )}
+            {mzkPlanToggle}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="flex items-center gap-1.5">
+          <Label id={sourceLabelId} className="text-xs text-muted-foreground">
+            Autobus
+          </Label>
           <Select
-            items={dayPickerItems}
-            value={dayPickerValue}
+            items={sourceItems}
+            value={sourceMode}
             onValueChange={(next) => {
-              if (!next) return;
-              startTransition(() => setDateFilter(next));
+              if (next != null) applySourceSelectValue(next);
             }}
           >
             <SelectTrigger
-              aria-labelledby="schedule-date-filter-label"
-              className={cn(
-                "border-border bg-card",
-                absoluteDateSelected && filterToggleActiveClass,
-              )}
+              aria-labelledby={sourceLabelId}
+              className="w-auto min-w-[8.5rem] border-border bg-card"
             >
-              <SelectValue placeholder="Wybierz dzień" />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
-              {dayPickerItems.map((item) => (
+              {sourceItems.map((item) => (
                 <SelectItem key={item.value} value={item.value}>
                   {item.label}
                 </SelectItem>
@@ -1126,86 +1205,127 @@ export function ScheduleBoard({
             </SelectContent>
           </Select>
         </div>
-      </div>
 
-      <div className="flex shrink-0 flex-col gap-1.5 md:px-4">
-        <FilterFieldLabel
-          id="schedule-direction-filter-label"
-          icon={ArrowLeftRight}
-        >
-          Kierunek
-        </FilterFieldLabel>
-        <ButtonGroup aria-labelledby="schedule-direction-filter-label">
-          {(
-            [
-              ["all", "Wszystkie"],
-              ["pickups", "Do szkoły"],
-              ["dropoffs", "Ze szkoły"],
-            ] as const
-          ).map(([value, label]) => (
-            <Button
-              key={value}
-              type="button"
-              variant="outline"
-              aria-pressed={direction === value}
-              className={cn(direction === value && filterToggleActiveClass)}
-              onClick={() => {
-                startTransition(() => setDirection(value));
-              }}
-            >
-              {label}
-            </Button>
-          ))}
-        </ButtonGroup>
-      </div>
-
-      <div className="flex min-w-0 shrink-0 flex-col gap-1.5 md:pl-4 md:min-w-[17.5rem]">
-        <FilterFieldLabel id="schedule-hours-filter-label" icon={Clock}>
-          Godziny lekcyjne
-        </FilterFieldLabel>
-        <div aria-labelledby="schedule-hours-filter-label">
-          {hoursFilterBody}
-        </div>
-      </div>
-    </div>
-  );
-
-  const additionalOptions = (
-    <div className="flex flex-col gap-3 border-t border-border/60 bg-muted/35 px-3 py-2.5 sm:px-4 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
-      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2">
-        <span className="hidden shrink-0 items-center gap-1.5 text-xs font-semibold text-foreground md:inline-flex">
-          <Settings2 className="size-3.5 text-bus-deep" aria-hidden />
-          Dodatkowe opcje:
-        </span>
-
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <div className="flex items-center gap-1.5">
-            <Label
-              id="schedule-source-filter-label"
-              className="text-xs text-muted-foreground"
-            >
-              Autobus
-            </Label>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Label id={planLabelId} className="text-xs text-muted-foreground">
+            Plan lekcji
+          </Label>
+          {planReady ? (
             <Select
-              items={sourceItems}
-              value={sourceMode}
+              items={planItems}
+              value={planSelectValue}
               onValueChange={(next) => {
-                if (next === "school" || next === "school-mzk") {
-                  trackEvent(AnalyticsEvent.scheduleSourceModeChanged, {
-                    mode: next,
-                  });
-                  startTransition(() => setSourceMode(next));
-                }
+                if (next == null) return;
+                applyPlanSelectValue(next);
               }}
             >
               <SelectTrigger
-                aria-labelledby="schedule-source-filter-label"
-                className="w-auto min-w-[8.5rem] border-border bg-card"
+                aria-labelledby={planLabelId}
+                className="w-auto min-w-[9.5rem] border-border bg-card"
               >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false}>
-                {sourceItems.map((item) => (
+                {planItems.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Link
+              href="/lekcje"
+              className="inline-flex h-8 items-center rounded-lg border border-border bg-card px-2.5 text-sm font-medium hover:bg-muted"
+            >
+              Ustaw plan
+            </Link>
+          )}
+          {mzkPlanToggle}
+        </div>
+      </div>
+    );
+  }
+
+  const clearFiltersButton = hasActiveFilters ? (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      className="text-bus-deep hover:bg-bus/10 hover:text-bus-deep"
+      aria-label="Wyczyść filtry"
+      onClick={clearFilters}
+    >
+      <FilterX aria-hidden />
+      <span>Wyczyść</span>
+    </Button>
+  ) : null;
+
+  const primaryFilters = (
+    <div className="flex flex-col">
+      <div className="flex flex-col gap-4 p-3 sm:p-4 md:flex-row md:items-start md:gap-0 md:divide-x md:divide-border/70">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5 md:pr-4">
+          <FilterFieldLabel id="schedule-place-filter-label" icon={MapPin}>
+            Miejsce
+          </FilterFieldLabel>
+          <PlaceMultiSelect
+            places={places}
+            value={placesFilter}
+            labelledBy="schedule-place-filter-label"
+            onChange={(next) => {
+              startTransition(() => {
+                setPlacesOverride(next);
+                persistPlace(next?.[0] ?? null);
+              });
+            }}
+          />
+        </div>
+
+        <div className="flex shrink-0 flex-col gap-1.5 md:px-4">
+          <FilterFieldLabel id="schedule-date-filter-label" icon={CalendarDays}>
+            Kiedy?
+          </FilterFieldLabel>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <ButtonGroup aria-labelledby="schedule-date-filter-label">
+              {(
+                [
+                  ["today", "Dziś"],
+                  ["tomorrow", "Jutro"],
+                ] as const
+              ).map(([value, label]) => (
+                <Button
+                  key={value}
+                  type="button"
+                  variant="outline"
+                  aria-pressed={dateFilter === value}
+                  className={cn(dateFilter === value && filterToggleActiveClass)}
+                  onClick={() => {
+                    startTransition(() => setDateFilter(value));
+                  }}
+                >
+                  {label}
+                </Button>
+              ))}
+            </ButtonGroup>
+            <Select
+              items={dayPickerItems}
+              value={dayPickerValue}
+              onValueChange={(next) => {
+                if (!next) return;
+                startTransition(() => setDateFilter(next));
+              }}
+            >
+              <SelectTrigger
+                aria-labelledby="schedule-date-filter-label"
+                className={cn(
+                  "border-border bg-card",
+                  absoluteDateSelected && filterToggleActiveClass,
+                )}
+              >
+                <SelectValue placeholder="Wybierz dzień" />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false}>
+                {dayPickerItems.map((item) => (
                   <SelectItem key={item.value} value={item.value}>
                     {item.label}
                   </SelectItem>
@@ -1213,83 +1333,62 @@ export function ScheduleBoard({
               </SelectContent>
             </Select>
           </div>
+        </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
-            <Label
-              id="schedule-lesson-plan-label"
-              className="text-xs text-muted-foreground"
-            >
-              Plan lekcji
-            </Label>
-            {planReady ? (
-              <Select
-                items={planItems}
-                value={planSelectValue}
-                onValueChange={(next) => {
-                  if (next == null) return;
-                  if (next === "off") {
-                    startTransition(() => {
-                      setPlanMatch("off");
-                      setShowAllMzkConnections(false);
-                    });
-                    return;
-                  }
-                  if (next === "all") {
-                    enableMatchPlan("all");
-                    return;
-                  }
-                  const index = Number.parseInt(next, 10);
-                  if (Number.isInteger(index) && index >= 0) {
-                    enableMatchPlan(index);
-                  }
-                }}
-              >
-                <SelectTrigger
-                  aria-labelledby="schedule-lesson-plan-label"
-                  className="w-auto min-w-[9.5rem] border-border bg-card"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent alignItemWithTrigger={false}>
-                  {planItems.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <Link
-                href="/lekcje"
-                className="inline-flex h-8 items-center rounded-lg border border-border bg-card px-2.5 text-sm font-medium hover:bg-muted"
-              >
-                Ustaw plan
-              </Link>
-            )}
-            {showMzkPlanToggle ? (
+        <div className="flex shrink-0 flex-col gap-1.5 md:px-4">
+          <FilterFieldLabel
+            id="schedule-direction-filter-label"
+            icon={ArrowLeftRight}
+          >
+            Kierunek
+          </FilterFieldLabel>
+          <ButtonGroup aria-labelledby="schedule-direction-filter-label">
+            {(
+              [
+                ["all", "Wszystkie"],
+                ["pickups", "Do szkoły"],
+                ["dropoffs", "Ze szkoły"],
+              ] as const
+            ).map(([value, label]) => (
               <Button
+                key={value}
                 type="button"
                 variant="outline"
-                aria-pressed={showAllMzkConnections}
-                className={cn(
-                  showAllMzkConnections && filterToggleActiveClass,
-                )}
+                aria-pressed={direction === value}
+                className={cn(direction === value && filterToggleActiveClass)}
                 onClick={() => {
-                  startTransition(() =>
-                    setShowAllMzkConnections((current) => !current),
-                  );
+                  startTransition(() => setDirection(value));
                 }}
               >
-                {showAllMzkConnections
-                  ? "Tylko do planu"
-                  : `Wszystkie MZK${hiddenMzkCount > 0 ? ` (+${hiddenMzkCount})` : ""}`}
+                {label}
               </Button>
-            ) : null}
+            ))}
+          </ButtonGroup>
+        </div>
+
+        <div className="flex min-w-0 shrink-0 flex-col gap-1.5 md:pl-4 md:min-w-[17.5rem]">
+          <FilterFieldLabel id="schedule-hours-filter-label" icon={Clock}>
+            Godziny lekcyjne
+          </FilterFieldLabel>
+          <div aria-labelledby="schedule-hours-filter-label">
+            {hoursFilterBody}
           </div>
         </div>
       </div>
 
-      <div className="flex shrink-0 flex-wrap items-center gap-1.5 lg:justify-end">
+      <div className="border-t border-border/60 px-3 py-2.5 sm:px-4">
+        {renderSourceAndPlanFilters("schedule")}
+      </div>
+    </div>
+  );
+
+  const additionalOptions = (
+    <div className="flex flex-wrap items-center gap-1.5 border-t border-border/60 bg-muted/35 px-3 py-2.5 sm:px-4 lg:justify-between">
+      <span className="hidden shrink-0 items-center gap-1.5 text-xs font-semibold text-foreground md:inline-flex">
+        <Settings2 className="size-3.5 text-bus-deep" aria-hidden />
+        Dodatkowe opcje:
+      </span>
+      <div className="flex flex-wrap items-center gap-1.5">
         <Button
           type="button"
           variant="outline"
@@ -1321,7 +1420,7 @@ export function ScheduleBoard({
           <Button
             type="button"
             variant="ghost"
-            className="text-bus-deep hover:bg-bus/10 hover:text-bus-deep"
+            className="hidden text-bus-deep hover:bg-bus/10 hover:text-bus-deep md:inline-flex"
             aria-label="Wyczyść filtry"
             onClick={clearFilters}
           >
@@ -1477,6 +1576,7 @@ export function ScheduleBoard({
                   {extraOptionsOpen ? "▴" : "▾"}
                 </span>
               </Button>
+              {clearFiltersButton}
               {filtersCompact ? (
                 <Button
                   type="button"
@@ -1571,7 +1671,7 @@ export function ScheduleBoard({
             )}
           >
             <div className="hidden md:block">{primaryFilters}</div>
-            <div className="border-b border-border/60 p-3 md:hidden">
+            <div className="space-y-3 border-b border-border/60 p-3 md:hidden">
               <div className="flex flex-col gap-1.5">
                 <FilterFieldLabel id="schedule-mobile-hours-label" icon={Clock}>
                   Godziny lekcyjne
@@ -1580,6 +1680,7 @@ export function ScheduleBoard({
                   {hoursFilterBody}
                 </div>
               </div>
+              {renderSourceAndPlanFilters("schedule-mobile", { stacked: true })}
             </div>
           </div>
 
