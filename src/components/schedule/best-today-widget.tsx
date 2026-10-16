@@ -402,7 +402,25 @@ export function BestTodayWidget({
       className="-mx-6 w-auto min-w-0 rounded-none border border-border/60 border-x-0 bg-card px-3 py-1.5 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] print:hidden sm:-mx-10 sm:px-3.5 lg:mx-0 lg:rounded-2xl lg:border-x dark:border-border/40 dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]"
     >
       <div className="flex flex-col gap-1.5">
-        <div className="flex min-h-7 items-center gap-1.5">
+        <div
+          role="button"
+          tabIndex={0}
+          aria-expanded={expanded}
+          aria-controls={panelId}
+          aria-label={
+            expanded
+              ? "Zwiń najlepsze połączenia"
+              : "Rozwiń najlepsze połączenia"
+          }
+          className="flex min-h-7 cursor-pointer items-center gap-1.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-bus/40"
+          onClick={() => setExpanded((current) => !current)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              setExpanded((current) => !current);
+            }
+          }}
+        >
           <div className="flex min-w-0 flex-1 items-center gap-1 md:flex-none md:shrink">
             <Sparkles className="size-3 shrink-0 text-bus" aria-hidden />
             <h2
@@ -418,7 +436,11 @@ export function BestTodayWidget({
           </span>
 
           {expanded ? (
-            <div className="hidden min-w-0 flex-1 items-center justify-end gap-1.5 md:flex">
+            <div
+              className="hidden min-w-0 flex-1 items-center justify-end gap-1.5 md:flex"
+              onClick={(event) => event.stopPropagation()}
+              onKeyDown={(event) => event.stopPropagation()}
+            >
               <span className="inline-flex h-7 max-w-[12rem] shrink-0 items-center truncate rounded-full bg-bus px-1.5 text-[0.65rem] font-semibold tracking-wide text-bus-foreground">
                 {dateLabel}
               </span>
@@ -437,7 +459,11 @@ export function BestTodayWidget({
             </div>
           ) : null}
 
-          <div className="flex shrink-0 items-center gap-0.5">
+          <div
+            className="flex shrink-0 items-center gap-0.5"
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => event.stopPropagation()}
+          >
             <Popover>
               <PopoverTrigger
                 type="button"
@@ -462,28 +488,15 @@ export function BestTodayWidget({
                 </PopoverHeader>
               </PopoverContent>
             </Popover>
-
-            <button
-              type="button"
-              className="inline-flex size-7 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-bus/40"
-              aria-expanded={expanded}
-              aria-controls={panelId}
-              aria-label={
-                expanded
-                  ? "Zwiń najlepsze połączenia"
-                  : "Rozwiń najlepsze połączenia"
-              }
-              onClick={() => setExpanded((current) => !current)}
-            >
-              <ChevronDown
-                className={cn(
-                  "size-3.5 transition-transform",
-                  expanded && "rotate-180",
-                )}
-                aria-hidden
-              />
-            </button>
           </div>
+
+          <ChevronDown
+            className={cn(
+              "size-3.5 shrink-0 text-muted-foreground transition-transform",
+              expanded && "rotate-180",
+            )}
+            aria-hidden
+          />
         </div>
 
         <div id={panelId} hidden={!expanded} className="flex flex-col gap-1.5">
