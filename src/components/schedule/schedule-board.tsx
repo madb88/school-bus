@@ -170,8 +170,12 @@ function uniquePlaces(values: Array<string | null | undefined>): string[] {
 const filterToggleActiveClass =
   "border-transparent bg-bus text-bus-foreground shadow-none hover:bg-bus/90 hover:text-bus-foreground dark:border-transparent dark:bg-bus dark:text-bus-foreground dark:hover:bg-bus/85 dark:hover:text-bus-foreground";
 
-/** Expand compact mobile filters only when this close to the document top. */
-const MOBILE_FILTERS_EXPAND_SCROLL_Y = 16;
+/**
+ * Sticky compact filters change the sticky bar height. On short trip lists that
+ * height change toggles the sentinel in/out of view and loops collapse↔expand.
+ * Skip compact mode when there is not enough scroll room for it to be stable.
+ */
+const MOBILE_FILTERS_MIN_SCROLL_ROOM_PX = 160;
 
 function FilterFieldLabel({
   id,
@@ -369,18 +373,33 @@ export function ScheduleBoard({
     const sentinel = filtersSentinelRef.current;
     if (!sentinel) return;
 
+    const scrollRoomPx = () =>
+      document.documentElement.scrollHeight - window.innerHeight;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         const stuck = !entry.isIntersecting;
-        if (stuck && !filtersWasStuckRef.current) {
-          // Entering sticky: collapse to thin bar. Stay collapsed until the
-          // page is scrolled back near the top (or the user taps Rozwiń) —
-          // auto-expand on unstick fights sticky height and causes a jump loop.
-          setFiltersCompact(true);
-          setFiltersPinnedOpen(false);
-          setFiltersOpen(false);
-          setExtraOptionsOpen(false);
+        const wasStuck = filtersWasStuckRef.current;
+
+        if (stuck && !wasStuck) {
+          // Short pages: sticky height changes flip the sentinel and loop
+          // collapse↔expand. Only enter compact mode with enough scroll room.
+          if (scrollRoomPx() >= MOBILE_FILTERS_MIN_SCROLL_ROOM_PX) {
+            setFiltersCompact(true);
+            setFiltersPinnedOpen(false);
+            setFiltersOpen(false);
+            setExtraOptionsOpen(false);
+          }
+        } else if (!stuck && wasStuck) {
+          // Scrolled back to the filter origin. Expand only if the page is
+          // still long enough — after compacting a short list, room drops and
+          // the sentinel pops back into view; expanding then restarts the loop.
+          if (scrollRoomPx() >= MOBILE_FILTERS_MIN_SCROLL_ROOM_PX) {
+            setFiltersCompact(false);
+            setFiltersPinnedOpen(false);
+          }
         }
+
         filtersWasStuckRef.current = stuck;
         setFiltersStuck(stuck);
       },
@@ -388,17 +407,6 @@ export function ScheduleBoard({
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const onScroll = () => {
-      if (window.scrollY > MOBILE_FILTERS_EXPAND_SCROLL_Y) return;
-      setFiltersCompact(false);
-      setFiltersPinnedOpen(false);
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   // Keep address bar in sync so filters are shareable.
@@ -1494,7 +1502,7 @@ export function ScheduleBoard({
       <p className="mb-1.5 text-xs font-medium tracking-tight text-foreground/70 print:hidden">
         {schoolScopeLabel}
       </p>
-      <div className="sticky top-0 z-10 -mx-6 pb-2 print:hidden sm:-mx-10 md:py-2.5">
+      <div className="sticky top-0 z-10 -mx-6 [overflow-anchor:none] pb-2 print:hidden sm:-mx-10 md:py-2.5">
         <div
           className={cn(
             "overflow-hidden rounded-b-xl border border-border/70 bg-card shadow-[0_10px_28px_-18px_color-mix(in_srgb,var(--foreground)_45%,transparent)] transition-[border-top-left-radius,border-top-right-radius] duration-300 ease-out motion-reduce:transition-none dark:shadow-[0_8px_22px_-16px_rgba(0,0,0,0.55)] md:rounded-t-xl",
