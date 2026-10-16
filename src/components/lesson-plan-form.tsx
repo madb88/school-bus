@@ -533,37 +533,9 @@ export function LessonPlanForm({
                 powiadomieniach.
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {accountPlans.map((item, index) => (
-                <button
-                  key={`${item.place}-${item.name ?? ""}-${index}`}
-                  type="button"
-                  onClick={() => selectAccountPlan(index)}
-                  className={cn(
-                    "rounded-full border px-3.5 py-2 text-sm font-medium transition-colors",
-                    index === selectedIndex
-                      ? "border-bus/50 bg-bus/10 text-foreground"
-                      : "border-border/70 bg-background text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {accountPlanLabel(item, index)}
-                </button>
-              ))}
-              {isDraftingNewPlan ? (
-                <span className="rounded-full border border-bus/50 bg-bus/10 px-3.5 py-2 text-sm font-medium text-foreground">
-                  Nowy plan
-                </span>
-              ) : null}
-              {accountPlans.length === 0 && selectedIndex === 0 && !draft ? (
-                <span className="text-sm text-muted-foreground">
-                  Brak planów na koncie — uzupełnij formularz i zapisz.
-                </span>
-              ) : null}
-            </div>
-            {isDraftingNewPlan ? (
-              <p className="rounded-lg border border-bus/30 bg-bus/5 px-3.5 py-3 text-sm leading-relaxed text-foreground">
-                Ten plan nie jest jeszcze zapisany. Bez zapisu zniknie po
-                przełączeniu na inny plan lub odświeżeniu strony.
+            {accountPlans.length === 0 && selectedIndex === 0 && !draft ? (
+              <p className="text-sm text-muted-foreground">
+                Brak planów na koncie — uzupełnij formularz i zapisz.
               </p>
             ) : null}
             <div className="flex flex-col gap-3 sm:flex-row">
@@ -606,6 +578,36 @@ export function LessonPlanForm({
                 </Button>
               ) : null}
             </div>
+            {accountPlans.length > 0 || isDraftingNewPlan ? (
+              <div className="flex flex-wrap gap-2">
+                {accountPlans.map((item, index) => (
+                  <button
+                    key={`${item.place}-${item.name ?? ""}-${index}`}
+                    type="button"
+                    onClick={() => selectAccountPlan(index)}
+                    className={cn(
+                      "rounded-full border px-3.5 py-2 text-sm font-medium transition-colors",
+                      index === selectedIndex
+                        ? "border-bus/50 bg-bus/10 text-foreground"
+                        : "border-border/70 bg-background text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {accountPlanLabel(item, index)}
+                  </button>
+                ))}
+                {isDraftingNewPlan ? (
+                  <span className="rounded-full border border-bus/50 bg-bus/10 px-3.5 py-2 text-sm font-medium text-foreground">
+                    Nowy plan
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+            {isDraftingNewPlan ? (
+              <p className="rounded-lg border border-bus/30 bg-bus/5 px-3.5 py-3 text-sm leading-relaxed text-foreground">
+                Ten plan nie jest jeszcze zapisany. Bez zapisu zniknie po
+                przełączeniu na inny plan lub odświeżeniu strony.
+              </p>
+            ) : null}
             {accountPlans.length >= MAX_ACCOUNT_PLANS ? (
               <p className="text-sm text-muted-foreground">
                 Możesz zapisać najwyżej 5 planów

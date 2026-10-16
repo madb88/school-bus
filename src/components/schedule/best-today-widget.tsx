@@ -207,16 +207,18 @@ function PlanPills({
   plans,
   activePlanIndex,
   onPlanChange,
+  className,
 }: {
   plans: BestTodayPlanOption[];
   activePlanIndex: number | null;
   onPlanChange: (index: number) => void;
+  className?: string;
 }) {
   return (
     <div
       role="group"
       aria-label="Plan lekcji"
-      className="flex min-w-0 max-w-[min(100%,14rem)] flex-wrap justify-end gap-1 sm:max-w-[18rem]"
+      className={cn("flex min-w-0 flex-wrap gap-1", className)}
     >
       {plans.map((plan) => {
         const active = activePlanIndex === plan.index;
@@ -269,74 +271,86 @@ export function BestTodayWidget({
       aria-labelledby="best-today-heading"
       className="-mx-6 w-auto min-w-0 rounded-none border border-border/60 border-x-0 bg-card px-3 py-1.5 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] print:hidden sm:-mx-10 sm:px-3.5 lg:mx-0 lg:rounded-2xl lg:border-x dark:border-border/40 dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]"
     >
-      <div className="flex min-h-7 items-center gap-1.5">
-        <div className="flex min-w-0 flex-1 items-center gap-1">
-          <button
-            type="button"
-            className="flex min-w-0 items-center gap-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-bus/40"
-            aria-expanded={expanded}
-            aria-controls={panelId}
-            onClick={() => setExpanded((current) => !current)}
-          >
-            <Sparkles className="size-3 shrink-0 text-bus" aria-hidden />
-            <h2
-              id="best-today-heading"
-              className="truncate font-display text-[0.8125rem] font-semibold tracking-tight text-asphalt dark:text-foreground"
-            >
-              Najlepsze połączenia
-            </h2>
-            <ChevronDown
-              className={cn(
-                "size-3.5 shrink-0 text-muted-foreground transition-transform",
-                expanded && "rotate-180",
-              )}
-              aria-hidden
-            />
-          </button>
-
-          <Popover>
-            <PopoverTrigger
+      <div className="flex flex-col gap-1.5">
+        <div className="flex min-h-7 items-center gap-1.5">
+          <div className="flex min-w-0 flex-1 items-center gap-1">
+            <button
               type="button"
-              aria-label="Jak wybieramy najlepsze połączenie"
-              className="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-bus/40 aria-expanded:text-foreground"
+              className="flex min-w-0 items-center gap-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-bus/40"
+              aria-expanded={expanded}
+              aria-controls={panelId}
+              onClick={() => setExpanded((current) => !current)}
             >
-              <CircleHelp className="size-3.5" aria-hidden />
-            </PopoverTrigger>
-            <PopoverContent
-              side="bottom"
-              align="start"
-              sideOffset={6}
-              className="w-[min(18rem,calc(100vw-2rem))] gap-1 p-3"
-            >
-              <PopoverHeader>
-                <PopoverTitle className="text-xs font-semibold">
-                  Jak wybieramy połączenie
-                </PopoverTitle>
-                <PopoverDescription className="text-xs leading-snug">
-                  {BEST_CONNECTION_HELP}
-                </PopoverDescription>
-              </PopoverHeader>
-            </PopoverContent>
-          </Popover>
+              <Sparkles className="size-3 shrink-0 text-bus" aria-hidden />
+              <h2
+                id="best-today-heading"
+                className="truncate font-display text-[0.8125rem] font-semibold tracking-tight text-asphalt dark:text-foreground"
+              >
+                Najlepsze połączenia
+              </h2>
+              <ChevronDown
+                className={cn(
+                  "size-3.5 shrink-0 text-muted-foreground transition-transform",
+                  expanded && "rotate-180",
+                )}
+                aria-hidden
+              />
+            </button>
 
-          <span className="inline-flex max-w-[9.5rem] shrink-0 items-center truncate rounded-full bg-bus px-1.5 py-px text-[0.6rem] font-semibold tracking-wide text-bus-foreground sm:max-w-[12rem]">
-            {dateLabel}
-          </span>
-        </div>
+            <Popover>
+              <PopoverTrigger
+                type="button"
+                aria-label="Jak wybieramy najlepsze połączenie"
+                className="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-bus/40 aria-expanded:text-foreground"
+              >
+                <CircleHelp className="size-3.5" aria-hidden />
+              </PopoverTrigger>
+              <PopoverContent
+                side="bottom"
+                align="start"
+                sideOffset={6}
+                className="w-[min(18rem,calc(100vw-2rem))] gap-1 p-3"
+              >
+                <PopoverHeader>
+                  <PopoverTitle className="text-xs font-semibold">
+                    Jak wybieramy połączenie
+                  </PopoverTitle>
+                  <PopoverDescription className="text-xs leading-snug">
+                    {BEST_CONNECTION_HELP}
+                  </PopoverDescription>
+                </PopoverHeader>
+              </PopoverContent>
+            </Popover>
 
-        <div className="flex min-w-0 shrink-0 items-center justify-end gap-1.5">
-          {showPlanPills ? (
-            <PlanPills
-              plans={plans}
-              activePlanIndex={activePlanIndex}
-              onPlanChange={onPlanChange!}
+            <span className="inline-flex max-w-[9.5rem] shrink-0 items-center truncate rounded-full bg-bus px-1.5 py-px text-[0.6rem] font-semibold tracking-wide text-bus-foreground sm:max-w-[12rem]">
+              {dateLabel}
+            </span>
+          </div>
+
+          <div className="flex min-w-0 shrink-0 items-center justify-end gap-1.5">
+            {showPlanPills ? (
+              <PlanPills
+                plans={plans}
+                activePlanIndex={activePlanIndex}
+                onPlanChange={onPlanChange!}
+                className="hidden max-w-[min(100%,14rem)] justify-end sm:flex sm:max-w-[18rem]"
+              />
+            ) : null}
+            <SourcePills
+              sourceMode={sourceMode}
+              onSourceModeChange={onSourceModeChange}
             />
-          ) : null}
-          <SourcePills
-            sourceMode={sourceMode}
-            onSourceModeChange={onSourceModeChange}
-          />
+          </div>
         </div>
+
+        {showPlanPills ? (
+          <PlanPills
+            plans={plans}
+            activePlanIndex={activePlanIndex}
+            onPlanChange={onPlanChange!}
+            className="justify-end py-1 sm:hidden"
+          />
+        ) : null}
       </div>
 
       <div
