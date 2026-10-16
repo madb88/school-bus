@@ -89,10 +89,12 @@ const SECTIONS: Section[] = [
     title: "§5 Plan Plus",
     paragraphs: [
       "Plan Plus jest opcjonalną, płatną funkcją Serwisu. Zakup wymaga uprzedniego zalogowania.",
+      "Po utworzeniu konta Użytkownik może otrzymać bezpłatny okres próbny Planu Plus (domyślnie 2 tygodnie od utworzenia konta, zgodnie z konfiguracją Serwisu). Okres próbny zaczyna się automatycznie, nie wymaga podania danych płatniczych i kończy się samodzielnie. W trakcie okresu próbnego Użytkownik ma dostęp do funkcji Planu Plus opisanych w Serwisie.",
       "Cena prezentowana w Serwisie (obecnie 30 zł) dotyczy jednorazowej opłaty za dostęp do Planu Plus na rok szkolny. Plan nie odnawia się automatycznie. Po wygaśnięciu Użytkownik może kupić kolejny plan na stronie profilu.",
       "Rok szkolny Planu Plus kończy się 31 sierpnia (kalendarz Europe/Warsaw), zgodnie z regułami opisanymi w Serwisie przy zakupie. Data ważności jest widoczna w profilu po aktywacji.",
       "Płatność obsługuje Stripe Checkout. Po opłaceniu Użytkownik wraca do Serwisu; aktywacja Planu Plus następuje po potwierdzeniu płatności (webhook). Do czasu potwierdzenia Serwis może pokazywać stan „płatność w toku”.",
       "Przed rozpoczęciem płatności Użytkownik potwierdza w Serwisie, że chce, aby świadczenie usługi rozpoczęło się od razu po dokonaniu płatności, oraz że przyjmuje do wiadomości utratę prawa odstąpienia od umowy po rozpoczęciu świadczenia — w zakresie przewidzianym przepisami o konsumentach.",
+      "Przy aktywnym Planie Plus (w tym w okresie próbnym) Użytkownik może zapisać na koncie do pięciu planów lekcji, synchronizowanych między urządzeniami. Po zakończeniu dostępu do Planu Plus plany zapisane na koncie są przechowywane, lecz niedostępne w Serwisie, dopóki Użytkownik ponownie nie uzyska Planu Plus. Usunięcie konta albo wyczyszczenie planów w Serwisie usuwa je trwale.",
       "Usługodawca nie gwarantuje nieprzerwanej dostępności funkcji Plus (w tym powiadomień) w razie awarii infrastruktury lub ograniczeń po stronie przeglądarki / dostawcy Push.",
       "W razie problemu z działaniem Planu Plus Użytkownik może zgłosić reklamację z poziomu profilu (przy aktywnym Planie Plus) albo na adres e-mail Usługodawcy.",
     ],
@@ -134,9 +136,10 @@ const SECTIONS: Section[] = [
     title: "§8 Personalizacja i plan lekcji",
     paragraphs: [
       "Użytkownik może utworzyć plan lekcji (miejsce / przystanek oraz godziny rozpoczęcia, a opcjonalnie zakończenia lekcji w dni robocze) oraz ustawić powiązane preferencje, np. okno czasowe dopasowania kursów czy wybraną trasę MZK.",
-      "W zwykłym korzystaniu z Serwisu (bez włączonych powiadomień Web Push) plan lekcji i powiązane ustawienia są przechowywane lokalnie w przeglądarce Użytkownika (localStorage) i służą do dopasowania wyświetlanych kursów oraz wydruku planu.",
-      "Jeżeli Użytkownik włączy powiadomienia Web Push (przy aktywnym Planie Plus), część danych planu niezbędna do przygotowania przypomnień jest przesyłana i przechowywana po stronie serwera Usługodawcy — wyłącznie w celu realizacji powiadomień. Różnica polega na tym, że bez Push plan pozostaje na urządzeniu; z włączonym Push wybrany zakres danych planu trafia na serwer.",
-      "Usługodawca nie wymaga konta do korzystania z lokalnego planu lekcji. Konto jest wymagane do Planu Plus i powiadomień. Użytkownik odpowiada za poprawność wprowadzonych przez siebie godzin i miejsca.",
+      "W zwykłym korzystaniu z Serwisu plan lekcji i powiązane ustawienia mogą być przechowywane lokalnie w przeglądarce Użytkownika (localStorage) i służą do dopasowania wyświetlanych kursów oraz wydruku planu.",
+      "Przy aktywnym Planie Plus (w tym w okresie próbnym) Użytkownik może dodatkowo zapisać plany lekcji na koncie (serwer Usługodawcy). Bez Planu Plus Serwis nadal obsługuje jeden lokalny plan na urządzeniu.",
+      "Jeżeli Użytkownik włączy powiadomienia Web Push (przy aktywnym Planie Plus), część danych planu niezbędna do przygotowania przypomnień jest przesyłana i przechowywana po stronie serwera Usługodawcy — wyłącznie w celu realizacji powiadomień.",
+      "Usługodawca nie wymaga konta do korzystania z lokalnego planu lekcji. Konto jest wymagane do Planu Plus, planów na koncie i powiadomień. Użytkownik odpowiada za poprawność wprowadzonych przez siebie godzin i miejsca.",
     ],
   },
   {

@@ -16,12 +16,11 @@ afterEach(() => {
 });
 
 describe("loadScheduleSnapshotOnce", () => {
-  it("loads from local JSON when API base URL is unset", async () => {
+  it("returns null when API base URL is unset", async () => {
     getDowozyApiBaseUrl.mockReturnValue(null);
 
-    const result = await loadScheduleSnapshotOnce(process.cwd());
-    expect(result).not.toBeNull();
-    expect(result?.schedule.pickups.length).toBeGreaterThan(0);
+    const result = await loadScheduleSnapshotOnce();
+    expect(result).toBeNull();
     expect(fetchDowozyScheduleFromApi).not.toHaveBeenCalled();
   });
 
@@ -54,7 +53,7 @@ describe("loadScheduleSnapshotOnce", () => {
       },
     });
 
-    const result = await loadScheduleSnapshotOnce(process.cwd());
+    const result = await loadScheduleSnapshotOnce();
     expect(fetchDowozyScheduleFromApi).toHaveBeenCalledWith(
       "http://localhost:8000",
     );
@@ -69,7 +68,7 @@ describe("loadScheduleSnapshotOnce", () => {
       reason: "unhealthy",
     });
 
-    const result = await loadScheduleSnapshotOnce(process.cwd());
+    const result = await loadScheduleSnapshotOnce();
     expect(result).toBeNull();
   });
 });

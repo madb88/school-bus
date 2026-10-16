@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   formatPolishYmd,
+  formatRemainingDaysLabel,
   formatRemainingMonthsLabel,
+  remainingWholeDays,
   remainingWholeMonths,
 } from "./format";
 
@@ -20,6 +22,19 @@ describe("plus date labels", () => {
     );
     expect(formatRemainingMonthsLabel("2026-09-30", new Date("2026-09-15T10:00:00.000Z"))).toBe(
       "mniej niż miesiąc",
+    );
+  });
+
+  it("counts whole days left until validUntil", () => {
+    expect(remainingWholeDays("2026-10-21", new Date("2026-10-16T10:00:00.000Z"))).toBe(5);
+    expect(formatRemainingDaysLabel("2026-10-21", new Date("2026-10-16T10:00:00.000Z"))).toBe(
+      "Pozostało 5 dni",
+    );
+    expect(formatRemainingDaysLabel("2026-10-16", new Date("2026-10-16T10:00:00.000Z"))).toBe(
+      "Pozostało mniej niż dzień",
+    );
+    expect(formatRemainingDaysLabel("2026-10-17", new Date("2026-10-16T10:00:00.000Z"))).toBe(
+      "Pozostał 1 dzień",
     );
   });
 });

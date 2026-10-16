@@ -19,6 +19,21 @@ export type NewsItem = {
 /** Newest first — prepend new entries here. */
 export const NEWS_ITEMS: readonly NewsItem[] = [
   {
+    id: "trial-and-account-plans",
+    dateLabel: "16 października 2026",
+    title: "Okres próbny Planu Plus i do 5 planów na koncie",
+    lead: "Nowe konto dostaje okres próbny Planu Plus. Przy dostępie Plus zapiszesz do pięciu planów lekcji na koncie — na każdym urządzeniu.",
+    body: "Po zalogowaniu możesz skorzystać z bezpłatnego okresu próbnego Planu Plus (domyślnie dwa tygodnie od utworzenia konta). W tym czasie — i po wykupieniu Planu Plus — zapiszesz do pięciu planów lekcji na koncie. Plany synchronizują się między urządzeniami. Po zakończeniu dostępu Plus plany na koncie zostają zachowane i wrócą po ponownym wykupieniu; na urządzeniu nadal działa jeden lokalny plan.",
+    pointsTitle: "Co nowego?",
+    points: [
+      "Okres próbny Planu Plus przy nowym koncie.",
+      "Do 5 planów lekcji zapisanych na koncie i dostępnych na każdym urządzeniu.",
+      "Lokalny plan na urządzeniu działa jak dotychczas bez logowania.",
+    ],
+    href: "/lekcje",
+    cta: "Otwórz plan lekcji",
+  },
+  {
     id: "compact-print-and-week-days",
     dateLabel: "26 września 2026",
     title: "Kompaktowy wydruk i rozkład na każdy dzień",

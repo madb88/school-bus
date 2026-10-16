@@ -84,7 +84,9 @@ function asUser(userId = SESSION) {
   getCurrentUser.mockResolvedValue({
     userId,
     email: "parent@example.com",
-    role: "user",
+    role: "individual",
+    plans: [],
+    createdAt: "2026-01-01T00:00:00.000Z",
     sessionToken: TOKEN,
   });
 }
@@ -130,6 +132,44 @@ describe("push Plus gate", () => {
     expect(response.status).toBe(403);
     expect(await response.json()).toEqual({ error: PUSH_PLUS_REQUIRED });
     expect(savePushRecord).not.toHaveBeenCalled();
+  });
+
+  it("refuses subscribe during trial until dispatch can check trial access", async () => {
+    asUser();
+    fetchPlus.mockResolvedValue({ state: "trial", validUntil: "2026-10-30" });
+
+    const response = await subscribe(
+      jsonRequest("http://localhost:3000/api/push/subscribe", "POST", {
+        subscription,
+        plan,
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ error: PUSH_PLUS_REQUIRED });
+  });
+
+  it("allows admin subscribe even when entitlement is inactive", async () => {
+    getCurrentUser.mockResolvedValue({
+      userId: SESSION,
+      email: "admin@example.com",
+      role: "admin",
+      plans: [],
+      createdAt: "2026-01-01T00:00:00.000Z",
+      sessionToken: TOKEN,
+    });
+    fetchPlus.mockResolvedValue({ state: "inactive" });
+    getPushRecord.mockResolvedValue(null);
+
+    const response = await subscribe(
+      jsonRequest("http://localhost:3000/api/push/subscribe", "POST", {
+        subscription,
+        plan,
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(savePushRecord).toHaveBeenCalled();
   });
 
   it("refuses subscribe when Plan Plus is unavailable", async () => {

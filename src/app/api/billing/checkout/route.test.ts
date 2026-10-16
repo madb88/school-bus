@@ -18,7 +18,9 @@ function asUser() {
   vi.mocked(getCurrentUser).mockResolvedValue({
     userId: SESSION_USER,
     email: "parent@example.com",
-    role: "user",
+    role: "individual",
+    plans: [],
+    createdAt: "2026-01-01T00:00:00.000Z",
     sessionToken: TOKEN,
   });
 }

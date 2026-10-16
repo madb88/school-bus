@@ -13,6 +13,7 @@ import {
   fetchPlusForUser,
   rememberPaymentReturn,
   requestMagicLink,
+  updateMyPlans,
   verifyLink,
 } from "./backend";
 
@@ -61,8 +62,9 @@ describe("auth backend client", () => {
             user: {
               id: "11111111-1111-4111-8111-111111111111",
               email: "parent@example.com",
-              role: "user",
+              role: "individual",
               createdAt: "2026-01-01T00:00:00.000Z",
+              plans: [],
             },
           }),
           { status: 200 },
@@ -211,6 +213,20 @@ describe("auth backend client", () => {
       validUntil: "2027-08-31",
     });
 
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ state: "trial", validUntil: "2026-10-30" }), {
+            status: 200,
+          }),
+      ),
+    );
+    expect(await fetchPlus(TOKEN)).toEqual({
+      state: "trial",
+      validUntil: "2026-10-30",
+    });
+
     vi.stubGlobal("fetch", vi.fn(async () => new Response("", { status: 401 })));
     expect(await fetchPlus(TOKEN)).toBe("unavailable");
 
@@ -219,6 +235,51 @@ describe("auth backend client", () => {
       vi.fn(async () => new Response(JSON.stringify({ state: "active" }), { status: 200 })),
     );
     expect(await fetchPlus(TOKEN)).toBe("unavailable");
+  });
+
+  it("updateMyPlans returns the user and passes 403/422 detail through", async () => {
+    const user = {
+      id: "11111111-1111-4111-8111-111111111111",
+      email: "parent@example.com",
+      role: "individual",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      plans: [],
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify(user), { status: 200 })),
+    );
+    expect(await updateMyPlans(TOKEN, [])).toEqual({ ok: true, user });
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ detail: "Zapisywanie planów wymaga Planu Plus" }), {
+            status: 403,
+          }),
+      ),
+    );
+    expect(await updateMyPlans(TOKEN, [])).toEqual({
+      ok: false,
+      status: 403,
+      error: "Zapisywanie planów wymaga Planu Plus",
+    });
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ detail: "Możesz zapisać najwyżej 5 planów" }), {
+            status: 422,
+          }),
+      ),
+    );
+    expect(await updateMyPlans(TOKEN, [])).toEqual({
+      ok: false,
+      status: 422,
+      error: "Możesz zapisać najwyżej 5 planów",
+    });
   });
 
   it("rememberPaymentReturn and fetchPlusForUser hit the billing routes", async () => {

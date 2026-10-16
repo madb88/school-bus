@@ -107,4 +107,54 @@ describe("filterSchedule", () => {
     );
     expect(labels).toEqual(["II kurs"]);
   });
+
+  it("filters by multiple places", () => {
+    const filtered = filterSchedule(schedule, {
+      places: ["Zatonie", "Ługowo"],
+      direction: "pickups",
+      dateFilter: "all",
+      matchLessonPlan: false,
+      now: new Date("2026-09-07T06:00:00+02:00"),
+    });
+
+    const stopPlaces = filtered.pickups.flatMap((block) =>
+      block.courses.flatMap((course) =>
+        course.stops.flatMap((stop) => stop.places),
+      ),
+    );
+    expect(stopPlaces.sort()).toEqual(["Zatonie", "Ługowo"].sort());
+  });
+
+  it("OR-matches multiple plans and annotates labels", () => {
+    const filtered = filterSchedule(schedule, {
+      places: null,
+      direction: "pickups",
+      dateFilter: "today",
+      matchLessonPlan: true,
+      matchPlans: [
+        {
+          label: "Ania",
+          place: "Zatonie",
+          days: { 1: { start: "08:00", end: "13:30" } },
+        },
+        {
+          label: "Bartek",
+          place: "Ługowo",
+          days: { 1: { start: "08:00", end: "13:30" } },
+        },
+      ],
+      lessonMatchWindowMin: 90,
+      now: new Date("2026-09-07T06:00:00+02:00"),
+    });
+
+    const stops = filtered.pickups.flatMap((block) =>
+      block.courses.flatMap((course) => course.stops),
+    );
+    expect(stops.length).toBeGreaterThanOrEqual(2);
+    const labels = stops.flatMap(
+      (stop) => (stop as { planLabels?: string[] }).planLabels ?? [],
+    );
+    expect(labels).toContain("Ania");
+    expect(labels).toContain("Bartek");
+  });
 });

@@ -1,3 +1,5 @@
+import type { AccountPlan } from "@/lib/child-schedule/account-plan";
+import { parseAccountPlans } from "@/lib/child-schedule/account-plan";
 import {
   AUTH_BAD_CODE,
   AUTH_BAD_EMAIL,
@@ -5,12 +7,15 @@ import {
   AUTH_UNAVAILABLE,
 } from "./messages";
 
+export type BackendRole = "admin" | "school" | "individual";
+
 export type BackendUser = {
   id: string;
   email: string;
-  role: "user" | "admin";
+  role: BackendRole;
   createdAt: string;
   lastLoginAt?: string;
+  plans: AccountPlan[];
 };
 
 export type BackendAuthError = {
@@ -58,13 +63,22 @@ function parseUser(value: unknown): BackendUser | null {
   if (!record) return null;
   if (typeof record.id !== "string" || !record.id) return null;
   if (typeof record.email !== "string" || !record.email) return null;
-  if (record.role !== "user" && record.role !== "admin") return null;
+  if (
+    record.role !== "admin" &&
+    record.role !== "school" &&
+    record.role !== "individual"
+  ) {
+    return null;
+  }
   if (typeof record.createdAt !== "string" || !record.createdAt) return null;
+  const plans = parseAccountPlans(record.plans ?? []);
+  if (!plans) return null;
   const user: BackendUser = {
     id: record.id,
     email: record.email,
     role: record.role,
     createdAt: record.createdAt,
+    plans,
   };
   if (typeof record.lastLoginAt === "string" && record.lastLoginAt) {
     user.lastLoginAt = record.lastLoginAt;
@@ -148,16 +162,16 @@ export async function backendFetch(
       return { ok: true, status: response.status, data: body };
     }
 
+    const detail = detailFromBody(body);
+
     if (response.status === 422) {
       return {
         ok: false,
         status: 422,
-        error: AUTH_BAD_EMAIL,
+        error: detail ?? AUTH_BAD_EMAIL,
         ...(retryAfterSec != null ? { retryAfterSec } : {}),
       };
     }
-
-    const detail = detailFromBody(body);
     const error =
       detail ??
       (response.status === 429
@@ -275,7 +289,7 @@ export async function ensureUserByEmail(
 }
 
 export type PlusStatus = {
-  state: "active" | "pending" | "inactive";
+  state: "active" | "pending" | "trial" | "inactive";
   validUntil?: string;
 };
 
@@ -285,14 +299,19 @@ const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 function parsePlusStatus(value: unknown): PlusStatus | null {
   const record = asRecord(value);
   if (!record) return null;
-  if (record.state !== "active" && record.state !== "pending" && record.state !== "inactive") {
+  if (
+    record.state !== "active" &&
+    record.state !== "pending" &&
+    record.state !== "trial" &&
+    record.state !== "inactive"
+  ) {
     return null;
   }
-  if (record.state === "active") {
+  if (record.state === "active" || record.state === "trial") {
     if (typeof record.validUntil !== "string" || !YMD_RE.test(record.validUntil)) {
       return null;
     }
-    return { state: "active", validUntil: record.validUntil };
+    return { state: record.state, validUntil: record.validUntil };
   }
   return { state: record.state };
 }
@@ -356,4 +375,27 @@ export async function rememberPaymentReturn(
     sessionToken,
   });
   return plusFromResult(result);
+}
+
+/** Replace all lesson plans on the account. Passes backend Polish `detail` as `error`. */
+export async function updateMyPlans(
+  sessionToken: string,
+  plans: AccountPlan[],
+): Promise<
+  | { ok: true; user: BackendUser }
+  | { ok: false; status: number; error: string }
+> {
+  const result = await backendFetch("/api/v1/users/me", {
+    method: "PATCH",
+    sessionToken,
+    body: { plans },
+  });
+  if (!result.ok) {
+    return { ok: false, status: result.status, error: result.error };
+  }
+  const user = parseUser(result.data);
+  if (!user) {
+    return { ok: false, status: 503, error: AUTH_UNAVAILABLE };
+  }
+  return { ok: true, user };
 }

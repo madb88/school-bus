@@ -31,14 +31,14 @@ alwaysApply: false
 | `api/auth/logout` | BFF → backend logout + clear cookie |
 | `api/billing/checkout` | BFF → backend Checkout; sesja wymagana, URL tylko `checkout.stripe.com` |
 | `api/settings-transfer` | create / peek / redeem QR |
-| `api/mzk-departures` | odjazdy z snapshotu MZK (lub z zewnętrznego API gdy `DOWOZY_API_BASE_URL`) |
+| `api/mzk-departures` | odjazdy MZK z schedule API (`DOWOZY_API_BASE_URL`) |
 | `api/push/subscribe\|plan\|kinds\|test\|dispatch` | Web Push + QStash; zapis wymaga sesji i aktywnego Plus |
 
 Rozszerzaj te ścieżki zamiast mnożyć równoległe API.
 
 ### Zewnętrzny schedule API (`DOWOZY_API_BASE_URL`)
 
-Lokalnie (nie Next routes): `GET /health`, `GET /api/v1/dowozy/schedule`, `GET /api/v1/mzk/schedule`, `GET /api/v1/mzk/meta`. Przy ustawionym base URL brak fallbacku na `data/*.json`.
+Wymagany (server-only): `GET /health`, `GET /api/v1/dowozy/schedule`, `GET /api/v1/mzk/schedule`, `GET /api/v1/mzk/meta`. Front **nie** czyta `data/*.json`. Fetch używa Next Data Cache (`revalidate` ~120 s, tagi w `src/lib/schedule-api-cache.ts`).
 
 ### Auth / billing backend (`BACKEND_API_URL` + `BACKEND_SERVICE_KEY`)
 

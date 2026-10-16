@@ -2,6 +2,9 @@ import { LessonPlanForm } from "@/components/lesson-plan-form";
 import { PageEyebrow } from "@/components/page-eyebrow";
 import { PageShell } from "@/components/page-shell";
 import { SiteHeader } from "@/components/site-header";
+import { fetchPlus } from "@/lib/auth/backend";
+import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasPlusAccess, isPastTrialWindow } from "@/lib/billing/access";
 import { collectPlaces } from "@/lib/dowozy/filter-schedule";
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { DOWOZY_SOURCE_URL } from "@/lib/dowozy/types";
@@ -16,12 +19,21 @@ export const metadata = buildPageMetadata({
 });
 
 export default async function LekcjePage() {
-  const [loaded, mzkSchedule] = await Promise.all([
+  const [loaded, mzkSchedule, user] = await Promise.all([
     loadScheduleSnapshot(),
     loadMzkScheduleSnapshot(),
+    getCurrentUser(),
   ]);
   const schedule = loaded?.schedule ?? null;
   const places = schedule ? collectPlaces(schedule) : [];
+
+  const plus = user ? await fetchPlus(user.sessionToken) : "unavailable";
+  const plusAccess =
+    user != null &&
+    (hasPlusAccess(user.role, plus) || user.plans.length > 0);
+  const mode = plusAccess ? "account" : "local";
+  const trialEnded =
+    user != null && !plusAccess && isPastTrialWindow(user.createdAt);
 
   return (
     <PageShell header={<SiteHeader current="lekcje" />}>
@@ -42,6 +54,10 @@ export default async function LekcjePage() {
             places={places}
             schedule={schedule}
             mzkSchedule={mzkSchedule}
+            mode={mode}
+            initialPlans={plusAccess ? user!.plans : []}
+            loggedIn={user != null}
+            trialEnded={trialEnded}
           />
         ) : (
           <p className="text-muted-foreground">

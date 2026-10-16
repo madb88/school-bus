@@ -3,6 +3,9 @@ import { ScheduleBoard } from "@/components/schedule-board";
 import { ScheduleStatusBanner } from "@/components/schedule-status-banner";
 import { ScheduleUnavailable } from "@/components/schedule-unavailable";
 import { SiteHeader } from "@/components/site-header";
+import { fetchPlus } from "@/lib/auth/backend";
+import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasPlusAccess } from "@/lib/billing/access";
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { overrideFreshnessInfo } from "@/lib/dowozy/override-freshness";
 import { loadMzkScheduleMeta } from "@/lib/mzk/load-schedule";
@@ -22,9 +25,10 @@ export const metadata = buildPageMetadata({
 });
 
 export default async function Home() {
-  const [loaded, mzkMeta] = await Promise.all([
+  const [loaded, mzkMeta, user] = await Promise.all([
     loadScheduleSnapshot(),
     loadMzkScheduleMeta(),
+    getCurrentUser(),
   ]);
   const schedule = loaded?.schedule ?? null;
   const freshness = [
@@ -34,6 +38,12 @@ export default async function Home() {
       ? mzkScheduleFreshness(mzkMeta.fetchedAt, mzkMeta.feedEndDate)
       : null,
   ].filter((item): item is NonNullable<typeof item> => item !== null);
+
+  const plus = user ? await fetchPlus(user.sessionToken) : "unavailable";
+  const plusAccess =
+    user != null &&
+    (hasPlusAccess(user.role, plus) || user.plans.length > 0);
+  const accountPlans = plusAccess && user ? user.plans : [];
 
   return (
     <PageShell wide header={<SiteHeader current="rozklad" />}>
@@ -48,6 +58,7 @@ export default async function Home() {
             <ScheduleBoard
               schedule={schedule}
               mzkAvailable={Boolean(mzkMeta)}
+              accountPlans={accountPlans}
             />
           </>
         ) : (

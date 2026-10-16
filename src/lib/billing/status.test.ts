@@ -27,6 +27,17 @@ describe("plus panel from backend status", () => {
     expect(plusPanelFromStatus({ state: "inactive" }, NOW)).toEqual({ state: "inactive" });
   });
 
+  it("maps trial with a days-based remaining label", () => {
+    expect(
+      plusPanelFromStatus({ state: "trial", validUntil: "2026-10-05" }, NOW),
+    ).toEqual({
+      state: "trial",
+      validUntil: "2026-10-05",
+      validUntilLabel: "5 października 2026",
+      remainingLabel: "Pozostało 5 dni",
+    });
+  });
+
   it("maps unavailable to unknown", () => {
     expect(plusPanelFromStatus("unavailable", NOW)).toEqual({ state: "unknown" });
   });

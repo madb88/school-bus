@@ -1,13 +1,16 @@
 import { cookies } from "next/headers";
 import { cache } from "react";
-import { fetchMe } from "./backend";
+import type { AccountPlan } from "@/lib/child-schedule/account-plan";
+import { fetchMe, type BackendRole } from "./backend";
 import { SESSION_COOKIE } from "./constants";
 import { readSessionToken } from "./token";
 
 export type CurrentUser = {
   userId: string;
   email: string;
-  role: "user" | "admin";
+  role: BackendRole;
+  plans: AccountPlan[];
+  createdAt: string;
   sessionToken: string;
 };
 
@@ -32,6 +35,8 @@ async function loadCurrentUser(): Promise<CurrentUser | null> {
     userId: user.id,
     email: user.email,
     role: user.role,
+    plans: user.plans,
+    createdAt: user.createdAt,
     sessionToken: token,
   };
 }

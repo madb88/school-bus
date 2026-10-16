@@ -36,11 +36,14 @@ type SettingsTransferSheetProps = {
   canTransfer: boolean;
   /** Visible label on the trigger. Behavior stays the same. */
   triggerLabel?: string;
+  /** Mentions account sync for logged-in Plus users. */
+  accountSyncHint?: boolean;
 };
 
 export function SettingsTransferSheet({
   canTransfer,
   triggerLabel = "Przenieś na inne urządzenie",
+  accountSyncHint = false,
 }: SettingsTransferSheetProps) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -160,6 +163,9 @@ export function SettingsTransferSheet({
             Zeskanuj kod aparatem drugiego urządzenia albo wpisz go w aplikacji
             PWA. Kod wygasa po kilku minutach i działa w jednym z tych miejsc.
             Zużywa się dopiero po potwierdzeniu przywrócenia.
+            {accountSyncHint
+              ? " Przy zalogowanym Planie Plus plany lekcji synchronizują się też przez konto — ten kod przenosi plan z urządzenia (oraz trasę MZK)."
+              : null}
           </SheetDescription>
         </SheetHeader>
 

@@ -1,5 +1,6 @@
 import { fetchPlus, fetchPlusForUser } from "@/lib/auth/backend";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasPushPlusAccess } from "@/lib/billing/access";
 import { isUserId } from "@/lib/billing/constants";
 
 export const PUSH_LOGIN_REQUIRED = "Zaloguj się, żeby korzystać z powiadomień.";
@@ -10,15 +11,19 @@ export type PushAccess =
   | { ok: true; userId: string }
   | { ok: false; status: 401 | 403; error: string };
 
-/** Session-scoped check for interactive push routes. */
-export async function userHasActivePlus(sessionToken: string): Promise<boolean> {
+/** Session-scoped check for interactive push routes (active + admin; not trial yet). */
+export async function userHasActivePlus(
+  sessionToken: string,
+  role: "admin" | "school" | "individual",
+): Promise<boolean> {
   const status = await fetchPlus(sessionToken);
-  return status !== "unavailable" && status.state === "active";
+  return hasPushPlusAccess(role, status);
 }
 
 /**
  * User-id check for QStash dispatch (no browser session). Fail closed when the
  * backend is unavailable so we do not notify after a refund.
+ * Still entitlement-only (`active`) until a service access endpoint exists.
  */
 export async function userIdHasActivePlus(userId: string): Promise<boolean> {
   if (!isUserId(userId)) return false;
@@ -45,7 +50,7 @@ export async function requirePlusPush(): Promise<PushAccess> {
   if (!user || !isUserId(user.userId)) {
     return { ok: false, status: 401, error: PUSH_LOGIN_REQUIRED };
   }
-  if (!(await userHasActivePlus(user.sessionToken))) {
+  if (!(await userHasActivePlus(user.sessionToken, user.role))) {
     return { ok: false, status: 403, error: PUSH_PLUS_REQUIRED };
   }
   return { ok: true, userId: user.userId };

@@ -38,6 +38,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import type { BackendRole } from "@/lib/auth/backend";
+import {
+  hasPlusAccessFromPanel,
+  hasPushPlusAccessFromPanel,
+  isPastTrialWindow,
+} from "@/lib/billing/access";
 import { isAllowedCheckoutUrl } from "@/lib/billing/checkout-url";
 import { PLUS_PRICE_LABEL } from "@/lib/billing/constants";
 import { formatRemainingMonthsLabel } from "@/lib/billing/format";
@@ -86,12 +92,16 @@ function scrollToId(id: string) {
 
 export function ProfilePanel({
   email,
+  role,
+  createdAt,
   plus,
   focusPlus,
   focusNotifications,
   pushUiEnabled,
 }: {
   email: string;
+  role: BackendRole;
+  createdAt: string;
   plus: PlusPanelState;
   focusPlus: boolean;
   focusNotifications: boolean;
@@ -212,6 +222,10 @@ export function ProfilePanel({
             <PlusSection
               email={email}
               plus={plus}
+              trialEnded={
+                !hasPlusAccessFromPanel(role, plus) &&
+                isPastTrialWindow(createdAt)
+              }
               error={error}
               buying={buying}
               onBuy={() => void buy()}
@@ -220,7 +234,7 @@ export function ProfilePanel({
           ) : null}
           {section === "powiadomienia" ? (
             <NotificationsSection
-              plusActive={plus.state === "active"}
+              plusAccess={hasPushPlusAccessFromPanel(role, plus)}
               pushUiEnabled={pushUiEnabled}
               onOpenPlus={() => selectSection("plus")}
             />
@@ -475,16 +489,15 @@ function ActivePlanHero({
   );
 }
 
-const PLUS_FEATURE_LABELS = ["Powiadomienia o zmianach w kursach"] as const;
+const PLUS_FEATURE_LABELS = [
+  "Powiadomienia o zmianach w kursach",
+  "Do 5 planów lekcji na koncie, na każdym urządzeniu",
+] as const;
 
 const PLUS_COMING_SOON = [
   {
     icon: WifiOff,
     title: "PWA offline",
-  },
-  {
-    icon: BookOpen,
-    title: "Więcej niż jeden plan lekcji",
   },
   {
     icon: Heart,
@@ -619,8 +632,9 @@ const PLUS_BENEFITS = [
   },
   {
     icon: BookOpen,
-    title: "Więcej niż jeden plan lekcji",
-    description: "Dodaj kilka planów, jeśli masz więcej niż jedno dziecko.",
+    title: "Do 5 planów lekcji na koncie",
+    description:
+      "Zapisz do pięciu planów na koncie i korzystaj z nich na każdym urządzeniu.",
     iconClassName:
       "bg-emerald-500/12 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400",
   },
@@ -632,7 +646,13 @@ const PLUS_BENEFITS = [
   },
 ] as const;
 
-function InactivePlusHero({ onCta }: { onCta: () => void }) {
+function InactivePlusHero({
+  onCta,
+  trialEnded,
+}: {
+  onCta: () => void;
+  trialEnded: boolean;
+}) {
   return (
     <section className={PANEL_CARD}>
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-10">
@@ -652,8 +672,14 @@ function InactivePlusHero({ onCta }: { onCta: () => void }) {
           </div>
           <p className="max-w-xl text-base leading-relaxed text-muted-foreground">
             Korzystasz z darmowej wersji. Wykup Plan Plus, aby włączyć
-            powiadomienia i dodać więcej niż jeden plan lekcji.
+            powiadomienia i zapisać do pięciu planów lekcji na koncie.
           </p>
+          {trialEnded ? (
+            <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
+              Plany zapisane na koncie nie znikają — wrócą po wykupieniu Planu
+              Plus.
+            </p>
+          ) : null}
         </div>
 
         <Button
@@ -667,6 +693,71 @@ function InactivePlusHero({ onCta }: { onCta: () => void }) {
         </Button>
       </div>
     </section>
+  );
+}
+
+function TrialPlusView({
+  validUntilLabel,
+  remainingLabel,
+  buying,
+  accepted,
+  error,
+  onAcceptedChange,
+  onBuy,
+}: {
+  validUntilLabel: string;
+  remainingLabel: string | null;
+  buying: boolean;
+  accepted: boolean;
+  error: string | null;
+  onAcceptedChange: (value: boolean) => void;
+  onBuy: () => void;
+}) {
+  return (
+    <div className="space-y-5 sm:space-y-6">
+      <section className={PANEL_CARD}>
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
+          <div className="min-w-0 space-y-3">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/12 px-3 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300">
+              Okres próbny
+            </span>
+            <h2 className="font-display text-2xl font-bold tracking-tight text-asphalt sm:text-[1.75rem]">
+              Okres próbny Planu Plus
+            </h2>
+            <p className="max-w-lg text-base leading-relaxed text-muted-foreground">
+              Do {validUntilLabel} masz za darmo wszystkie funkcje Planu Plus.
+            </p>
+          </div>
+        </div>
+        <div className="mt-8 border-t border-border/35 pt-8">
+          <PlanStat
+            icon={CalendarDays}
+            iconClassName="bg-emerald-500/12 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
+            label="Pozostało"
+            value={remainingLabel ?? "Okres próbny"}
+            hint={`Do ${validUntilLabel}`}
+          />
+        </div>
+      </section>
+
+      <PlusIncludesCard />
+
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        Po wykupieniu Plan Plus działa do 31 sierpnia, a plany zapisane na koncie
+        zostają.
+      </p>
+
+      <PriceCard
+        buying={buying}
+        accepted={accepted}
+        error={error}
+        onAcceptedChange={onAcceptedChange}
+        onBuy={onBuy}
+      />
+
+      <PlusComingSoonCard />
+      <HelpContactCard />
+    </div>
   );
 }
 
@@ -739,6 +830,7 @@ function PriceCard({
                 "Powiadomienia przed odjazdem autobusu",
                 "Powiadomienia przed powrotem",
                 "Powiadomienia o zmianach kursu",
+                "Do 5 planów lekcji na koncie, na każdym urządzeniu",
               ].map((item) => (
                 <li
                   key={item}
@@ -752,10 +844,6 @@ function PriceCard({
                 </li>
               ))}
             </ul>
-            <div className="my-4 border-t border-border/50" aria-hidden />
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Wkrótce: Więcej niż jeden plan lekcji
-            </p>
           </div>
 
           <div className="flex flex-col justify-center bg-amber-400/8 px-5 py-6 sm:px-7 sm:py-7 dark:bg-amber-400/8">
@@ -887,6 +975,7 @@ function HelpContactCard() {
 function PlusSection({
   email,
   plus,
+  trialEnded,
   error,
   buying,
   onBuy,
@@ -894,6 +983,7 @@ function PlusSection({
 }: {
   email: string;
   plus: PlusPanelState;
+  trialEnded: boolean;
   error: string | null;
   buying: boolean;
   onBuy: () => void;
@@ -911,13 +1001,30 @@ function PlusSection({
     );
   }
 
+  if (plus.state === "trial") {
+    return (
+      <TrialPlusView
+        validUntilLabel={plus.validUntilLabel}
+        remainingLabel={plus.remainingLabel}
+        buying={buying}
+        accepted={accepted}
+        error={error}
+        onAcceptedChange={setAccepted}
+        onBuy={onBuy}
+      />
+    );
+  }
+
   const showBuy = plus.state === "inactive";
 
   return (
     <div className="space-y-5 sm:space-y-6">
       {showBuy ? (
         <>
-          <InactivePlusHero onCta={() => scrollToId("plan-plus-cena")} />
+          <InactivePlusHero
+            trialEnded={trialEnded}
+            onCta={() => scrollToId("plan-plus-cena")}
+          />
           <PlusBenefitsGrid />
           <PriceCard
             buying={buying}
@@ -966,11 +1073,11 @@ function PlusSection({
 }
 
 function NotificationsSection({
-  plusActive,
+  plusAccess,
   pushUiEnabled,
   onOpenPlus,
 }: {
-  plusActive: boolean;
+  plusAccess: boolean;
   pushUiEnabled: boolean;
   onOpenPlus: () => void;
 }) {
@@ -984,8 +1091,8 @@ function NotificationsSection({
           Przypomnienia o odjeździe autobusu szkolnego.
         </p>
       </div>
-      {pushUiEnabled && plusActive ? <InstallNotifications /> : null}
-      {pushUiEnabled && !plusActive ? (
+      {pushUiEnabled && plusAccess ? <InstallNotifications /> : null}
+      {pushUiEnabled && !plusAccess ? (
         <div className="space-y-4 rounded-2xl bg-muted/40 p-5 dark:bg-muted/20">
           <p className="text-base leading-relaxed text-foreground">
             Powiadomienia wymagają aktywnego Planu Plus.

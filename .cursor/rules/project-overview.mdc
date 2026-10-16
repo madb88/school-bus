@@ -30,23 +30,22 @@ Nawigacja: `NAV_ITEMS` w `src/components/site-nav.tsx`. Layout stron: `PageShell
 
 ## Model danych (domena)
 
-- **Rozkład szkolny** (`Schedule`): pickupy, odwozy po dacie / weekday — snapshot `data/dowozy-schedule.json` + opcjonalny override `data/dowozy-overrides.json`
-- **MZK** (`MzkSchedule`): przystanki i kursy z GTFS — `data/mzk-schedule.json`
+- **Rozkład szkolny** (`Schedule`): pickupy, odwozy po dacie / weekday — z schedule API (`DOWOZY_API_BASE_URL`)
+- **MZK** (`MzkSchedule`): przystanki i kursy z GTFS — z tego samego API
 - **Plan lekcji** (`ChildLessonPlan`): miejsce + godziny Pn–Pt — tylko localStorage (opcjonalnie Redis przy transferze / push)
 - **Trasa MZK** (`MzkRoutePreference`), **okno dopasowania** (minuty) — localStorage
 
 ## Źródła danych
 
-1. Scraping strony szkoły → `npm run scrape:dowozy`
-2. GTFS MZK → `npm run fetch:mzk`
-3. GitHub Actions codziennie ~06:00 Europe/Warsaw (fail-fast na pusty snapshot)
-4. Tymczasowe korekty godzin: **tylko** `dowozy-overrides.json`, nigdy ręcznie scrapowanego snapshotu
+1. Backend schedule API (`DOWOZY_API_BASE_URL`) — jedyne źródło rozkładu dla Next (Data Cache ~2 min)
+2. Skrypty `scrape:dowozy` / `fetch:mzk` (+ Actions) mogą zasilać backend / artefakty; **front nie czyta** `data/*.json`
+3. Korekty godzin po stronie API (pole `modified` w odpowiedzi), nie ręcznie w scrapowanym JSON w Next
 
 ## Integracje zewnętrzne
 
 - Resend + Turnstile — feedback (server action)
 - Upstash Redis — rate limit, transfer QR (TTL 15 min, AES-GCM), subskrypcje push
-- Backend (`BACKEND_API_URL` + `BACKEND_SERVICE_KEY`) — users, magic-link, sesje, Plan Plus / Stripe (Next BFF `/api/auth/*`, `/api/billing/checkout`)
+- Backend (`BACKEND_API_URL` + `BACKEND_SERVICE_KEY`) — users, magic-link, sesje, Plan Plus / Stripe (Next BFF `/api/auth/*`, `/api/billing/checkout`); schedule: `DOWOZY_API_BASE_URL`
 - QStash — cron `POST /api/push/dispatch` (Pn–Pt, 06:00–16:55 Europe/Warsaw)
 - Vercel Analytics / Speed Insights
 

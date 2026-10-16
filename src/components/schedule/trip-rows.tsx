@@ -166,11 +166,11 @@ export function LessonsEndedRow() {
 
 function PlacesRow({
   places,
-  activePlace,
+  activePlaces,
   onSelectPlace,
 }: {
   places: string[];
-  activePlace: string | null;
+  activePlaces: string[] | null;
   onSelectPlace: (place: string) => void;
 }) {
   if (places.length === 0) return null;
@@ -185,7 +185,7 @@ function PlacesRow({
         <PlaceChip
           key={item}
           place={item}
-          highlight={activePlace !== null && item === activePlace}
+          highlight={Boolean(activePlaces?.includes(item))}
           onSelect={onSelectPlace}
         />
       ))}
@@ -196,14 +196,14 @@ function PlacesRow({
 export function DropoffRunsList({
   runs,
   lessonEnd,
-  activePlace,
+  activePlaces,
   onSelectPlace,
   nextTripId,
   stopIdFor,
 }: {
   runs: Stop[];
   lessonEnd?: string | null;
-  activePlace: string | null;
+  activePlaces: string[] | null;
   onSelectPlace: (place: string) => void;
   nextTripId?: string | null;
   stopIdFor: (run: Stop, index: number) => string;
@@ -222,7 +222,7 @@ export function DropoffRunsList({
             <StopRow
               stopId={stopId}
               stop={run}
-              activePlace={activePlace}
+              activePlaces={activePlaces}
               onSelectPlace={onSelectPlace}
               isNext={nextTripId === stopId}
             />
@@ -269,13 +269,13 @@ export function PlaceChip({
 
 export function StopRow({
   stop,
-  activePlace,
+  activePlaces,
   onSelectPlace,
   isNext,
   stopId,
 }: {
   stop: Stop;
-  activePlace: string | null;
+  activePlaces: string[] | null;
   onSelectPlace: (place: string) => void;
   isNext?: boolean;
   stopId?: string;
@@ -291,7 +291,7 @@ export function StopRow({
         <TripBadge variant="school">Szkolny</TripBadge>
         <PlacesRow
           places={stop.places}
-          activePlace={activePlace}
+          activePlaces={activePlaces}
           onSelectPlace={onSelectPlace}
         />
       </div>
@@ -344,12 +344,12 @@ export function MzkDepartureRow({
 
 export function SchoolTimelineRow({
   entry,
-  activePlace,
+  activePlaces,
   onSelectPlace,
   isNext,
 }: {
   entry: Extract<TimelineEntry, { kind: "school" }>;
-  activePlace: string | null;
+  activePlaces: string[] | null;
   onSelectPlace: (place: string) => void;
   isNext?: boolean;
 }) {
@@ -363,6 +363,14 @@ export function SchoolTimelineRow({
       <div className="flex min-w-0 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <TripBadge variant="school">Szkolny</TripBadge>
+          {entry.planLabels?.map((label) => (
+            <span
+              key={label}
+              className="inline-flex max-w-full truncate rounded-md bg-amber-400/20 px-1.5 py-0.5 text-[0.6875rem] font-medium text-amber-900 dark:bg-amber-400/15 dark:text-amber-200"
+            >
+              {label}
+            </span>
+          ))}
           {entry.context ? (
             <span className="min-w-0 text-xs text-muted-foreground">
               {entry.context}
@@ -371,7 +379,7 @@ export function SchoolTimelineRow({
         </div>
         <PlacesRow
           places={entry.places}
-          activePlace={activePlace}
+          activePlaces={activePlaces}
           onSelectPlace={onSelectPlace}
         />
       </div>
@@ -381,13 +389,13 @@ export function SchoolTimelineRow({
 
 export function TimelineList({
   entries,
-  activePlace,
+  activePlaces,
   onSelectPlace,
   nextTripId,
   lessonEnd,
 }: {
   entries: TimelineEntry[];
-  activePlace: string | null;
+  activePlaces: string[] | null;
   onSelectPlace: (place: string) => void;
   nextTripId?: string | null;
   lessonEnd?: string | null;
@@ -419,7 +427,7 @@ export function TimelineList({
           <Fragment key={entry.stopId}>
             <SchoolTimelineRow
               entry={entry}
-              activePlace={activePlace}
+              activePlaces={activePlaces}
               onSelectPlace={onSelectPlace}
               isNext={nextTripId === entry.stopId}
             />

@@ -9,6 +9,7 @@ import {
   Settings,
   Smartphone,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { AboutProjectFeedbackCta } from "@/components/about-project-feedback-cta";
 import { PageEyebrow } from "@/components/page-eyebrow";
 import { cn } from "cn";
@@ -122,7 +123,11 @@ const roadmapColumns: readonly RoadmapColumn[] = [
   },
 ];
 
-export function AboutProject() {
+export function AboutProject({
+  dataSources,
+}: {
+  dataSources?: ReactNode;
+}) {
   return (
     <div className="space-y-12 sm:space-y-14">
       <header className="space-y-3 sm:space-y-4">
@@ -175,6 +180,8 @@ export function AboutProject() {
           })}
         </ul>
       </section>
+
+      {dataSources}
 
       <section aria-labelledby="about-next-heading" className="space-y-5">
         <div className="space-y-3">

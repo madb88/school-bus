@@ -31,8 +31,8 @@ const SECTIONS: Section[] = [
     title: "2. Jak dbamy o prywatność",
     paragraphs: [
       "Aplikacja służy do przeglądania rozkładów autobusów szkolnych i wybranych kursów MZK, dopasowania ich do planu lekcji oraz — opcjonalnie — przenoszenia ustawień między urządzeniami, logowania do konta, zakupu Planu Plus i włączania przypomnień.",
-      "Podstawowe rozkłady i lokalny plan lekcji działają bez konta. Konto (logowanie adresem e-mail) jest opcjonalne i potrzebne do Planu Plus oraz powiązanych funkcji, w tym powiadomień Web Push.",
-      "Bez powiadomień plan lekcji pozostaje na Twoim urządzeniu. Po włączeniu powiadomień (wymaga aktywnego Planu Plus) część danych planu jest przechowywana na serwerze, ponieważ jest to konieczne do wysyłania spersonalizowanych przypomnień.",
+      "Podstawowe rozkłady i lokalny plan lekcji działają bez konta. Konto (logowanie adresem e-mail) jest opcjonalne i potrzebne do Planu Plus oraz powiązanych funkcji, w tym powiadomień Web Push i planów lekcji zapisanych na koncie.",
+      "Bez konta (lub bez Planu Plus) plan lekcji pozostaje na Twoim urządzeniu. Przy aktywnym Planie Plus możesz zapisać do pięciu planów lekcji na koncie — są one przechowywane w bazie backendu (MongoDB) i synchronizowane między urządzeniami. Po włączeniu powiadomień (wymaga aktywnego Planu Plus) wybrany plan jest też wykorzystywany po stronie serwera do wysyłania przypomnień.",
       "Podanie danych (np. e-mail przy logowaniu lub w formularzu opinii albo włączenie powiadomień) jest dobrowolne.",
     ],
   },

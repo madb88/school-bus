@@ -67,6 +67,9 @@ describe("fetchDowozyScheduleFromApi", () => {
     expect(String(fetchMock.mock.calls[1]?.[0])).toBe(
       "http://localhost:8000/api/v1/dowozy/schedule",
     );
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({
+      next: { revalidate: 120, tags: ["dowozy-schedule"] },
+    });
   });
 
   it("returns invalid when schedule JSON shape is wrong", async () => {

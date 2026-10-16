@@ -1,9 +1,19 @@
 import { fetchPlus, type PlusStatus } from "@/lib/auth/backend";
-import { formatPolishYmd, formatRemainingMonthsLabel } from "./format";
+import {
+  formatPolishYmd,
+  formatRemainingDaysLabel,
+  formatRemainingMonthsLabel,
+} from "./format";
 
 export type PlusPanelState =
   | {
       state: "active";
+      validUntil: string;
+      validUntilLabel: string;
+      remainingLabel: string | null;
+    }
+  | {
+      state: "trial";
       validUntil: string;
       validUntilLabel: string;
       remainingLabel: string | null;
@@ -24,6 +34,15 @@ export function plusPanelFromStatus(
       validUntil,
       validUntilLabel: formatPolishYmd(validUntil) ?? validUntil,
       remainingLabel: formatRemainingMonthsLabel(validUntil, now),
+    };
+  }
+  if (status.state === "trial") {
+    const validUntil = status.validUntil ?? "";
+    return {
+      state: "trial",
+      validUntil,
+      validUntilLabel: formatPolishYmd(validUntil) ?? validUntil,
+      remainingLabel: formatRemainingDaysLabel(validUntil, now),
     };
   }
   return { state: status.state };

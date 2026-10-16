@@ -23,6 +23,7 @@ import {
   startTransition,
   useDeferredValue,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -40,6 +41,7 @@ import {
   DirectionSection,
   type DirectionEmptyKind,
 } from "@/components/schedule/section";
+import { PlaceMultiSelect } from "@/components/schedule/place-multi-select";
 import { TimelineList } from "@/components/schedule/trip-rows";
 import { WeekendPlaceholder } from "@/components/weekend-placeholder";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -57,6 +59,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AnalyticsEvent, trackEvent } from "@/lib/analytics/events";
+import {
+  accountPlanLabel,
+  fromAccountPlan,
+  type AccountPlan,
+} from "@/lib/child-schedule/account-plan";
 import {
   dropoffFitsLessonEnd,
   formatTimeInput,
@@ -89,6 +96,7 @@ import {
   collectPlaces,
   countVisibleTrips,
   filterSchedule,
+  lessonMatchPlansFromAccount,
   type ScheduleDateFilter,
   type ScheduleDirection,
 } from "@/lib/dowozy/filter-schedule";
@@ -96,6 +104,7 @@ import {
   filtersHref,
   parseFilterParams,
   serializeFilterParams,
+  type PlanMatchFilter,
   type ScheduleSourceMode,
 } from "@/lib/dowozy/filter-url";
 import {
@@ -132,7 +141,31 @@ type ScheduleBoardProps = {
   schedule: Schedule;
   /** True when MZK snapshot exists on the server (full feed stays off the client). */
   mzkAvailable?: boolean;
+  /** Account plans (Plus) for multi-match + badges on `/`. */
+  accountPlans?: AccountPlan[];
 };
+
+function sanitizeUrlPlaces(
+  raw: string[] | null | undefined,
+  known: string[],
+): string[] | null | undefined {
+  if (raw === undefined) return undefined;
+  if (raw === null) return null;
+  const valid = raw.filter((place) => known.includes(place));
+  return valid.length > 0 ? valid : null;
+}
+
+function uniquePlaces(values: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of values) {
+    const trimmed = value?.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    out.push(trimmed);
+  }
+  return out;
+}
 
 const filterToggleActiveClass =
   "border-transparent bg-bus text-bus-foreground shadow-none hover:bg-bus/90 hover:text-bus-foreground dark:border-transparent dark:bg-bus dark:text-bus-foreground dark:hover:bg-bus/85 dark:hover:text-bus-foreground";
@@ -182,15 +215,24 @@ function FilterTimeDisplay({
 export function ScheduleBoard({
   schedule,
   mzkAvailable = false,
+  accountPlans = [],
 }: ScheduleBoardProps) {
   const places = collectPlaces(schedule);
   const lessonPlan = useLessonPlan();
   const preferredPlace = usePreferredPlace();
   const mzkRoute = useMzkRoutePreference();
-  const planReady = hasConfiguredLessons(lessonPlan);
+  const planReady =
+    hasConfiguredLessons(lessonPlan) || accountPlans.length > 0;
   const mzkRouteConfigured = hasConfiguredMzkRoute(mzkRoute);
   const mzkRouteReady = mzkAvailable && mzkRouteConfigured;
   const defaultPlace = preferredPlace ?? lessonPlan.place;
+  const accountMatchPlans = useMemo(
+    () =>
+      accountPlans.length > 0
+        ? lessonMatchPlansFromAccount(accountPlans)
+        : null,
+    [accountPlans],
+  );
   const router = useRouter();
   const pathname = usePathname();
 
@@ -207,12 +249,12 @@ export function ScheduleBoard({
   // (no await searchParams). Keep the spinner up for one extra frame while
   // React commits the URL-derived state (adjust-state-during-render pattern).
   const [urlApplied, setUrlApplied] = useState(false);
-  const [matchLessonPlanOverride, setMatchLessonPlan] = useState<
-    boolean | undefined
+  const [planMatchOverride, setPlanMatch] = useState<
+    PlanMatchFilter | undefined
   >(undefined);
-  const [placeOverride, setPlaceOverride] = useState<string | null | undefined>(
-    undefined,
-  );
+  const [placesOverride, setPlacesOverride] = useState<
+    string[] | null | undefined
+  >(undefined);
   const [direction, setDirection] = useState<ScheduleDirection>("all");
   const [sourceModeOverride, setSourceMode] = useState<
     ScheduleSourceMode | undefined
@@ -257,16 +299,9 @@ export function ScheduleBoard({
     const parsed = parseFilterParams(
       new URLSearchParams(window.location.search),
     );
-    const urlPlaceValid =
-      typeof parsed.place === "string" && places.includes(parsed.place)
-        ? parsed.place
-        : parsed.place === null
-          ? null
-          : undefined;
-
     setUrlApplied(true);
-    setMatchLessonPlan(parsed.matchLessonPlan);
-    setPlaceOverride(urlPlaceValid);
+    setPlanMatch(parsed.planMatch);
+    setPlacesOverride(sanitizeUrlPlaces(parsed.places, places));
     setDirection(parsed.direction ?? "all");
     setSourceMode(parsed.sourceMode);
     setDateFilter(parsed.dateFilter);
@@ -274,16 +309,46 @@ export function ScheduleBoard({
 
   const filtersReady = prefsReady && urlApplied;
 
-  const matchLessonPlan = matchLessonPlanOverride ?? planReady;
+  const planMatchRaw: PlanMatchFilter =
+    planMatchOverride ?? (planReady ? "all" : "off");
+  const planMatch: PlanMatchFilter =
+    typeof planMatchRaw === "number" &&
+    (accountMatchPlans == null ||
+      planMatchRaw < 0 ||
+      planMatchRaw >= accountMatchPlans.length)
+      ? "all"
+      : planMatchRaw;
   const sourceMode =
     sourceModeOverride ?? (mzkRouteReady ? "school-mzk" : "school");
-  const matchActive = matchLessonPlan && planReady;
-  const place =
-    placeOverride === undefined
-      ? matchActive
-        ? lessonPlan.place
-        : defaultPlace
-      : placeOverride;
+  const matchActive = planMatch !== "off" && planReady;
+  const activeMatchPlans = useMemo(() => {
+    if (!matchActive || !accountMatchPlans?.length) return null;
+    if (typeof planMatch === "number") {
+      const one = accountMatchPlans[planMatch];
+      return one ? [one] : accountMatchPlans;
+    }
+    return accountMatchPlans;
+  }, [matchActive, accountMatchPlans, planMatch]);
+  const placesFilter = useMemo(() => {
+    if (placesOverride !== undefined) return placesOverride;
+    if (matchActive) {
+      if (typeof planMatch === "number" && accountMatchPlans?.[planMatch]) {
+        return [accountMatchPlans[planMatch]!.place];
+      }
+      if (accountMatchPlans && accountMatchPlans.length > 0) {
+        return uniquePlaces(accountMatchPlans.map((plan) => plan.place));
+      }
+      return lessonPlan.place ? [lessonPlan.place] : null;
+    }
+    return defaultPlace ? [defaultPlace] : null;
+  }, [
+    placesOverride,
+    matchActive,
+    planMatch,
+    accountMatchPlans,
+    lessonPlan.place,
+    defaultPlace,
+  ]);
   const dateFilter = dateFilterOverride ?? "today";
   const windowDraftValue = windowDraft ?? String(lessonMatchWindowMin);
 
@@ -344,12 +409,12 @@ export function ScheduleBoard({
     }
 
     const qs = serializeFilterParams({
-      place,
+      places: placesFilter,
       dateFilter,
       direction,
-      matchLessonPlan,
+      planMatch,
       sourceMode,
-      persistMatchOff: planReady && !matchLessonPlan,
+      persistMatchOff: planReady && planMatch === "off",
       persistSourceSchool: mzkRouteReady && sourceMode === "school",
     });
     const next = qs ? `${pathname}?${qs}` : pathname;
@@ -358,10 +423,10 @@ export function ScheduleBoard({
 
     router.replace(next, { scroll: false });
   }, [
-    place,
+    placesFilter,
     dateFilter,
     direction,
-    matchLessonPlan,
+    planMatch,
     sourceMode,
     planReady,
     mzkRouteReady,
@@ -377,45 +442,42 @@ export function ScheduleBoard({
       );
       skipUrlWrite.current = true;
       startTransition(() => {
-        const nextMatch =
-          parsed.matchLessonPlan ??
-          hasConfiguredLessons(loadLessonPlan());
+        const nextPlanMatch =
+          parsed.planMatch ??
+          (hasConfiguredLessons(loadLessonPlan()) || accountPlans.length > 0
+            ? "all"
+            : "off");
         const nextSource =
           parsed.sourceMode ??
           (hasConfiguredMzkRoute(loadMzkRoutePreference())
             ? "school-mzk"
             : "school");
-        setMatchLessonPlan(nextMatch);
+        setPlanMatch(nextPlanMatch);
         setDirection(parsed.direction ?? "all");
         setSourceMode(nextSource);
         setDateFilter(parsed.dateFilter ?? "today");
-        if (parsed.place === undefined) {
-          setPlaceOverride(undefined);
-        } else if (
-          parsed.place === null ||
-          places.includes(parsed.place)
-        ) {
-          setPlaceOverride(parsed.place);
-        }
+        setPlacesOverride(sanitizeUrlPlaces(parsed.places, places));
       });
     }
 
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, [places]);
+  }, [places, accountPlans.length]);
 
-  const deferredPlace = useDeferredValue(place);
+  const deferredPlaces = useDeferredValue(placesFilter);
   const deferredDirection = useDeferredValue(direction);
   const deferredDateFilter = useDeferredValue(dateFilter);
   const deferredMatch = useDeferredValue(matchActive);
+  const deferredMatchPlans = useDeferredValue(activeMatchPlans);
   const deferredSourceMode = useDeferredValue(sourceMode);
   const deferredWindowMin = useDeferredValue(effectiveWindowMin);
 
   const filtered = filterSchedule(schedule, {
-    place: deferredPlace,
+    places: deferredPlaces,
     direction: deferredDirection,
     dateFilter: deferredDateFilter,
     lessonPlan,
+    matchPlans: deferredMatchPlans,
     matchLessonPlan: deferredMatch,
     lessonMatchWindowMin: deferredWindowMin,
     now,
@@ -426,10 +488,11 @@ export function ScheduleBoard({
     lessonMatchWindowEnabled &&
     Number.isFinite(deferredWindowMin)
       ? filterSchedule(schedule, {
-          place: deferredPlace,
+          places: deferredPlaces,
           direction: deferredDirection,
           dateFilter: deferredDateFilter,
           lessonPlan,
+          matchPlans: deferredMatchPlans,
           matchLessonPlan: true,
           lessonMatchWindowMin: Number.POSITIVE_INFINITY,
           now,
@@ -437,17 +500,49 @@ export function ScheduleBoard({
       : null;
 
   const target = resolveTargetDay(deferredDateFilter, now);
-  const dayTimes =
-    deferredMatch && target
-      ? getDayTimes(lessonPlan, target.weekday)
-      : undefined;
+  const dayTimes = (() => {
+    if (!deferredMatch || !target) return undefined;
+    if (typeof planMatch === "number" && accountMatchPlans?.[planMatch]) {
+      const plan = accountMatchPlans[planMatch]!;
+      return getDayTimes(
+        { place: plan.place, days: plan.days },
+        target.weekday,
+      );
+    }
+    if (accountMatchPlans && accountMatchPlans.length === 1) {
+      const plan = accountMatchPlans[0]!;
+      return getDayTimes(
+        { place: plan.place, days: plan.days },
+        target.weekday,
+      );
+    }
+    if (accountMatchPlans && accountMatchPlans.length > 1) {
+      // „Wszystkie” — różne godziny; pojedynczy pasek godzin nie ma sensu.
+      return undefined;
+    }
+    return getDayTimes(lessonPlan, target.weekday);
+  })();
+  const multiPlanAllActive =
+    matchActive &&
+    planMatch === "all" &&
+    (accountMatchPlans?.length ?? 0) > 1;
   // Separator „Koniec zajęć” tylko przy dopasowaniu do planu.
   const planLessonEnd = dayTimes?.end;
+  const anyAccountPlanHasDayTimes =
+    Boolean(target) &&
+    Boolean(
+      accountMatchPlans?.some((plan) =>
+        getDayTimes(
+          { place: plan.place, days: plan.days },
+          target!.weekday,
+        ),
+      ),
+    );
   const planBlocksDay =
     deferredMatch &&
     target !== null &&
     isSchoolDay(target.weekday) &&
-    !dayTimes;
+    !(dayTimes || (multiPlanAllActive && anyAccountPlanHasDayTimes));
 
   const mzkFetchEnabled =
     deferredSourceMode === "school-mzk" && mzkRouteReady && !planBlocksDay;
@@ -557,7 +652,7 @@ export function ScheduleBoard({
 
   // Baseline: same day, no place / lesson-match — to tell filter empty vs none.
   const baselineFiltered = filterSchedule(schedule, {
-    place: null,
+    places: null,
     direction: deferredDirection,
     dateFilter: deferredDateFilter,
     lessonPlan,
@@ -610,14 +705,14 @@ export function ScheduleBoard({
       : null;
 
   const hasActiveFilters =
-    Boolean(place) ||
+    Boolean(placesFilter?.length) ||
     dateFilter !== "today" ||
     direction !== "all" ||
     matchActive ||
     sourceMode !== "school";
 
   const activeFilterCount = [
-    Boolean(place),
+    Boolean(placesFilter?.length),
     dateFilter !== "today",
     direction !== "all",
     matchActive,
@@ -627,11 +722,6 @@ export function ScheduleBoard({
   const showPlanHint = !planReady && !planHintDismissed;
   const showMzkHint =
     !mzkRouteConfigured && !mzkHintDismissed && sourceMode === "school-mzk";
-
-  const placeItems = [
-    { label: "Wszystkie miejsca", value: null as string | null },
-    ...places.map((item) => ({ label: item, value: item })),
-  ];
 
   const schoolDayOptions = listUpcomingSchoolDays(now, 5);
   const dayPickerItems = schoolDayOptions.map((day) => ({
@@ -662,10 +752,25 @@ export function ScheduleBoard({
     })),
   ];
 
+  const singlePlaceForWidgets =
+    placesFilter?.length === 1 ? placesFilter[0]! : placesFilter?.[0] ?? null;
+
+  const activeBestTodayPlan =
+    typeof planMatch === "number" && accountPlans[planMatch]
+      ? accountPlans[planMatch]!
+      : accountPlans.length === 1
+        ? accountPlans[0]!
+        : null;
+  const bestTodayLessonPlan = activeBestTodayPlan
+    ? fromAccountPlan(activeBestTodayPlan)
+    : lessonPlan;
+  const bestTodayPlace =
+    activeBestTodayPlan?.place ?? singlePlaceForWidgets;
+
   const mondayPreview =
     isWeekendView && planReady
       ? buildNextMondayPreview(schedule, lessonPlan, {
-          place,
+          place: singlePlaceForWidgets,
           windowMin: effectiveWindowMin,
           now,
         })
@@ -679,10 +784,10 @@ export function ScheduleBoard({
     dayTimes
       ? {
           schedule,
-          place: deferredPlace,
+          place: bestTodayPlace,
           dateFilter: deferredDateFilter,
           now,
-          lessonPlan,
+          lessonPlan: bestTodayLessonPlan,
           sourceMode: deferredSourceMode,
           lessonStart: dayTimes.start,
           lessonEnd: dayTimes.end,
@@ -692,6 +797,13 @@ export function ScheduleBoard({
             deferredSourceMode === "school-mzk" ? mzkOd.dropoffs : [],
         }
       : null;
+
+  const showBestTodayWidget =
+    filtersReady &&
+    !isWeekendView &&
+    deferredDateFilter !== "all" &&
+    deferredMatch &&
+    (Boolean(bestTodayOptions) || accountPlans.length > 1);
 
   const bestToday = bestTodayOptions
     ? buildBestTodayRecommendation({
@@ -754,34 +866,42 @@ export function ScheduleBoard({
     });
   }
 
-  function enableMatchPlan() {
+  function enableMatchPlan(next: PlanMatchFilter = "all") {
     startTransition(() => {
-      setMatchLessonPlan(true);
+      setPlanMatch(next === "off" ? "all" : next);
       setShowAllMzkConnections(false);
-      setPlaceOverride(undefined);
+      setPlacesOverride(undefined);
       if (dateFilter === "all") setDateFilter("today");
     });
   }
 
   function selectPlace(nextPlace: string) {
     startTransition(() => {
-      if (place === nextPlace) {
-        setPlaceOverride(null);
-        persistPlace(null);
-      } else {
-        setPlaceOverride(nextPlace);
+      const current = placesFilter;
+      if (!current || current.length === 0) {
+        setPlacesOverride([nextPlace]);
         persistPlace(nextPlace);
+        return;
       }
+      if (current.includes(nextPlace)) {
+        const next = current.filter((item) => item !== nextPlace);
+        setPlacesOverride(next.length > 0 ? next : null);
+        persistPlace(next[0] ?? null);
+        return;
+      }
+      const next = [...current, nextPlace];
+      setPlacesOverride(next);
+      persistPlace(nextPlace);
     });
   }
 
   function clearFilters() {
     startTransition(() => {
-      setPlaceOverride(null);
+      setPlacesOverride(null);
       persistPlace(null);
       setDateFilter("today");
       setDirection("all");
-      setMatchLessonPlan(false);
+      setPlanMatch("off");
       setShowAllMzkConnections(false);
       setSourceMode("school");
     });
@@ -789,10 +909,10 @@ export function ScheduleBoard({
 
   async function copyShareLink() {
     const href = filtersHref({
-      place,
+      places: placesFilter,
       dateFilter,
       direction,
-      matchLessonPlan,
+      planMatch,
       sourceMode,
     });
     const absolute = new URL(href, window.location.origin).toString();
@@ -835,9 +955,17 @@ export function ScheduleBoard({
   ];
 
   const planItems = [
-    { label: "Bez planu", value: "off" as const },
-    { label: "Do planu lekcji", value: "on" as const },
+    { label: "Bez planu", value: "off" },
+    { label: "Wszystkie", value: "all" },
+    ...accountPlans.map((plan, index) => ({
+      label: accountPlanLabel(plan, index),
+      value: String(index),
+    })),
   ];
+  const planSelectValue =
+    planMatch === "off" || planMatch === "all"
+      ? planMatch
+      : String(planMatch);
 
   const showMzkPlanToggle =
     matchActive &&
@@ -894,19 +1022,25 @@ export function ScheduleBoard({
       Weekend — autobusy szkolne nie kursują.
     </p>
   ) : matchActive && target && !dayTimes ? (
-    <p className="text-xs text-muted-foreground">
-      Brak godzin —{" "}
-      <Link
-        href="/lekcje"
-        className="underline underline-offset-2 hover:text-foreground"
-      >
-        uzupełnij
-      </Link>
-    </p>
+    multiPlanAllActive ? (
+      <p className="text-xs text-muted-foreground">
+        Kilka planów — dopasowanie widać przy kursach.
+      </p>
+    ) : (
+      <p className="text-xs text-muted-foreground">
+        Brak godzin —{" "}
+        <Link
+          href="/lekcje"
+          className="underline underline-offset-2 hover:text-foreground"
+        >
+          uzupełnij
+        </Link>
+      </p>
+    )
   ) : (
     <p className="text-xs text-muted-foreground">
       {planReady ? (
-        <>Włącz „Do planu lekcji”, żeby dopasować kursy.</>
+        <>Wybierz plan lekcji, żeby dopasować kursy.</>
       ) : (
         <>
           <Link
@@ -927,30 +1061,17 @@ export function ScheduleBoard({
         <FilterFieldLabel id="schedule-place-filter-label" icon={MapPin}>
           Miejsce
         </FilterFieldLabel>
-        <Select
-          items={placeItems}
-          value={place}
-          onValueChange={(next) => {
+        <PlaceMultiSelect
+          places={places}
+          value={placesFilter}
+          labelledBy="schedule-place-filter-label"
+          onChange={(next) => {
             startTransition(() => {
-              setPlaceOverride(next);
-              persistPlace(next);
+              setPlacesOverride(next);
+              persistPlace(next?.[0] ?? null);
             });
           }}
-        >
-          <SelectTrigger
-            aria-labelledby="schedule-place-filter-label"
-            className="w-full max-w-full border-border bg-card"
-          >
-            <SelectValue placeholder="Wszystkie miejsca" />
-          </SelectTrigger>
-          <SelectContent alignItemWithTrigger={false}>
-            {placeItems.map((item) => (
-              <SelectItem key={item.value ?? "__all"} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        />
       </div>
 
       <div className="flex shrink-0 flex-col gap-1.5 md:px-4">
@@ -1103,15 +1224,23 @@ export function ScheduleBoard({
             {planReady ? (
               <Select
                 items={planItems}
-                value={matchActive ? "on" : "off"}
+                value={planSelectValue}
                 onValueChange={(next) => {
-                  if (next === "on") {
-                    enableMatchPlan();
-                  } else if (next === "off") {
+                  if (next == null) return;
+                  if (next === "off") {
                     startTransition(() => {
-                      setMatchLessonPlan(false);
+                      setPlanMatch("off");
                       setShowAllMzkConnections(false);
                     });
+                    return;
+                  }
+                  if (next === "all") {
+                    enableMatchPlan("all");
+                    return;
+                  }
+                  const index = Number.parseInt(next, 10);
+                  if (Number.isInteger(index) && index >= 0) {
+                    enableMatchPlan(index);
                   }
                 }}
               >
@@ -1206,8 +1335,12 @@ export function ScheduleBoard({
 
   const filterSummaryPrimary = (
     <>
-      {place ? (
-        <span className="font-medium text-foreground">{place}</span>
+      {placesFilter && placesFilter.length > 0 ? (
+        <span className="font-medium text-foreground">
+          {placesFilter.length === 1
+            ? placesFilter[0]
+            : `${placesFilter.length} miejsca`}
+        </span>
       ) : (
         "Wszystkie miejsca"
       )}
@@ -1360,33 +1493,23 @@ export function ScheduleBoard({
             </div>
                 <div className="flex min-w-0 flex-col gap-1">
                   <Label
-                    htmlFor="schedule-mobile-place"
+                    id="schedule-mobile-place-label"
                     className="text-xs text-muted-foreground"
                   >
                     Miejsce
                   </Label>
-                  <NativeSelect
+                  <PlaceMultiSelect
                     id="schedule-mobile-place"
-                    size="sm"
-                    className="w-full max-w-full"
-                    value={place ?? ""}
-                    onChange={(event) => {
-                      const next = event.target.value || null;
+                    places={places}
+                    value={placesFilter}
+                    labelledBy="schedule-mobile-place-label"
+                    onChange={(next) => {
                       startTransition(() => {
-                        setPlaceOverride(next);
-                        persistPlace(next);
+                        setPlacesOverride(next);
+                        persistPlace(next?.[0] ?? null);
                       });
                     }}
-                  >
-                    {placeItems.map((item) => (
-                      <NativeSelectOption
-                        key={item.value ?? "__all"}
-                        value={item.value ?? ""}
-                      >
-                        {item.label}
-                      </NativeSelectOption>
-                    ))}
-                  </NativeSelect>
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-1.5">
                   <div className="flex min-w-0 flex-col gap-1">
@@ -1524,14 +1647,44 @@ export function ScheduleBoard({
 
       {/* Shared offset under filters so widget and schedule share the same gap. */}
       <div className="-mt-8 flex flex-col gap-5 md:-mt-7">
-      {bestToday ? (
+      {showBestTodayWidget ? (
         <BestTodayWidget
-          recommendation={bestToday}
+          recommendation={
+            bestToday ??
+            (dayTimes
+              ? {
+                  pickup: null,
+                  dropoff: null,
+                  lessonStart: dayTimes.start
+                    ? formatTimeInput(dayTimes.start)
+                    : null,
+                  lessonEnd: dayTimes.end
+                    ? formatTimeInput(dayTimes.end)
+                    : null,
+                }
+              : null)
+          }
           dateLabel={dateLabel(deferredDateFilter)}
           sourceMode={sourceMode}
           onSourceModeChange={(next) => {
             startTransition(() => setSourceMode(next));
           }}
+          plans={
+            accountPlans.length > 1
+              ? accountPlans.map((plan, index) => ({
+                  label: accountPlanLabel(plan, index),
+                  index,
+                }))
+              : undefined
+          }
+          activePlanIndex={
+            typeof planMatch === "number" ? planMatch : null
+          }
+          onPlanChange={
+            accountPlans.length > 1
+              ? (index) => enableMatchPlan(index)
+              : undefined
+          }
           windowGapHint={
             showBestTodayWindowHint
               ? {
@@ -1630,7 +1783,7 @@ export function ScheduleBoard({
                   onViewDay: () => {
                     startTransition(() => {
                       setDateFilter(mondayPreview.ymd);
-                      setMatchLessonPlan(true);
+                      setPlanMatch("all");
                     });
                   },
                 }
@@ -1816,7 +1969,7 @@ export function ScheduleBoard({
                 {mergedTimeline.pickups.length > 0 ? (
                   <TimelineList
                     entries={mergedTimeline.pickups}
-                    activePlace={deferredPlace}
+                    activePlaces={deferredPlaces}
                     onSelectPlace={selectPlace}
                     nextTripId={nextMerged?.id}
                   />
@@ -1852,7 +2005,7 @@ export function ScheduleBoard({
                 {mergedTimeline.dropoffs.length > 0 ? (
                   <TimelineList
                     entries={mergedTimeline.dropoffs}
-                    activePlace={deferredPlace}
+                    activePlaces={deferredPlaces}
                     onSelectPlace={selectPlace}
                     nextTripId={nextMerged?.id}
                     lessonEnd={planLessonEnd}

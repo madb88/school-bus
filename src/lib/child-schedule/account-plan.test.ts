@@ -1,0 +1,169 @@
+import { describe, expect, it } from "vitest";
+import {
+  ACCOUNT_PLAN_NAME_MAX,
+  accountPlanLabel,
+  fromAccountPlan,
+  parseAccountPlan,
+  parseAccountPlans,
+  serializeAccountPlan,
+  toAccountPlan,
+  type AccountPlan,
+} from "./account-plan";
+import type { ChildLessonPlan } from "./types";
+
+describe("toAccountPlan", () => {
+  it("returns null without a place or full days", () => {
+    expect(toAccountPlan({ place: null, days: { 1: { start: "08:00", end: "14:00" } } })).toEqual({
+      plan: null,
+      droppedDaysWithoutEnd: [],
+    });
+    expect(toAccountPlan({ place: "Zatonie", days: { 1: { start: "08:00" } } })).toEqual({
+      plan: null,
+      droppedDaysWithoutEnd: [1],
+    });
+  });
+
+  it("pads times and drops days without end", () => {
+    const result = toAccountPlan({
+      place: " Zatonie ",
+      days: {
+        1: { start: "8:00", end: "14:00" },
+        2: { start: "08:00" },
+        3: { start: "09:00", end: "15:30" },
+      },
+    });
+    expect(result.droppedDaysWithoutEnd).toEqual([2]);
+    expect(result.plan).toEqual({
+      place: "Zatonie",
+      days: {
+        "1": { start: "08:00", end: "14:00" },
+        "3": { start: "09:00", end: "15:30" },
+      },
+    });
+  });
+
+  it("merges optional name", () => {
+    const { plan } = toAccountPlan(
+      { place: "Złote Piaski", days: { 1: { start: "08:00", end: "14:00" } } },
+      " Ania ",
+    );
+    expect(plan).toEqual({
+      place: "Złote Piaski",
+      name: "Ania",
+      days: { "1": { start: "08:00", end: "14:00" } },
+    });
+  });
+});
+
+describe("fromAccountPlan", () => {
+  it("uses numeric weekday keys and ignores name", () => {
+    const account: AccountPlan = {
+      place: "Zatonie",
+      name: "Ania",
+      days: { "1": { start: "08:00", end: "14:00" } },
+    };
+    expect(fromAccountPlan(account)).toEqual({
+      place: "Zatonie",
+      days: { 1: { start: "08:00", end: "14:00" } },
+    });
+  });
+});
+
+describe("account plan round trip", () => {
+  it("survives toAccountPlan → fromAccountPlan", () => {
+    const local: ChildLessonPlan = {
+      place: "Ochla",
+      days: {
+        1: { start: "8:05", end: "13:00" },
+        5: { start: "09:00", end: "14:30" },
+      },
+    };
+    const { plan } = toAccountPlan(local);
+    expect(plan).not.toBeNull();
+    expect(fromAccountPlan(plan!)).toEqual({
+      place: "Ochla",
+      days: {
+        1: { start: "08:05", end: "13:00" },
+        5: { start: "09:00", end: "14:30" },
+      },
+    });
+  });
+});
+
+describe("parseAccountPlan name", () => {
+  it("keeps a trimmed name and omits empty", () => {
+    expect(
+      parseAccountPlan({
+        place: "Złote Piaski",
+        name: " Ania ",
+        days: { "1": { start: "08:00", end: "14:00" } },
+      }),
+    ).toEqual({
+      place: "Złote Piaski",
+      name: "Ania",
+      days: { "1": { start: "08:00", end: "14:00" } },
+    });
+    expect(
+      parseAccountPlan({
+        place: "Złote Piaski",
+        name: "   ",
+        days: { "1": { start: "08:00", end: "14:00" } },
+      }),
+    ).toEqual({
+      place: "Złote Piaski",
+      days: { "1": { start: "08:00", end: "14:00" } },
+    });
+  });
+
+  it("rejects names longer than 80", () => {
+    expect(
+      parseAccountPlan({
+        place: "Zatonie",
+        name: "x".repeat(ACCOUNT_PLAN_NAME_MAX + 1),
+        days: { "1": { start: "08:00", end: "14:00" } },
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("serializeAccountPlan", () => {
+  it("omits empty name from the payload", () => {
+    expect(
+      serializeAccountPlan({
+        place: "Zatonie",
+        name: "  ",
+        days: { "1": { start: "08:00", end: "14:00" } },
+      }),
+    ).toEqual({
+      place: "Zatonie",
+      days: { "1": { start: "08:00", end: "14:00" } },
+    });
+  });
+});
+
+describe("accountPlanLabel", () => {
+  it("prefers name, then place, then Plan N", () => {
+    expect(
+      accountPlanLabel(
+        { place: "Zatonie", name: "Ania", days: { "1": { start: "08:00", end: "14:00" } } },
+        0,
+      ),
+    ).toBe("Ania");
+    expect(
+      accountPlanLabel(
+        { place: "Zatonie", days: { "1": { start: "08:00", end: "14:00" } } },
+        1,
+      ),
+    ).toBe("Zatonie");
+    expect(accountPlanLabel({ place: "", days: { "1": { start: "08:00", end: "14:00" } } }, 2)).toBe(
+      "Plan 3",
+    );
+  });
+});
+
+describe("parseAccountPlans", () => {
+  it("accepts an empty list and rejects a bad item", () => {
+    expect(parseAccountPlans([])).toEqual([]);
+    expect(parseAccountPlans([{ place: "X", days: {} }])).toBeNull();
+  });
+});

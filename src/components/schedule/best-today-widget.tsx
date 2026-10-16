@@ -20,12 +20,21 @@ import { cn } from "cn";
 const BEST_CONNECTION_HELP =
   "Wybieramy kursy pasujące do planu lekcji w oknie dopasowania: do szkoły — najpóźniejszy, który jeszcze zdąży przed startem zajęć; ze szkoły — najwcześniejszy po ich końcu. Źródło (szkolny / szkolny + MZK) bierzesz z przełącznika obok.";
 
+export type BestTodayPlanOption = {
+  label: string;
+  index: number;
+};
+
 type BestTodayWidgetProps = {
-  recommendation: BestTodayRecommendation;
+  recommendation: BestTodayRecommendation | null;
   /** Pill next to the title — mirrors the active date filter (Dziś / Jutro / …). */
   dateLabel: string;
   sourceMode: ScheduleSourceMode;
   onSourceModeChange: (mode: ScheduleSourceMode) => void;
+  /** Account plans (2+) — click switches the active plan on the board. */
+  plans?: BestTodayPlanOption[];
+  activePlanIndex?: number | null;
+  onPlanChange?: (index: number) => void;
   /** Shown when a direction is empty only because the lesson match window is tight. */
   windowGapHint?: {
     windowMin: number;
@@ -194,18 +203,65 @@ function SourcePills({
   );
 }
 
+function PlanPills({
+  plans,
+  activePlanIndex,
+  onPlanChange,
+}: {
+  plans: BestTodayPlanOption[];
+  activePlanIndex: number | null;
+  onPlanChange: (index: number) => void;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Plan lekcji"
+      className="flex min-w-0 max-w-[min(100%,14rem)] flex-wrap justify-end gap-1 sm:max-w-[18rem]"
+    >
+      {plans.map((plan) => {
+        const active = activePlanIndex === plan.index;
+        return (
+          <button
+            key={plan.index}
+            type="button"
+            aria-pressed={active}
+            aria-label={`Plan: ${plan.label}`}
+            title={plan.label}
+            className={cn(
+              "max-w-[8rem] truncate rounded-md px-1.5 py-0.5 text-[0.6875rem] font-medium transition-colors sm:max-w-[10rem]",
+              "outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50",
+              active
+                ? "bg-amber-400/20 text-amber-900 ring-1 ring-amber-500/40 dark:bg-amber-400/15 dark:text-amber-200 dark:ring-amber-400/35"
+                : "bg-amber-400/10 text-amber-900/55 hover:bg-amber-400/20 hover:text-amber-900 dark:bg-amber-400/10 dark:text-amber-200/55 dark:hover:bg-amber-400/15 dark:hover:text-amber-200",
+            )}
+            onClick={() => onPlanChange(plan.index)}
+          >
+            {plan.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function BestTodayWidget({
   recommendation,
   dateLabel,
   sourceMode,
   onSourceModeChange,
+  plans = [],
+  activePlanIndex = null,
+  onPlanChange,
   windowGapHint = null,
   onOpenWindowFilters,
 }: BestTodayWidgetProps) {
   const [expanded, setExpanded] = useState(true);
   const panelId = useId();
+  const showPlanPills = plans.length > 1 && Boolean(onPlanChange);
   const showWindowGapHint = Boolean(
-    windowGapHint && (windowGapHint.pickup || windowGapHint.dropoff),
+    recommendation &&
+      windowGapHint &&
+      (windowGapHint.pickup || windowGapHint.dropoff),
   );
 
   return (
@@ -213,7 +269,7 @@ export function BestTodayWidget({
       aria-labelledby="best-today-heading"
       className="-mx-6 w-auto min-w-0 rounded-none border border-border/60 border-x-0 bg-card px-3 py-1.5 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] print:hidden sm:-mx-10 sm:px-3.5 lg:mx-0 lg:rounded-2xl lg:border-x dark:border-border/40 dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]"
     >
-      <div className="flex h-7 items-center gap-1.5">
+      <div className="flex min-h-7 items-center gap-1.5">
         <div className="flex min-w-0 flex-1 items-center gap-1">
           <button
             type="button"
@@ -268,7 +324,14 @@ export function BestTodayWidget({
           </span>
         </div>
 
-        <div className="shrink-0">
+        <div className="flex min-w-0 shrink-0 items-center justify-end gap-1.5">
+          {showPlanPills ? (
+            <PlanPills
+              plans={plans}
+              activePlanIndex={activePlanIndex}
+              onPlanChange={onPlanChange!}
+            />
+          ) : null}
           <SourcePills
             sourceMode={sourceMode}
             onSourceModeChange={onSourceModeChange}
@@ -281,30 +344,40 @@ export function BestTodayWidget({
         hidden={!expanded}
         className="mt-1 grid min-w-0 grid-cols-1 gap-1 lg:mt-1.5 lg:grid-cols-2 lg:gap-2"
       >
-        <TripCard
-          title="Do szkoły"
-          direction="pickup"
-          trip={recommendation.pickup}
-        />
-        <TripCard
-          title="Ze szkoły"
-          direction="dropoff"
-          trip={recommendation.dropoff}
-        />
-        {showWindowGapHint && windowGapHint ? (
-          <p className="text-xs leading-snug text-muted-foreground lg:col-span-2">
-            Kursy mogą być poza oknem (±{windowGapHint.windowMin} min).{" "}
-            {onOpenWindowFilters ? (
-              <button
-                type="button"
-                className="font-medium text-foreground underline underline-offset-2 hover:text-bus-deep"
-                onClick={onOpenWindowFilters}
-              >
-                Zmień okno w filtrach
-              </button>
+        {recommendation ? (
+          <>
+            <TripCard
+              title="Do szkoły"
+              direction="pickup"
+              trip={recommendation.pickup}
+            />
+            <TripCard
+              title="Ze szkoły"
+              direction="dropoff"
+              trip={recommendation.dropoff}
+            />
+            {showWindowGapHint && windowGapHint ? (
+              <p className="text-xs leading-snug text-muted-foreground lg:col-span-2">
+                Kursy mogą być poza oknem (±{windowGapHint.windowMin} min).{" "}
+                {onOpenWindowFilters ? (
+                  <button
+                    type="button"
+                    className="font-medium text-foreground underline underline-offset-2 hover:text-bus-deep"
+                    onClick={onOpenWindowFilters}
+                  >
+                    Zmień okno w filtrach
+                  </button>
+                ) : null}
+              </p>
             ) : null}
+          </>
+        ) : (
+          <p className="text-xs leading-snug text-muted-foreground lg:col-span-2">
+            {activePlanIndex == null
+              ? "Wybierz plan, żeby zobaczyć najlepsze połączenie."
+              : "Brak dopasowanego połączenia dla tego planu."}
           </p>
-        ) : null}
+        )}
       </div>
     </section>
   );

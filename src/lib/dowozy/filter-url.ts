@@ -6,20 +6,28 @@ import { parseAbsoluteYmd } from "./schedule-dates";
 
 export type ScheduleSourceMode = "school" | "school-mzk";
 
+/** Lesson-plan match filter: off, all account plans, or one plan by index. */
+export type PlanMatchFilter = "off" | "all" | number;
+
 export type ScheduleFilterParams = {
-  /** undefined = not in URL (may fall back to preferred place) */
-  place: string | null | undefined;
+  /** undefined = not in URL (may fall back to preferred place); null = all; else selected. */
+  places: string[] | null | undefined;
   dateFilter: ScheduleDateFilter;
   direction: ScheduleDirection;
-  matchLessonPlan: boolean;
+  planMatch: PlanMatchFilter;
   sourceMode: ScheduleSourceMode;
 };
 
 export type ParsedFilterParams = {
-  place: string | null | undefined;
+  places: string[] | null | undefined;
   dateFilter: ScheduleDateFilter | undefined;
   direction: ScheduleDirection | undefined;
-  /** undefined = not in URL (default: on when lesson plan exists) */
+  /**
+   * undefined = not in URL (default: all when a plan exists).
+   * Prefer `planMatch`; `matchLessonPlan` is derived for older callers.
+   */
+  planMatch: PlanMatchFilter | undefined;
+  /** @deprecated Use planMatch. true ↔ all, false ↔ off. */
   matchLessonPlan: boolean | undefined;
   sourceMode: ScheduleSourceMode | undefined;
   /** True when at least one filter query key is present */
@@ -84,11 +92,24 @@ function hasKey(
   return Object.prototype.hasOwnProperty.call(source, key);
 }
 
+/** Split `miejsce` query: comma-separated, trimmed, non-empty. */
+export function parsePlacesParam(raw: string): string[] {
+  return raw
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+export function serializePlacesParam(places: string[]): string {
+  return places.join(",");
+}
+
 export function parseFilterParams(
   source: URLSearchParams | Record<string, string | string[] | undefined>,
 ): ParsedFilterParams {
   const hasExplicit =
     hasKey(source, "dopasuj") ||
+    hasKey(source, "plan") ||
     hasKey(source, "dzien") ||
     hasKey(source, "day") ||
     hasKey(source, "miejsce") ||
@@ -99,27 +120,47 @@ export function parseFilterParams(
     hasKey(source, "source");
 
   const dopasuj = readParam(source, "dopasuj");
-  let matchLessonPlan: boolean | undefined;
-  if (dopasuj === null) {
-    matchLessonPlan = undefined;
-  } else {
+  const planRaw = readParam(source, "plan");
+  let planMatch: PlanMatchFilter | undefined;
+  if (planRaw !== null) {
+    const normalized = planRaw.trim().toLowerCase();
+    if (!normalized || normalized === "all" || normalized === "wszystkie") {
+      planMatch = "all";
+    } else if (
+      normalized === "off" ||
+      normalized === "none" ||
+      normalized === "bez"
+    ) {
+      planMatch = "off";
+    } else {
+      const index = Number.parseInt(normalized, 10);
+      if (
+        Number.isInteger(index) &&
+        index >= 0 &&
+        String(index) === normalized
+      ) {
+        planMatch = index;
+      }
+    }
+  }
+  if (planMatch === undefined && dopasuj !== null) {
     const normalized = dopasuj.trim().toLowerCase();
     if (
       normalized === "0" ||
       normalized === "false" ||
       normalized === "nie"
     ) {
-      matchLessonPlan = false;
+      planMatch = "off";
     } else if (
       normalized === "1" ||
       normalized === "true" ||
       normalized === "tak"
     ) {
-      matchLessonPlan = true;
-    } else {
-      matchLessonPlan = undefined;
+      planMatch = "all";
     }
   }
+  const matchLessonPlan =
+    planMatch === undefined ? undefined : planMatch !== "off";
 
   let dateFilter: ScheduleDateFilter | undefined;
   const dzien = readParam(source, "dzien") ?? readParam(source, "day");
@@ -134,11 +175,16 @@ export function parseFilterParams(
     }
   }
 
-  let place: string | null | undefined;
+  let places: string[] | null | undefined;
   if (hasKey(source, "miejsce") || hasKey(source, "place")) {
     const raw =
       (readParam(source, "miejsce") ?? readParam(source, "place") ?? "").trim();
-    place = raw === "" ? null : raw;
+    if (raw === "") {
+      places = null;
+    } else {
+      const parsed = parsePlacesParam(raw);
+      places = parsed.length > 0 ? parsed : null;
+    }
   }
 
   let direction: ScheduleDirection | undefined;
@@ -160,9 +206,10 @@ export function parseFilterParams(
   }
 
   return {
-    place,
+    places,
     dateFilter,
     direction,
+    planMatch,
     matchLessonPlan,
     sourceMode,
     hasExplicit,
@@ -171,10 +218,12 @@ export function parseFilterParams(
 
 /** Build query string without leading `?`. Omits defaults (today / direction all). */
 export function serializeFilterParams(filters: {
-  place: string | null;
+  places: string[] | null;
   dateFilter: ScheduleDateFilter;
   direction: ScheduleDirection;
-  matchLessonPlan: boolean;
+  planMatch?: PlanMatchFilter;
+  /** @deprecated Prefer planMatch. */
+  matchLessonPlan?: boolean;
   sourceMode?: ScheduleSourceMode;
   /** Persist dopasuj=0 when match is off (needed when plan exists and default is on). */
   persistMatchOff?: boolean;
@@ -183,10 +232,23 @@ export function serializeFilterParams(filters: {
 }): string {
   const params = new URLSearchParams();
 
-  if (filters.matchLessonPlan) {
+  const planMatch: PlanMatchFilter =
+    filters.planMatch ??
+    (filters.matchLessonPlan === false
+      ? "off"
+      : filters.matchLessonPlan
+        ? "all"
+        : "off");
+
+  if (planMatch === "off") {
+    if (filters.persistMatchOff) {
+      params.set("dopasuj", "0");
+    }
+  } else if (planMatch === "all") {
     params.set("dopasuj", "1");
-  } else if (filters.persistMatchOff) {
-    params.set("dopasuj", "0");
+  } else {
+    params.set("dopasuj", "1");
+    params.set("plan", String(planMatch));
   }
 
   if (filters.dateFilter === "all") {
@@ -199,8 +261,8 @@ export function serializeFilterParams(filters: {
     params.set("dzien", filters.dateFilter);
   }
 
-  if (filters.place) {
-    params.set("miejsce", filters.place);
+  if (filters.places && filters.places.length > 0) {
+    params.set("miejsce", serializePlacesParam(filters.places));
   }
 
   if (filters.direction !== "all") {
@@ -217,19 +279,36 @@ export function serializeFilterParams(filters: {
 }
 
 export function filtersHref(filters: {
-  place: string | null;
+  places?: string[] | null;
+  /** @deprecated Prefer `places`. */
+  place?: string | null;
   dateFilter: ScheduleDateFilter;
   direction: ScheduleDirection;
+  planMatch?: PlanMatchFilter;
   matchLessonPlan?: boolean;
   sourceMode?: ScheduleSourceMode;
 }): string {
+  const places =
+    filters.places !== undefined
+      ? filters.places
+      : filters.place
+        ? [filters.place]
+        : null;
+  const explicitPlanMatch: PlanMatchFilter | undefined =
+    filters.planMatch !== undefined
+      ? filters.planMatch
+      : filters.matchLessonPlan === false
+        ? "off"
+        : filters.matchLessonPlan
+          ? "all"
+          : undefined;
   const qs = serializeFilterParams({
-    place: filters.place,
+    places,
     dateFilter: filters.dateFilter,
     direction: filters.direction,
-    matchLessonPlan: filters.matchLessonPlan ?? false,
+    planMatch: explicitPlanMatch ?? "off",
     sourceMode: filters.sourceMode,
-    persistMatchOff: filters.matchLessonPlan === false,
+    persistMatchOff: explicitPlanMatch === "off",
     persistSourceSchool: filters.sourceMode === "school",
   });
   return qs ? `/?${qs}` : "/";

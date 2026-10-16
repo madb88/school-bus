@@ -167,6 +167,44 @@ describe("buildBestTodayRecommendation", () => {
     ).toBeNull();
   });
 
+  it("follows the passed lesson plan hours (plan A vs plan B)", () => {
+    const earlyStartPlan: ChildLessonPlan = {
+      place: "Zatonie",
+      days: {
+        1: { start: "07:00", end: "14:45" },
+      },
+    };
+
+    const standard = buildBestTodayRecommendation({
+      schedule,
+      place: "Zatonie",
+      dateFilter: "today",
+      now: mondayNoon,
+      lessonPlan: plan,
+      windowMin: 150,
+      sourceMode: "school",
+      lessonStart: "08:00",
+      lessonEnd: "13:30",
+    });
+    const earlyStart = buildBestTodayRecommendation({
+      schedule,
+      place: "Zatonie",
+      dateFilter: "today",
+      now: mondayNoon,
+      lessonPlan: earlyStartPlan,
+      windowMin: 150,
+      sourceMode: "school",
+      lessonStart: "07:00",
+      lessonEnd: "14:45",
+    });
+
+    expect(standard?.pickup?.time).toBe("07:20");
+    expect(standard?.dropoff?.time).toBe("14:10");
+    // Earlier start excludes 07:20; later end prefers 15:00 over 14:10.
+    expect(earlyStart?.pickup?.time).toBe("06:40");
+    expect(earlyStart?.dropoff?.time).toBe("15:00");
+  });
+
   it("returns null when nothing fits the match window", () => {
     expect(
       buildBestTodayRecommendation({

@@ -1,4 +1,6 @@
-import type { ChildLessonPlan } from "@/lib/child-schedule/types";
+import type { AccountPlan } from "@/lib/child-schedule/account-plan";
+import { accountPlanLabel, fromAccountPlan } from "@/lib/child-schedule/account-plan";
+import type { ChildLessonPlan, WeekdayKey } from "@/lib/child-schedule/types";
 import {
   dropoffFitsLessonEnd,
   getDayTimes,
@@ -25,8 +27,48 @@ import {
 
 export type { ScheduleDateFilter } from "./schedule-dates";
 
+/** Stop with optional plan labels (extra field; Schedule still typed as Stop[]). */
+export type AnnotatedStop = Stop & { planLabels?: string[] };
+
+export type LessonMatchPlan = {
+  label: string;
+  place: string;
+  days: ChildLessonPlan["days"];
+};
+
+export function lessonMatchPlansFromAccount(
+  plans: AccountPlan[],
+): LessonMatchPlan[] {
+  return plans.map((plan, index) => ({
+    label: accountPlanLabel(plan, index),
+    place: plan.place,
+    days: fromAccountPlan(plan).days,
+  }));
+}
+
+export function lessonMatchPlanFromLocal(
+  plan: ChildLessonPlan,
+): LessonMatchPlan | null {
+  if (!plan.place?.trim()) return null;
+  return {
+    label: plan.place.trim(),
+    place: plan.place.trim(),
+    days: plan.days,
+  };
+}
+
 function stopIncludesPlace(stop: Stop, place: string): boolean {
   return stop.places.some((p) => p === place);
+}
+
+function stopMatchesPlaces(stop: Stop, places: string[] | null): boolean {
+  if (!places || places.length === 0) return true;
+  return places.some((place) => stopIncludesPlace(stop, place));
+}
+
+function narrowStopToPlaces(stop: Stop, places: string[] | null): Stop {
+  if (!places || places.length === 0) return stop;
+  return { ...stop, places: stop.places.filter((p) => places.includes(p)) };
 }
 
 /** Earliest valid clock time among strings; invalid times sort last. */
@@ -85,10 +127,6 @@ function weekdayDropoffMinutes(block: WeekdayDropoff): number {
   return earliestMinutes(block.runs.map((run) => run.time));
 }
 
-function narrowStopToPlace(stop: Stop, place: string): Stop {
-  return { ...stop, places: stop.places.filter((p) => p === place) };
-}
-
 export function collectPlaces(schedule: Schedule): string[] {
   const places = new Set<string>();
 
@@ -115,11 +153,128 @@ export function collectPlaces(schedule: Schedule): string[] {
   return [...places].sort((a, b) => a.localeCompare(b, "pl"));
 }
 
+function resolvePlaces(options: {
+  places?: string[] | null;
+  place?: string | null;
+}): string[] | null {
+  if (options.places !== undefined) {
+    return options.places && options.places.length > 0 ? options.places : null;
+  }
+  if (options.place) return [options.place];
+  return null;
+}
+
+function resolveMatchPlans(options: {
+  matchPlans?: LessonMatchPlan[] | null;
+  lessonPlan?: ChildLessonPlan | null;
+  matchLessonPlan?: boolean;
+}): LessonMatchPlan[] | null {
+  if (!options.matchLessonPlan) return null;
+  if (options.matchPlans && options.matchPlans.length > 0) {
+    return options.matchPlans;
+  }
+  if (options.lessonPlan) {
+    const single = lessonMatchPlanFromLocal(options.lessonPlan);
+    return single ? [single] : null;
+  }
+  return null;
+}
+
+function dayTimesForPlan(
+  plan: LessonMatchPlan,
+  weekday: number | null,
+): { start?: string; end?: string } | undefined {
+  if (weekday === null) return undefined;
+  return getDayTimes(
+    { place: plan.place, days: plan.days },
+    weekday as WeekdayKey,
+  );
+}
+
+function annotatePickupStop(
+  stop: Stop,
+  places: string[] | null,
+  matchPlans: LessonMatchPlan[] | null,
+  weekday: number | null,
+  windowMin: number,
+): AnnotatedStop | null {
+  if (!stopMatchesPlaces(stop, places)) return null;
+
+  if (!matchPlans) {
+    return narrowStopToPlaces(stop, places);
+  }
+
+  const labels: string[] = [];
+  const matchedPlaces = new Set<string>();
+  for (const plan of matchPlans) {
+    const times = dayTimesForPlan(plan, weekday);
+    if (!times?.start) continue;
+    if (!stopIncludesPlace(stop, plan.place)) continue;
+    if (places && places.length > 0 && !places.includes(plan.place)) continue;
+    if (!pickupFitsLessonStart(stop.time, times.start, windowMin)) continue;
+    labels.push(plan.label);
+    matchedPlaces.add(plan.place);
+  }
+
+  if (labels.length === 0) return null;
+
+  const nextPlaces = stop.places.filter((p) => matchedPlaces.has(p));
+  const annotated: AnnotatedStop = {
+    ...stop,
+    places: nextPlaces.length > 0 ? nextPlaces : [...matchedPlaces],
+    planLabels: labels,
+  };
+  return annotated;
+}
+
+function annotateDropoffStop(
+  stop: Stop,
+  places: string[] | null,
+  matchPlans: LessonMatchPlan[] | null,
+  weekday: number | null,
+  windowMin: number,
+): AnnotatedStop | null {
+  if (!stopMatchesPlaces(stop, places)) return null;
+
+  if (!matchPlans) {
+    return narrowStopToPlaces(stop, places);
+  }
+
+  const labels: string[] = [];
+  const matchedPlaces = new Set<string>();
+  for (const plan of matchPlans) {
+    const times = dayTimesForPlan(plan, weekday);
+    if (!times?.end) continue;
+    if (!stopIncludesPlace(stop, plan.place)) continue;
+    if (places && places.length > 0 && !places.includes(plan.place)) continue;
+    if (!dropoffFitsLessonEnd(stop.time, times.end, windowMin)) continue;
+    labels.push(plan.label);
+    matchedPlaces.add(plan.place);
+  }
+
+  if (labels.length === 0) return null;
+
+  const nextPlaces = stop.places.filter((p) => matchedPlaces.has(p));
+  const annotated: AnnotatedStop = {
+    ...stop,
+    places: nextPlaces.length > 0 ? nextPlaces : [...matchedPlaces],
+    planLabels: labels,
+  };
+  return annotated;
+}
+
+function anyPlanHasDayTimes(
+  matchPlans: LessonMatchPlan[],
+  weekday: number,
+): boolean {
+  return matchPlans.some((plan) => Boolean(dayTimesForPlan(plan, weekday)));
+}
+
 function filterPickupBlock(
   block: DriverBlock,
-  place: string | null,
+  places: string[] | null,
   weekday: number | null,
-  lessonStart: string | null,
+  matchPlans: LessonMatchPlan[] | null,
   windowMin: number,
 ): DriverBlock | null {
   let courses = block.courses;
@@ -130,21 +285,14 @@ function filterPickupBlock(
     );
   }
 
-  if (place || lessonStart) {
+  if (places || matchPlans) {
     courses = courses
       .map((course) => {
         const stops = course.stops
-          .filter((stop) => {
-            if (place && !stopIncludesPlace(stop, place)) return false;
-            if (
-              lessonStart &&
-              !pickupFitsLessonStart(stop.time, lessonStart, windowMin)
-            ) {
-              return false;
-            }
-            return true;
-          })
-          .map((stop) => (place ? narrowStopToPlace(stop, place) : stop));
+          .map((stop) =>
+            annotatePickupStop(stop, places, matchPlans, weekday, windowMin),
+          )
+          .filter((stop): stop is AnnotatedStop => stop !== null);
         if (!stops.length) return null;
         return { ...course, stops };
       })
@@ -155,93 +303,85 @@ function filterPickupBlock(
   return { ...block, courses };
 }
 
-function filterRunsByPlaceAndEnd(
+function filterRuns(
   runs: Stop[],
-  place: string | null,
-  lessonEnd: string | null,
+  places: string[] | null,
+  matchPlans: LessonMatchPlan[] | null,
+  weekday: number | null,
   windowMin: number,
-): Stop[] {
+): AnnotatedStop[] {
   return runs
-    .filter((run) => {
-      if (place && !stopIncludesPlace(run, place)) return false;
-      if (
-        lessonEnd &&
-        !dropoffFitsLessonEnd(run.time, lessonEnd, windowMin)
-      ) {
-        return false;
-      }
-      return true;
-    })
-    .map((run) => (place ? narrowStopToPlace(run, place) : run));
+    .map((run) =>
+      annotateDropoffStop(run, places, matchPlans, weekday, windowMin),
+    )
+    .filter((run): run is AnnotatedStop => run !== null);
 }
 
 function filterDayDropoff(
   day: DayDropoff,
-  place: string | null,
-  lessonEnd: string | null,
+  places: string[] | null,
+  matchPlans: LessonMatchPlan[] | null,
+  weekday: number | null,
   windowMin: number,
 ): DayDropoff | null {
-  const runs = filterRunsByPlaceAndEnd(day.runs, place, lessonEnd, windowMin);
+  const runs = filterRuns(day.runs, places, matchPlans, weekday, windowMin);
   if (!runs.length) return null;
   return { ...day, runs };
 }
 
 function filterWeekdayDropoff(
   block: WeekdayDropoff,
-  place: string | null,
-  lessonEnd: string | null,
+  places: string[] | null,
+  matchPlans: LessonMatchPlan[] | null,
+  weekday: number | null,
   windowMin: number,
 ): WeekdayDropoff | null {
-  const runs = filterRunsByPlaceAndEnd(block.runs, place, lessonEnd, windowMin);
+  const runs = filterRuns(block.runs, places, matchPlans, weekday, windowMin);
   if (!runs.length) return null;
   return { ...block, runs };
 }
 
 export type ScheduleDirection = "all" | "pickups" | "dropoffs";
 
+export type FilterScheduleOptions = {
+  /** Preferred: null / empty = all places. */
+  places?: string[] | null;
+  /** @deprecated Prefer `places`. Single place when `places` is omitted. */
+  place?: string | null;
+  direction: ScheduleDirection;
+  dateFilter?: ScheduleDateFilter;
+  now?: Date;
+  lessonPlan?: ChildLessonPlan | null;
+  /** When set with matchLessonPlan, OR-match these plans (labels on stops). */
+  matchPlans?: LessonMatchPlan[] | null;
+  matchLessonPlan?: boolean;
+  lessonMatchWindowMin?: number;
+};
+
 export function filterSchedule(
   schedule: Schedule,
-  options: {
-    place: string | null;
-    direction: ScheduleDirection;
-    dateFilter?: ScheduleDateFilter;
-    now?: Date;
-    lessonPlan?: ChildLessonPlan | null;
-    matchLessonPlan?: boolean;
-    lessonMatchWindowMin?: number;
-  },
+  options: FilterScheduleOptions,
 ): Schedule {
   const {
-    place,
     direction,
     dateFilter = "all",
     now = new Date(),
-    lessonPlan = null,
-    matchLessonPlan = false,
     lessonMatchWindowMin = DEFAULT_LESSON_MATCH_WINDOW_MIN,
   } = options;
+  const places = resolvePlaces(options);
+  const matchPlans = resolveMatchPlans(options);
   const showPickups = direction === "all" || direction === "pickups";
   const showDropoffs = direction === "all" || direction === "dropoffs";
   const target = resolveTargetDay(dateFilter, now);
   const periodYear = extractYearFromPeriod(schedule.periodLabel);
   const weekday = target?.weekday ?? null;
 
-  const dayTimes =
-    matchLessonPlan && lessonPlan && weekday !== null
-      ? getDayTimes(lessonPlan, weekday)
-      : undefined;
-
-  const lessonStart =
-    matchLessonPlan && dayTimes?.start ? dayTimes.start : null;
-  const lessonEnd =
-    matchLessonPlan && dayTimes?.end ? dayTimes.end : null;
-
-  // When matching plan on a day without configured hours, hide school-day trips.
+  // When matching plan(s) on a day without configured hours, hide school-day trips.
   const planBlocksDay =
-    matchLessonPlan &&
+    Boolean(matchPlans) &&
     target !== null &&
     isSchoolDay(target.weekday) &&
-    !dayTimes;
+    !anyPlanHasDayTimes(matchPlans!, target.weekday);
 
   const pickups =
     showPickups &&
@@ -251,9 +391,9 @@ export function filterSchedule(
           .map((block) =>
             filterPickupBlock(
               block,
-              place,
+              places,
               weekday,
-              lessonStart,
+              matchPlans,
               lessonMatchWindowMin,
             ),
           )
@@ -273,7 +413,13 @@ export function filterSchedule(
   }
   dropoffsByDate = dropoffsByDate
     .map((day) =>
-      filterDayDropoff(day, place, lessonEnd, lessonMatchWindowMin),
+      filterDayDropoff(
+        day,
+        places,
+        matchPlans,
+        weekday,
+        lessonMatchWindowMin,
+      ),
     )
     .filter((day): day is DayDropoff => day !== null)
     .map(sortDayDropoff)
@@ -288,7 +434,13 @@ export function filterSchedule(
   }
   dropoffsWeekday = dropoffsWeekday
     .map((block) =>
-      filterWeekdayDropoff(block, place, lessonEnd, lessonMatchWindowMin),
+      filterWeekdayDropoff(
+        block,
+        places,
+        matchPlans,
+        weekday,
+        lessonMatchWindowMin,
+      ),
     )
     .filter((block): block is WeekdayDropoff => block !== null)
     .map(sortWeekdayDropoff)

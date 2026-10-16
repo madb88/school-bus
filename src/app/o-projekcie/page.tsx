@@ -1,5 +1,6 @@
 import { AboutProject } from "@/components/about-project";
 import { PageShell } from "@/components/page-shell";
+import { ScheduleDataSources } from "@/components/schedule-data-sources";
 import { SiteHeader } from "@/components/site-header";
 import { buildPageMetadata } from "@/lib/site-metadata";
 
@@ -14,7 +15,7 @@ export default function AboutProjectPage() {
   return (
     <PageShell header={<SiteHeader current="o-projekcie" />}>
       <div className="page-enter">
-        <AboutProject />
+        <AboutProject dataSources={<ScheduleDataSources />} />
       </div>
     </PageShell>
   );

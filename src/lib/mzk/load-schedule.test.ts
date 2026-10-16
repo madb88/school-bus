@@ -12,7 +12,7 @@ vi.mock("./api-client", () => ({
 }));
 
 import {
-  loadMzkScheduleMeta,
+  loadMzkScheduleMetaOnce,
   loadMzkScheduleSnapshotOnce,
 } from "./load-schedule";
 
@@ -21,12 +21,11 @@ afterEach(() => {
 });
 
 describe("loadMzkScheduleSnapshotOnce", () => {
-  it("loads from local JSON when API base URL is unset", async () => {
+  it("returns null when API base URL is unset", async () => {
     getMzkApiBaseUrl.mockReturnValue(null);
 
-    const result = await loadMzkScheduleSnapshotOnce(process.cwd());
-    expect(result).not.toBeNull();
-    expect(result?.stops.length).toBeGreaterThan(0);
+    const result = await loadMzkScheduleSnapshotOnce();
+    expect(result).toBeNull();
     expect(fetchMzkScheduleFromApi).not.toHaveBeenCalled();
   });
 
@@ -46,7 +45,7 @@ describe("loadMzkScheduleSnapshotOnce", () => {
       },
     });
 
-    const result = await loadMzkScheduleSnapshotOnce(process.cwd());
+    const result = await loadMzkScheduleSnapshotOnce();
     expect(fetchMzkScheduleFromApi).toHaveBeenCalledWith(
       "http://localhost:8000",
     );
@@ -60,18 +59,17 @@ describe("loadMzkScheduleSnapshotOnce", () => {
       reason: "unhealthy",
     });
 
-    const result = await loadMzkScheduleSnapshotOnce(process.cwd());
+    const result = await loadMzkScheduleSnapshotOnce();
     expect(result).toBeNull();
   });
 });
 
-describe("loadMzkScheduleMeta", () => {
-  it("loads from local meta sidecar when API base URL is unset", async () => {
+describe("loadMzkScheduleMetaOnce", () => {
+  it("returns null when API base URL is unset", async () => {
     getMzkApiBaseUrl.mockReturnValue(null);
 
-    const result = await loadMzkScheduleMeta(process.cwd());
-    expect(result).not.toBeNull();
-    expect(result?.stopCount).toBeGreaterThan(0);
+    const result = await loadMzkScheduleMetaOnce();
+    expect(result).toBeNull();
     expect(fetchMzkMetaFromApi).not.toHaveBeenCalled();
   });
 
@@ -90,7 +88,7 @@ describe("loadMzkScheduleMeta", () => {
       },
     });
 
-    const result = await loadMzkScheduleMeta(process.cwd());
+    const result = await loadMzkScheduleMetaOnce();
     expect(fetchMzkMetaFromApi).toHaveBeenCalledWith("http://localhost:8000");
     expect(result?.stopCount).toBe(42);
     expect(fetchMzkScheduleFromApi).not.toHaveBeenCalled();
@@ -103,7 +101,7 @@ describe("loadMzkScheduleMeta", () => {
       reason: "http",
     });
 
-    const result = await loadMzkScheduleMeta(process.cwd());
+    const result = await loadMzkScheduleMetaOnce();
     expect(result).toBeNull();
   });
 });

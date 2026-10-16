@@ -1,5 +1,8 @@
 import type { Schedule } from "@/lib/dowozy/types";
-import type { ScheduleDirection } from "@/lib/dowozy/filter-schedule";
+import type {
+  AnnotatedStop,
+  ScheduleDirection,
+} from "@/lib/dowozy/filter-schedule";
 import { stopDomId } from "@/lib/dowozy/next-trip";
 import { timeToMinutes } from "@/lib/child-schedule/match";
 import { getWarsawParts } from "@/lib/dowozy/schedule-dates";
@@ -14,6 +17,8 @@ export type SchoolTimelineEntry = {
   stopId: string;
   places: string[];
   context: string;
+  /** Labels of account plans that matched this stop (when matching multiple). */
+  planLabels?: string[];
 };
 
 export type MzkTimelineEntry = {
@@ -54,7 +59,7 @@ export function buildMergedTimeline(options: {
     for (const block of schedule.pickups) {
       for (const course of block.courses) {
         for (let index = 0; index < course.stops.length; index++) {
-          const stop = course.stops[index];
+          const stop = course.stops[index] as AnnotatedStop;
           pickups.push({
             kind: "school",
             time: stop.time,
@@ -69,6 +74,9 @@ export function buildMergedTimeline(options: {
             context: course.note
               ? `${block.name} · ${course.label} · ${course.note}`
               : `${block.name} · ${course.label}`,
+            ...(stop.planLabels?.length
+              ? { planLabels: stop.planLabels }
+              : {}),
           });
         }
       }
@@ -87,7 +95,7 @@ export function buildMergedTimeline(options: {
   if (direction === "all" || direction === "dropoffs") {
     for (const day of schedule.dropoffsByDate) {
       for (let index = 0; index < day.runs.length; index++) {
-        const run = day.runs[index];
+        const run = day.runs[index] as AnnotatedStop;
         dropoffs.push({
           kind: "school",
           time: run.time,
@@ -99,12 +107,13 @@ export function buildMergedTimeline(options: {
           ]),
           places: run.places,
           context: `${day.dateLabel} · ${day.driver}`,
+          ...(run.planLabels?.length ? { planLabels: run.planLabels } : {}),
         });
       }
     }
     for (const block of schedule.dropoffsWeekday) {
       for (let index = 0; index < block.runs.length; index++) {
-        const run = block.runs[index];
+        const run = block.runs[index] as AnnotatedStop;
         dropoffs.push({
           kind: "school",
           time: run.time,
@@ -116,6 +125,7 @@ export function buildMergedTimeline(options: {
           ]),
           places: run.places,
           context: `${block.title} · ${block.driver}`,
+          ...(run.planLabels?.length ? { planLabels: run.planLabels } : {}),
         });
       }
     }

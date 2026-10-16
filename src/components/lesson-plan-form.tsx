@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Bus, Clock, Home, MapPin, Printer, School } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Bus, Clock, Home, MapPin, Plus, Printer, School, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { cn } from "cn";
 import {
@@ -18,10 +20,38 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from "@/components/ui/native-select";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { AnalyticsEvent, trackEvent } from "@/lib/analytics/events";
+import { MAX_ACCOUNT_PLANS } from "@/lib/billing/constants";
+import {
+  ACCOUNT_PLAN_NAME_MAX,
+  accountPlanLabel,
+  fromAccountPlan,
+  toAccountPlan,
+  type AccountPlan,
+} from "@/lib/child-schedule/account-plan";
+import { accountPlanMatchesLocal } from "@/lib/child-schedule/plans-equal";
+import {
+  loadSelectedPlanIndex,
+  saveSelectedPlanIndex,
+} from "@/lib/child-schedule/selected-plan";
 import {
   clearLessonPlan,
   hasConfiguredLessons,
+  loadLessonPlan,
   saveLessonPlan,
 } from "@/lib/child-schedule/storage";
 import { formatTimeInput, timeToMinutes } from "@/lib/child-schedule/match";
@@ -49,7 +79,29 @@ type LessonPlanFormProps = {
   places: string[];
   schedule: Schedule;
   mzkSchedule: MzkSchedule | null;
+  mode?: "local" | "account";
+  initialPlans?: AccountPlan[];
+  loggedIn?: boolean;
+  trialEnded?: boolean;
 };
+
+function mirrorPlanToDevice(plan: ChildLessonPlan) {
+  saveLessonPlan(plan);
+  if (plan.place) savePreferredPlace(plan.place);
+  void syncStoredPushPlan(plan);
+}
+
+function normalizeLocalPlan(source: ChildLessonPlan): ChildLessonPlan {
+  const normalized: ChildLessonPlan = { place: source.place, days: {} };
+  for (const [key, day] of Object.entries(source.days)) {
+    if (!day?.start) continue;
+    normalized.days[Number(key) as WeekdayKey] = {
+      start: formatTimeInput(day.start),
+      ...(day.end ? { end: formatTimeInput(day.end) } : {}),
+    };
+  }
+  return normalized;
+}
 
 function dayHasEndBeforeStart(
   start: string | undefined,
@@ -60,6 +112,12 @@ function dayHasEndBeforeStart(
   const endMin = timeToMinutes(end);
   if (startMin === null || endMin === null) return false;
   return endMin < startMin;
+}
+
+function dayTimeSummary(day: { start?: string; end?: string } | undefined): string {
+  if (!day?.start) return "Brak";
+  if (!day.end) return `${day.start} – …`;
+  return `${day.start} – ${day.end}`;
 }
 
 function LessonTimeInput({
@@ -102,15 +160,39 @@ export function LessonPlanForm({
   places,
   schedule,
   mzkSchedule,
+  mode = "local",
+  initialPlans = [],
+  loggedIn = false,
+  trialEnded = false,
 }: LessonPlanFormProps) {
+  const router = useRouter();
   const stored = useLessonPlan();
   const mzkRoute = useMzkRoutePreference();
+  const [accountPlans, setAccountPlans] = useState<AccountPlan[]>(initialPlans);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [planName, setPlanName] = useState(
+    () => initialPlans[0]?.name ?? "",
+  );
   const [draft, setDraft] = useState<ChildLessonPlan | null>(null);
-  const plan = draft ?? stored;
   const [pending, startTransition] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [printMode, setPrintMode] = useState<LessonPlanPrintMode>("school");
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [stickySaveMounted, setStickySaveMounted] = useState(false);
+  const accountBootstrapped = useRef(false);
 
+  useEffect(() => {
+    setStickySaveMounted(true);
+  }, []);
+
+  const accountBase =
+    mode === "account" && accountPlans[selectedIndex]
+      ? fromAccountPlan(accountPlans[selectedIndex]!)
+      : null;
+  const plan = draft ?? accountBase ?? stored;
+
+  const isDraftingNewPlan =
+    mode === "account" && selectedIndex >= accountPlans.length;
   const daysMissingEnd = WEEKDAY_OPTIONS.filter(({ key }) => {
     const day = plan.days[key];
     return Boolean(day?.start && !day.end);
@@ -120,10 +202,63 @@ export function LessonPlanForm({
     return dayHasEndBeforeStart(day?.start, day?.end);
   });
 
+  useEffect(() => {
+    if (mode !== "account" || accountBootstrapped.current) return;
+    accountBootstrapped.current = true;
+
+    const local = loadLessonPlan();
+
+    async function bootstrap() {
+      if (initialPlans.length === 0) {
+        const { plan: imported } = toAccountPlan(local);
+        if (!imported) {
+          setAccountPlans([]);
+          setSelectedIndex(0);
+          return;
+        }
+        const response = await fetch("/api/account/plans", {
+          method: "PUT",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ plans: [imported] }),
+        });
+        if (!response.ok) return;
+        const data = (await response.json().catch(() => null)) as {
+          plans?: AccountPlan[];
+        } | null;
+        const saved = data?.plans ?? [imported];
+        setAccountPlans(saved);
+        setSelectedIndex(0);
+        setPlanName(saved[0]?.name ?? "");
+        saveSelectedPlanIndex(0);
+        mirrorPlanToDevice(fromAccountPlan(saved[0]!));
+        toast.success("Twój plan lekcji został zapisany na koncie");
+        return;
+      }
+
+      const index = loadSelectedPlanIndex(initialPlans.length);
+      setAccountPlans(initialPlans);
+      setSelectedIndex(index);
+      setPlanName(initialPlans[index]?.name ?? "");
+      saveSelectedPlanIndex(index);
+      const selected = initialPlans[index]!;
+      const localDiffers = !accountPlanMatchesLocal(selected, local);
+      mirrorPlanToDevice(fromAccountPlan(selected));
+      if (localDiffers && hasConfiguredLessons(local)) {
+        toast.message("Wczytano plany z konta");
+      }
+    }
+
+    void bootstrap();
+  }, [mode, initialPlans]);
+
+  function basePlan(): ChildLessonPlan {
+    return draft ?? accountBase ?? stored;
+  }
+
   function updateDay(key: WeekdayKey, field: "start" | "end", value: string) {
     setSaveError(null);
     setDraft((prev) => {
-      const base = prev ?? stored;
+      const base = prev ?? accountBase ?? stored;
       const nextDays = { ...base.days };
       const current = nextDays[key] ?? { start: "" };
 
@@ -149,61 +284,198 @@ export function LessonPlanForm({
     });
   }
 
+  function selectAccountPlan(index: number) {
+    if (index === selectedIndex) return;
+    const current = basePlan();
+    const { plan: asAccount } = toAccountPlan(current, planName);
+    const nextPlans = [...accountPlans];
+    if (asAccount && nextPlans[selectedIndex]) {
+      nextPlans[selectedIndex] = asAccount;
+    }
+    setAccountPlans(nextPlans);
+    setSelectedIndex(index);
+    saveSelectedPlanIndex(index);
+    const next = nextPlans[index];
+    if (next) {
+      setPlanName(next.name ?? "");
+      const local = fromAccountPlan(next);
+      setDraft(null);
+      mirrorPlanToDevice(local);
+    } else {
+      setPlanName("");
+      setDraft({ ...EMPTY_LESSON_PLAN, days: {} });
+    }
+  }
+
+  function handleAddPlan() {
+    if (accountPlans.length >= MAX_ACCOUNT_PLANS) return;
+    const current = basePlan();
+    const { plan: asAccount } = toAccountPlan(current, planName);
+    const nextPlans = [...accountPlans];
+    if (asAccount) {
+      if (nextPlans.length === 0) nextPlans.push(asAccount);
+      else if (selectedIndex < nextPlans.length) {
+        nextPlans[selectedIndex] = asAccount;
+      }
+    }
+    if (nextPlans.length >= MAX_ACCOUNT_PLANS) {
+      setAccountPlans(nextPlans);
+      toast.message("Możesz zapisać najwyżej 5 planów");
+      return;
+    }
+    setAccountPlans(nextPlans);
+    setSelectedIndex(nextPlans.length);
+    setPlanName("");
+    setDraft({ ...EMPTY_LESSON_PLAN, days: {} });
+    setSaveError(null);
+  }
+
+  async function persistAccountPlans(nextPlans: AccountPlan[], index: number) {
+    const response = await fetch("/api/account/plans", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ plans: nextPlans }),
+    });
+    const data = (await response.json().catch(() => null)) as {
+      plans?: AccountPlan[];
+      error?: string;
+    } | null;
+    if (response.status === 403) {
+      toast.error(data?.error ?? "Zapisywanie planów wymaga Planu Plus");
+      router.refresh();
+      return false;
+    }
+    if (!response.ok) {
+      const message = data?.error ?? "Nie udało się zapisać planów na koncie.";
+      setSaveError(message);
+      toast.error(message);
+      return false;
+    }
+    const saved = data?.plans ?? nextPlans;
+    setAccountPlans(saved);
+    const safeIndex = Math.min(index, Math.max(0, saved.length - 1));
+    setSelectedIndex(safeIndex);
+    setPlanName(saved[safeIndex]?.name ?? "");
+    saveSelectedPlanIndex(safeIndex);
+    if (saved[safeIndex]) {
+      mirrorPlanToDevice(fromAccountPlan(saved[safeIndex]!));
+    }
+    setDraft(null);
+    setSaveError(null);
+    return true;
+  }
+
   function handleSave() {
     startTransition(() => {
-      const source = draft ?? stored;
+      void (async () => {
+        const source = basePlan();
 
-      for (const { key, label } of WEEKDAY_OPTIONS) {
-        const day = source.days[key];
-        if (!day?.start || !day.end) continue;
-        if (dayHasEndBeforeStart(day.start, day.end)) {
-          const message = `${label}: koniec lekcji nie może być wcześniejszy niż start.`;
+        for (const { key, label } of WEEKDAY_OPTIONS) {
+          const day = source.days[key];
+          if (!day?.start || !day.end) continue;
+          if (dayHasEndBeforeStart(day.start, day.end)) {
+            const message = `${label}: koniec lekcji nie może być wcześniejszy niż start.`;
+            setSaveError(message);
+            toast.error(message);
+            return;
+          }
+        }
+
+        const normalized = normalizeLocalPlan(source);
+
+        if (mode === "local") {
+          mirrorPlanToDevice(normalized);
+          trackEvent(AnalyticsEvent.lessonPlanSaved, {
+            day_count: Object.keys(normalized.days).length,
+          });
+          setDraft(null);
+          setSaveError(null);
+          const missingEnd = WEEKDAY_OPTIONS.filter(({ key }) => {
+            const day = normalized.days[key];
+            return Boolean(day?.start && !day.end);
+          });
+          if (missingEnd.length > 0) {
+            toast.success("Plan lekcji zapisany", {
+              description:
+                "Bez godziny końca odwozy nie dopasują się do planu — uzupełnij koniec lekcji, gdy znasz godzinę.",
+            });
+          } else {
+            toast.success("Plan lekcji zapisany");
+          }
+          return;
+        }
+
+        const { plan: asAccount, droppedDaysWithoutEnd } = toAccountPlan(
+          normalized,
+          planName,
+        );
+        if (!asAccount) {
+          const message =
+            "Wybierz przystanek i uzupełnij przynajmniej jeden dzień z godziną początku i końca.";
           setSaveError(message);
           toast.error(message);
           return;
         }
-      }
 
-      const normalized: ChildLessonPlan = {
-        place: source.place,
-        days: {},
-      };
+        const nextPlans = [...accountPlans];
+        if (selectedIndex >= nextPlans.length) {
+          nextPlans.push(asAccount);
+        } else if (nextPlans.length === 0) {
+          nextPlans.push(asAccount);
+        } else {
+          nextPlans[selectedIndex] = asAccount;
+        }
 
-      for (const [key, day] of Object.entries(source.days)) {
-        if (!day?.start) continue;
-        normalized.days[Number(key) as WeekdayKey] = {
-          start: formatTimeInput(day.start),
-          ...(day.end ? { end: formatTimeInput(day.end) } : {}),
-        };
-      }
+        const ok = await persistAccountPlans(
+          nextPlans,
+          Math.min(selectedIndex, nextPlans.length - 1),
+        );
+        if (!ok) return;
 
-      saveLessonPlan(normalized);
-      if (normalized.place) {
-        savePreferredPlace(normalized.place);
-      }
-      void syncStoredPushPlan(normalized);
-      trackEvent(AnalyticsEvent.lessonPlanSaved, {
-        day_count: Object.keys(normalized.days).length,
-      });
-      setDraft(null);
-      setSaveError(null);
-
-      const missingEnd = WEEKDAY_OPTIONS.filter(({ key }) => {
-        const day = normalized.days[key];
-        return Boolean(day?.start && !day.end);
-      });
-      if (missingEnd.length > 0) {
-        toast.success("Plan lekcji zapisany", {
-          description:
-            "Bez godziny końca odwozy nie dopasują się do planu — uzupełnij koniec lekcji, gdy znasz godzinę.",
+        trackEvent(AnalyticsEvent.lessonPlanSaved, {
+          day_count: Object.keys(asAccount.days).length,
         });
-      } else {
-        toast.success("Plan lekcji zapisany");
-      }
+
+        if (droppedDaysWithoutEnd.length > 0) {
+          toast.success("Plan lekcji zapisany na koncie", {
+            description:
+              "Dni bez godziny końca nie zapiszą się na koncie — uzupełnij koniec lekcji, gdy znasz godzinę.",
+          });
+        } else {
+          toast.success("Plan lekcji zapisany na koncie");
+        }
+      })();
     });
   }
 
   function handleClear() {
+    if (mode === "account") {
+      setDeleteConfirmOpen(false);
+      if (accountPlans.length <= 1) {
+        startTransition(() => {
+          void (async () => {
+            const ok = await persistAccountPlans([], 0);
+            if (!ok) return;
+            clearLessonPlan();
+            setDraft({ ...EMPTY_LESSON_PLAN, days: {} });
+            void syncStoredPushPlan({ ...EMPTY_LESSON_PLAN, days: {} });
+            toast.success("Usunięto plany z konta");
+          })();
+        });
+        return;
+      }
+      startTransition(() => {
+        void (async () => {
+          const nextPlans = accountPlans.filter((_, i) => i !== selectedIndex);
+          const nextIndex = Math.min(selectedIndex, nextPlans.length - 1);
+          const ok = await persistAccountPlans(nextPlans, nextIndex);
+          if (!ok) return;
+          toast.success("Usunięto plan");
+        })();
+      });
+      return;
+    }
+
     const cleared = { ...EMPTY_LESSON_PLAN, days: {} };
     clearLessonPlan();
     setDraft(cleared);
@@ -211,10 +483,15 @@ export function LessonPlanForm({
     void syncStoredPushPlan(cleared);
   }
 
+  const deleteTargetLabel =
+    mode === "account" && accountPlans[selectedIndex]
+      ? accountPlanLabel(accountPlans[selectedIndex]!, selectedIndex)
+      : planName.trim() || "Nowy plan";
+
   function setPlace(next: string | null) {
     setSaveError(null);
     setDraft((prev) => ({
-      ...(prev ?? stored),
+      ...(prev ?? accountBase ?? stored),
       place: next,
     }));
   }
@@ -239,55 +516,188 @@ export function LessonPlanForm({
     window.print();
   }
 
+  const saveDisabled = pending || daysInvalidEnd.length > 0;
+
   return (
     <>
-      <div className="space-y-6 print:hidden">
-        <section className={cardClass}>
-          <div className="space-y-1">
-            <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
-              <MapPin className="size-4 text-bus-deep" aria-hidden />
-              Przystanek
-            </h2>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Wybierz przystanek, z którego dziecko jedzie do szkoły.
-            </p>
-          </div>
-          <div className="flex w-full min-w-0 max-w-md flex-col gap-1.5">
-            <Label
-              id="lesson-place-label"
-              htmlFor="lesson-place"
-              className="sr-only"
-            >
-              Przystanek
-            </Label>
-            <NativeSelect
-              id="lesson-place"
-              className="w-full max-w-full md:hidden [&_select]:h-11 [&_select]:text-base"
-              aria-labelledby="lesson-place-label"
-              value={plan.place ?? ""}
-              onChange={(event) => {
-                setPlace(event.target.value === "" ? null : event.target.value);
-              }}
-            >
-              <NativeSelectOption value="">Wybierz miejsce</NativeSelectOption>
-              {places.map((place) => (
-                <NativeSelectOption key={place} value={place}>
-                  {place}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-            <div className="hidden w-full min-w-0 md:block">
-              <PlaceCombobox
-                id="lesson-place-desktop"
-                places={places}
-                value={plan.place}
-                onChange={setPlace}
-                aria-labelledby="lesson-place-label"
-                placeholder="Wybierz lub szukaj miejsca…"
-              />
+      <div className="space-y-6 pb-24 print:hidden md:pb-0">
+        {mode === "account" ? (
+          <section className={cardClass}>
+            <div className="space-y-1">
+              <h2 className="text-base font-semibold text-foreground">
+                Plany na koncie
+              </h2>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Do {MAX_ACCOUNT_PLANS} planów, synchronizowanych między
+                urządzeniami. Wybrany plan jest też używany w rozkładzie i
+                powiadomieniach.
+              </p>
             </div>
-          </div>
-        </section>
+            <div className="flex flex-wrap gap-2">
+              {accountPlans.map((item, index) => (
+                <button
+                  key={`${item.place}-${item.name ?? ""}-${index}`}
+                  type="button"
+                  onClick={() => selectAccountPlan(index)}
+                  className={cn(
+                    "rounded-full border px-3.5 py-2 text-sm font-medium transition-colors",
+                    index === selectedIndex
+                      ? "border-bus/50 bg-bus/10 text-foreground"
+                      : "border-border/70 bg-background text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {accountPlanLabel(item, index)}
+                </button>
+              ))}
+              {isDraftingNewPlan ? (
+                <span className="rounded-full border border-bus/50 bg-bus/10 px-3.5 py-2 text-sm font-medium text-foreground">
+                  Nowy plan
+                </span>
+              ) : null}
+              {accountPlans.length === 0 && selectedIndex === 0 && !draft ? (
+                <span className="text-sm text-muted-foreground">
+                  Brak planów na koncie — uzupełnij formularz i zapisz.
+                </span>
+              ) : null}
+            </div>
+            {isDraftingNewPlan ? (
+              <p className="rounded-lg border border-bus/30 bg-bus/5 px-3.5 py-3 text-sm leading-relaxed text-foreground">
+                Ten plan nie jest jeszcze zapisany. Bez zapisu zniknie po
+                przełączeniu na inny plan lub odświeżeniu strony.
+              </p>
+            ) : null}
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                type="button"
+                size="lg"
+                className={actionButtonClass}
+                disabled={
+                  isDraftingNewPlan ||
+                  accountPlans.length >= MAX_ACCOUNT_PLANS
+                }
+                title={
+                  isDraftingNewPlan
+                    ? "Najpierw zapisz nowy plan"
+                    : accountPlans.length >= MAX_ACCOUNT_PLANS
+                      ? "Możesz zapisać najwyżej 5 planów"
+                      : undefined
+                }
+                onClick={handleAddPlan}
+              >
+                <Plus aria-hidden className="size-4" />
+                Dodaj plan
+              </Button>
+              {accountPlans.length > 0 ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="lg"
+                  className={actionButtonClass}
+                  disabled={pending || isDraftingNewPlan}
+                  title={
+                    isDraftingNewPlan
+                      ? "Nie można usunąć planu w trakcie dodawania"
+                      : undefined
+                  }
+                  onClick={() => setDeleteConfirmOpen(true)}
+                >
+                  <Trash2 aria-hidden className="size-4" />
+                  Usuń plan
+                </Button>
+              ) : null}
+            </div>
+            {accountPlans.length >= MAX_ACCOUNT_PLANS ? (
+              <p className="text-sm text-muted-foreground">
+                Możesz zapisać najwyżej 5 planów
+              </p>
+            ) : null}
+          </section>
+        ) : null}
+
+        <div
+          className={cn(
+            "grid gap-3 sm:gap-4",
+            mode === "account" && "grid-cols-2",
+          )}
+        >
+          {mode === "account" ? (
+            <section className={cn(cardClass, "flex h-full flex-col space-y-0")}>
+              <div className="space-y-1">
+                <h2 className="text-base font-semibold text-foreground">
+                  Nazwa planu
+                </h2>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  Opcjonalna nazwa (np. imię dziecka) — widać ją w przełączniku i
+                  na rozkładzie.
+                </p>
+              </div>
+              <div className="mt-auto flex w-full min-w-0 flex-col gap-1.5 pt-5">
+                <Label htmlFor="lesson-plan-name" className="sr-only">
+                  Nazwa planu
+                </Label>
+                <Input
+                  id="lesson-plan-name"
+                  type="text"
+                  value={planName}
+                  maxLength={ACCOUNT_PLAN_NAME_MAX}
+                  placeholder="np. Ania"
+                  onChange={(event) => {
+                    setSaveError(null);
+                    setPlanName(event.target.value);
+                  }}
+                  className="h-11 bg-background md:h-10"
+                />
+              </div>
+            </section>
+          ) : null}
+
+          <section className={cn(cardClass, "flex h-full flex-col space-y-0")}>
+            <div className="space-y-1">
+              <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
+                <MapPin className="size-4 text-bus-deep" aria-hidden />
+                Przystanek
+              </h2>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Wybierz przystanek, z którego dziecko jedzie do szkoły.
+              </p>
+            </div>
+            <div className="mt-auto flex w-full min-w-0 flex-col gap-1.5 pt-5">
+              <Label
+                id="lesson-place-label"
+                htmlFor="lesson-place"
+                className="sr-only"
+              >
+                Przystanek
+              </Label>
+              <NativeSelect
+                id="lesson-place"
+                className="w-full max-w-full md:hidden [&_select]:h-11 [&_select]:text-base"
+                aria-labelledby="lesson-place-label"
+                value={plan.place ?? ""}
+                onChange={(event) => {
+                  setPlace(event.target.value === "" ? null : event.target.value);
+                }}
+              >
+                <NativeSelectOption value="">Wybierz miejsce</NativeSelectOption>
+                {places.map((place) => (
+                  <NativeSelectOption key={place} value={place}>
+                    {place}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+              <div className="hidden w-full min-w-0 md:block">
+                <PlaceCombobox
+                  id="lesson-place-desktop"
+                  places={places}
+                  value={plan.place}
+                  onChange={setPlace}
+                  aria-labelledby="lesson-place-label"
+                  placeholder="Wybierz lub szukaj miejsca…"
+                />
+              </div>
+            </div>
+          </section>
+        </div>
 
         <section className={cardClass}>
           <div className="space-y-1">
@@ -300,8 +710,53 @@ export function LessonPlanForm({
             </p>
           </div>
 
-          <div className="min-w-0 overflow-hidden rounded-xl border border-border/60">
-            <div className="hidden border-b border-border/60 px-4 py-3 text-xs font-medium tracking-wide text-muted-foreground uppercase md:grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)] md:gap-4">
+          <Accordion
+            multiple
+            className="min-w-0 overflow-hidden rounded-xl border border-border/60 md:hidden"
+          >
+            {WEEKDAY_OPTIONS.map(({ key, label }) => {
+              const day = plan.days[key];
+              const invalidEnd = dayHasEndBeforeStart(day?.start, day?.end);
+              return (
+                <AccordionItem key={key} value={String(key)}>
+                  <AccordionTrigger className="px-3 py-3.5 font-sans text-base font-medium tracking-normal sm:text-base">
+                    <span className="flex min-w-0 flex-1 items-center justify-between gap-3">
+                      <span className="text-asphalt">{label}</span>
+                      <span
+                        className={cn(
+                          "shrink-0 tabular-nums text-sm font-normal",
+                          invalidEnd
+                            ? "text-destructive"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        {dayTimeSummary(day)}
+                      </span>
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-3 px-3 pt-0 pb-4">
+                    <LessonTimeInput
+                      id={`lesson-start-mobile-${key}`}
+                      label="Start lekcji"
+                      value={day?.start ?? ""}
+                      onChange={(next) => updateDay(key, "start", next)}
+                    />
+                    <LessonTimeInput
+                      id={`lesson-end-mobile-${key}`}
+                      label="Koniec lekcji"
+                      value={day?.end ?? ""}
+                      disabled={!day?.start}
+                      invalid={invalidEnd}
+                      onChange={(next) => updateDay(key, "end", next)}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+
+          <div className="hidden min-w-0 overflow-hidden rounded-xl border border-border/60 md:block">
+            <div className="border-b border-border/60 px-4 py-3 text-xs font-medium tracking-wide text-muted-foreground uppercase md:grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)] md:gap-4">
               <span>Dzień</span>
               <span>Start lekcji</span>
               <span>Koniec lekcji</span>
@@ -313,7 +768,7 @@ export function LessonPlanForm({
                 return (
                   <div
                     key={key}
-                    className="grid min-w-0 grid-cols-1 gap-3 px-3 py-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)] md:items-center md:gap-4 md:px-4 md:py-3"
+                    className="grid min-w-0 grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-4 px-4 py-3"
                   >
                     <div className="font-medium text-asphalt">{label}</div>
                     <LessonTimeInput
@@ -379,7 +834,11 @@ export function LessonPlanForm({
                 <p className="text-asphalt/80">
                   Brak końca lekcji (
                   {daysMissingEnd.map((d) => d.label).join(", ")}) — odwozy nie
-                  dopasują się do planu w te dni.
+                  dopasują się do planu w te dni
+                  {mode === "account"
+                    ? "; dni bez godziny końca nie zapiszą się na koncie"
+                    : ""}
+                  .
                 </p>
               ) : null}
               {daysInvalidEnd.length > 0 || saveError ? (
@@ -396,22 +855,24 @@ export function LessonPlanForm({
               <Button
                 type="button"
                 size="lg"
-                className={actionButtonClass}
-                disabled={pending || daysInvalidEnd.length > 0}
+                className={cn(actionButtonClass, "hidden md:inline-flex")}
+                disabled={saveDisabled}
                 onClick={handleSave}
               >
                 Zapisz plan
               </Button>
-              <Button
-                type="button"
-                size="lg"
-                variant="outline"
-                className={actionButtonClass}
-                disabled={!hasConfiguredLessons(plan) && !plan.place}
-                onClick={handleClear}
-              >
-                Wyczyść
-              </Button>
+              {mode === "local" ? (
+                <Button
+                  type="button"
+                  size="lg"
+                  variant="outline"
+                  className={actionButtonClass}
+                  disabled={!hasConfiguredLessons(plan) && !plan.place}
+                  onClick={handleClear}
+                >
+                  Wyczyść
+                </Button>
+              ) : null}
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center max-sm:[&_a]:h-11 max-sm:[&_a]:w-full max-sm:[&_a]:px-4 max-sm:[&_button]:h-11 max-sm:[&_button]:w-full max-sm:[&_button]:px-4">
               <SettingsTransferSheet
@@ -420,6 +881,7 @@ export function LessonPlanForm({
                   hasConfiguredMzkRoute(mzkRoute)
                 }
                 triggerLabel="Użyj na innym urządzeniu"
+                accountSyncHint={mode === "account"}
               />
               <Link
                 href="/przywroc"
@@ -444,6 +906,44 @@ export function LessonPlanForm({
             </Link>
           ) : null}
         </section>
+
+        {mode === "local" ? (
+          <section className={cardClass}>
+            {!loggedIn ? (
+              <>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  Zaloguj się, żeby zapisać plan na koncie i korzystać z niego
+                  na każdym urządzeniu.
+                </p>
+                <Link
+                  href="/login"
+                  className={buttonVariants({ size: "lg", className: actionButtonClass })}
+                >
+                  Zaloguj się
+                </Link>
+              </>
+            ) : (
+              <>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  Więcej planów i synchronizacja między urządzeniami w Planie
+                  Plus.
+                </p>
+                {trialEnded ? (
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    Plany zapisane na koncie nie znikają — wrócą po wykupieniu
+                    Planu Plus.
+                  </p>
+                ) : null}
+                <Link
+                  href="/profil?plus=1"
+                  className={buttonVariants({ size: "lg", className: actionButtonClass })}
+                >
+                  Zobacz Plan Plus
+                </Link>
+              </>
+            )}
+          </section>
+        ) : null}
 
         <section className={cardClass}>
           <div className="space-y-1">
@@ -608,6 +1108,59 @@ export function LessonPlanForm({
           </Button>
         </section>
       </div>
+      {stickySaveMounted
+        ? createPortal(
+            <div
+              className="fixed bottom-0 left-0 z-40 w-screen max-w-none shrink-0 border-t border-border/70 bg-card/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] shadow-[0_-4px_16px_color-mix(in_srgb,var(--foreground)_6%,transparent)] backdrop-blur-sm print:hidden md:hidden dark:shadow-[0_-4px_16px_rgba(0,0,0,0.35)]"
+              style={{ width: "100vw" }}
+            >
+              <Button
+                type="button"
+                size="lg"
+                className="h-11 w-full max-w-none px-4"
+                disabled={saveDisabled}
+                onClick={handleSave}
+              >
+                Zapisz plan
+              </Button>
+            </div>,
+            document.body,
+          )
+        : null}
+      <Sheet open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <SheetContent side="bottom" className="print:hidden">
+          <SheetHeader>
+            <SheetTitle>Usunąć plan?</SheetTitle>
+            <SheetDescription>
+              Plan „{deleteTargetLabel}” zostanie trwale usunięty z konta. Tej
+              operacji nie da się cofnąć.
+            </SheetDescription>
+          </SheetHeader>
+          <SheetFooter className="flex flex-col items-center gap-3">
+            <Button
+              type="button"
+              variant="destructive"
+              size="lg"
+              className="h-11 w-full max-w-xs px-4"
+              disabled={pending}
+              onClick={handleClear}
+            >
+              <Trash2 aria-hidden className="size-4" />
+              Usuń plan
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="h-11 w-full max-w-xs px-4"
+              disabled={pending}
+              onClick={() => setDeleteConfirmOpen(false)}
+            >
+              Anuluj
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
       <LessonPlanPrint schedule={schedule} plan={plan} mode="school" />
       <LessonPlanPrint schedule={schedule} plan={plan} mode="compact" />
       {mzkSchedule ? (

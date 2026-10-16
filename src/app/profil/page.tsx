@@ -59,6 +59,8 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
         <ProfilePanel
           email={user.email}
+          role={user.role}
+          createdAt={user.createdAt}
           plus={plus}
           focusPlus={focusPlus}
           focusNotifications={focusNotifications}

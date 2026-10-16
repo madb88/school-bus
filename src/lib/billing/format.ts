@@ -48,3 +48,25 @@ export function formatRemainingMonthsLabel(
   }
   return `${months} miesięcy`;
 }
+
+/** Inclusive calendar days from Warsaw today to validUntil (0 if already past). */
+export function remainingWholeDays(validUntil: string, now: Date): number | null {
+  const end = partsFromYmd(validUntil);
+  if (!end) return null;
+  const today = getWarsawParts(now);
+  const startUtc = Date.UTC(today.year, today.month, today.day);
+  const endUtc = Date.UTC(end.year, end.month, end.day);
+  return Math.max(0, Math.round((endUtc - startUtc) / 86_400_000));
+}
+
+/** Polish label for remaining days, e.g. "Pozostało 5 dni". */
+export function formatRemainingDaysLabel(
+  validUntil: string,
+  now: Date = new Date(),
+): string | null {
+  const days = remainingWholeDays(validUntil, now);
+  if (days === null) return null;
+  if (days === 0) return "Pozostało mniej niż dzień";
+  if (days === 1) return "Pozostał 1 dzień";
+  return `Pozostało ${days} dni`;
+}

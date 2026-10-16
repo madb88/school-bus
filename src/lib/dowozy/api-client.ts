@@ -1,4 +1,9 @@
 import {
+  SCHEDULE_API_HEALTH_REVALIDATE_SEC,
+  SCHEDULE_API_REVALIDATE_SEC,
+  SCHEDULE_API_TAGS,
+} from "@/lib/schedule-api-cache";
+import {
   DOWOZY_API_HEALTH_PATH,
   DOWOZY_API_SCHEDULE_PATH,
   type DowozyApiScheduleResponse,
@@ -17,13 +22,14 @@ export function getDowozyApiBaseUrl(): string | null {
 async function fetchWithTimeout(
   url: string,
   timeoutMs: number,
+  next: { revalidate: number; tags: string[] },
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetch(url, {
       method: "GET",
-      cache: "no-store",
+      next,
       signal: controller.signal,
     });
   } finally {
@@ -35,7 +41,10 @@ async function fetchWithTimeout(
 export async function isDowozyApiHealthy(baseUrl: string): Promise<boolean> {
   const url = `${baseUrl}${DOWOZY_API_HEALTH_PATH}`;
   try {
-    const res = await fetchWithTimeout(url, HEALTH_TIMEOUT_MS);
+    const res = await fetchWithTimeout(url, HEALTH_TIMEOUT_MS, {
+      revalidate: SCHEDULE_API_HEALTH_REVALIDATE_SEC,
+      tags: [SCHEDULE_API_TAGS.health],
+    });
     return res.ok;
   } catch (error) {
     console.warn("School schedule API health check failed:", url, error);
@@ -49,7 +58,7 @@ export type FetchScheduleApiResult =
 
 /**
  * Probe /health, then GET /api/v1/dowozy/schedule.
- * Callers fall back to local JSON when ok is false.
+ * Uses Next.js Data Cache (`revalidate`) across navigations.
  */
 export async function fetchDowozyScheduleFromApi(
   baseUrl: string,
@@ -59,7 +68,10 @@ export async function fetchDowozyScheduleFromApi(
 
   const url = `${baseUrl}${DOWOZY_API_SCHEDULE_PATH}`;
   try {
-    const res = await fetchWithTimeout(url, SCHEDULE_TIMEOUT_MS);
+    const res = await fetchWithTimeout(url, SCHEDULE_TIMEOUT_MS, {
+      revalidate: SCHEDULE_API_REVALIDATE_SEC,
+      tags: [SCHEDULE_API_TAGS.dowozy],
+    });
     if (!res.ok) {
       console.warn(
         "School schedule API returned non-OK status:",
