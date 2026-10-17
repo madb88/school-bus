@@ -21,6 +21,20 @@ export type NextSchoolDayPreview = {
   dayLabel: string;
   lessonStart: string;
   busTime: string;
+  /** Display label when preview came from one of several account plans. */
+  planLabel?: string;
+};
+
+export type MondayPreviewPlanEntry = {
+  plan: ChildLessonPlan;
+  label?: string;
+  /** Stable account-plan index for UI switching. */
+  index?: number;
+};
+
+export type NextMondayPlanPreview = NextSchoolDayPreview & {
+  planIndex: number;
+  planLabel: string;
 };
 
 function earliestPickupTime(schedule: Schedule): string | null {
@@ -85,4 +99,52 @@ export function buildNextMondayPreview(
     lessonStart: formatTimeInput(dayTimes.start),
     busTime: formatTimeInput(busRaw),
   };
+}
+
+/**
+ * Monday previews for every plan that has a lesson start + matching pickup.
+ */
+export function listNextMondayPreviews(
+  schedule: Schedule,
+  plans: readonly MondayPreviewPlanEntry[],
+  options?: {
+    windowMin?: number;
+    now?: Date;
+  },
+): NextMondayPlanPreview[] {
+  const out: NextMondayPlanPreview[] = [];
+
+  for (let i = 0; i < plans.length; i++) {
+    const entry = plans[i]!;
+    const preview = buildNextMondayPreview(schedule, entry.plan, {
+      place: entry.plan.place,
+      windowMin: options?.windowMin,
+      now: options?.now,
+    });
+    if (!preview) continue;
+
+    const planIndex = entry.index ?? i;
+    const planLabel =
+      entry.label?.trim() || `Plan ${planIndex + 1}`;
+    out.push({ ...preview, planIndex, planLabel });
+  }
+
+  return out;
+}
+
+/**
+ * First plan that has Monday lesson + matching pickup (legacy helper).
+ */
+export function buildNextMondayPreviewForPlans(
+  schedule: Schedule,
+  plans: readonly MondayPreviewPlanEntry[],
+  options?: {
+    windowMin?: number;
+    now?: Date;
+  },
+): NextSchoolDayPreview | null {
+  const [first] = listNextMondayPreviews(schedule, plans, options);
+  if (!first) return null;
+  const { planIndex: _planIndex, planLabel, ...rest } = first;
+  return planLabel ? { ...rest, planLabel } : rest;
 }

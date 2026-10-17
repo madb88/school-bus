@@ -1,21 +1,24 @@
 "use client";
 
+import { useState } from "react";
 import { Bus, CalendarDays, GraduationCap } from "lucide-react";
+import { cn } from "cn";
 
 import { WeekendBusIllustration } from "@/components/weekend-bus-illustration";
 import { Button } from "@/components/ui/button";
 import { partsFromYmd, type AbsoluteYmd } from "@/lib/dowozy/schedule-dates";
 
-type WeekendMondayPreview = {
+export type WeekendMondayPlanOption = {
+  index: number;
+  label: string;
   ymd: AbsoluteYmd;
-  weekdayName: string;
   lessonStart: string;
   busTime: string;
-  onViewDay: () => void;
 };
 
 type WeekendPlaceholderProps = {
-  mondayPreview?: WeekendMondayPreview | null;
+  mondayPlans?: WeekendMondayPlanOption[];
+  onViewDay?: (ymd: AbsoluteYmd, planIndex: number) => void;
 };
 
 const WEEKDAY_SHORT = [
@@ -65,9 +68,61 @@ function DateBadge({ ymd }: { ymd: AbsoluteYmd }) {
   );
 }
 
+function PlanSwitchPills({
+  plans,
+  activeIndex,
+  onChange,
+}: {
+  plans: WeekendMondayPlanOption[];
+  activeIndex: number;
+  onChange: (index: number) => void;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Plan lekcji"
+      className="flex flex-wrap items-center gap-1.5"
+    >
+      {plans.map((plan) => {
+        const active = plan.index === activeIndex;
+        return (
+          <button
+            key={plan.index}
+            type="button"
+            aria-pressed={active}
+            aria-label={`Plan: ${plan.label}`}
+            title={plan.label}
+            className={cn(
+              "max-w-[10rem] truncate rounded-full px-2.5 py-1 text-[0.7rem] font-semibold transition-colors",
+              "outline-none focus-visible:ring-2 focus-visible:ring-bus/40",
+              active
+                ? "bg-bus text-bus-foreground"
+                : "bg-bus/10 text-bus-deep hover:bg-bus/15 dark:bg-bus/20 dark:text-bus dark:hover:bg-bus/25",
+            )}
+            onClick={() => onChange(plan.index)}
+          >
+            {plan.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function WeekendPlaceholder({
-  mondayPreview = null,
+  mondayPlans = [],
+  onViewDay,
 }: WeekendPlaceholderProps) {
+  const [selectedPlanIndex, setSelectedPlanIndex] = useState<number | null>(
+    null,
+  );
+
+  const activePlan =
+    mondayPlans.find((plan) => plan.index === selectedPlanIndex) ??
+    mondayPlans[0] ??
+    null;
+  const showPlanSwitch = mondayPlans.length > 1;
+
   return (
     <div
       className="flex flex-col items-center px-4 py-10 text-center sm:py-14 print:hidden"
@@ -83,7 +138,7 @@ export function WeekendPlaceholder({
         <p>Rozkład wróci w poniedziałek.</p>
       </div>
 
-      {mondayPreview ? (
+      {activePlan ? (
         <div className="mt-8 w-full max-w-[min(100%,28rem)] rounded-[28px] border border-[#dce6f4]/80 bg-white p-5 text-left shadow-[0_12px_40px_rgba(43,84,227,0.10)] sm:mt-10 sm:max-w-[500px] sm:p-6 dark:border-border/40 dark:bg-card dark:shadow-[0_10px_28px_rgba(0,0,0,0.5)]">
           {/* Mobile: stacked layout */}
           <div className="flex flex-col gap-5 sm:hidden">
@@ -91,13 +146,26 @@ export function WeekendPlaceholder({
               <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-bus/10 text-bus">
                 <CalendarDays className="size-5" aria-hidden />
               </span>
-              <div className="min-w-0 pt-0.5">
+              <div className="min-w-0 flex-1 pt-0.5">
                 <p className="font-display text-base font-semibold tracking-tight text-asphalt dark:text-foreground">
                   Poniedziałek jest już gotowy
                 </p>
                 <p className="mt-0.5 text-sm font-normal text-muted-foreground">
                   Na podstawie Twojego planu lekcji:
                 </p>
+                {showPlanSwitch ? (
+                  <div className="mt-2.5">
+                    <PlanSwitchPills
+                      plans={mondayPlans}
+                      activeIndex={activePlan.index}
+                      onChange={setSelectedPlanIndex}
+                    />
+                  </div>
+                ) : activePlan.label ? (
+                  <span className="mt-2 inline-flex max-w-[10rem] truncate rounded-full bg-bus/15 px-2 py-0.5 text-[0.7rem] font-semibold text-bus-deep dark:bg-bus/20 dark:text-bus">
+                    {activePlan.label}
+                  </span>
+                ) : null}
               </div>
             </div>
 
@@ -110,7 +178,7 @@ export function WeekendPlaceholder({
                   Pierwsza lekcja
                 </p>
                 <p className="mt-0.5 font-display text-xl font-semibold tracking-tight text-asphalt dark:text-foreground">
-                  {mondayPreview.lessonStart}
+                  {activePlan.lessonStart}
                 </p>
               </div>
             </div>
@@ -124,7 +192,7 @@ export function WeekendPlaceholder({
                   Najbliższy autobus
                 </p>
                 <p className="mt-0.5 font-display text-xl font-semibold tracking-tight text-asphalt dark:text-foreground">
-                  {mondayPreview.busTime}
+                  {activePlan.busTime}
                 </p>
               </div>
             </div>
@@ -132,7 +200,7 @@ export function WeekendPlaceholder({
 
           {/* Desktop: date badge + side-by-side times */}
           <div className="hidden items-start gap-4 sm:flex">
-            <DateBadge ymd={mondayPreview.ymd} />
+            <DateBadge ymd={activePlan.ymd} />
             <div className="min-w-0 flex-1 pt-0.5">
               <p className="font-display text-lg font-semibold tracking-tight text-asphalt dark:text-foreground">
                 Poniedziałek jest już gotowy
@@ -140,6 +208,19 @@ export function WeekendPlaceholder({
               <p className="mt-1 text-sm font-normal text-muted-foreground">
                 Na podstawie Twojego planu lekcji:
               </p>
+              {showPlanSwitch ? (
+                <div className="mt-2.5">
+                  <PlanSwitchPills
+                    plans={mondayPlans}
+                    activeIndex={activePlan.index}
+                    onChange={setSelectedPlanIndex}
+                  />
+                </div>
+              ) : activePlan.label ? (
+                <span className="mt-2 inline-flex max-w-[10rem] truncate rounded-full bg-bus/15 px-2 py-0.5 text-[0.7rem] font-semibold text-bus-deep dark:bg-bus/20 dark:text-bus">
+                  {activePlan.label}
+                </span>
+              ) : null}
 
               <div className="mt-4 flex items-stretch gap-0">
                 <div className="flex flex-1 items-center gap-3">
@@ -151,7 +232,7 @@ export function WeekendPlaceholder({
                       Pierwsza lekcja
                     </p>
                     <p className="mt-0.5 font-display text-lg font-semibold tracking-tight text-asphalt dark:text-foreground">
-                      {mondayPreview.lessonStart}
+                      {activePlan.lessonStart}
                     </p>
                   </div>
                 </div>
@@ -170,7 +251,7 @@ export function WeekendPlaceholder({
                       Najbliższy autobus
                     </p>
                     <p className="mt-0.5 font-display text-lg font-semibold tracking-tight text-asphalt dark:text-foreground">
-                      {mondayPreview.busTime}
+                      {activePlan.busTime}
                     </p>
                   </div>
                 </div>
@@ -181,7 +262,7 @@ export function WeekendPlaceholder({
           <Button
             type="button"
             className="mt-5 h-12 w-full rounded-2xl text-sm font-medium hover:bg-bus-deep"
-            onClick={mondayPreview.onViewDay}
+            onClick={() => onViewDay?.(activePlan.ymd, activePlan.index)}
           >
             Sprawdź poniedziałkowy rozkład →
           </Button>

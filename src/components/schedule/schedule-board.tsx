@@ -120,7 +120,10 @@ import {
   resolveTargetDay,
 } from "@/lib/dowozy/schedule-dates";
 import type { Schedule } from "@/lib/dowozy/types";
-import { buildNextMondayPreview } from "@/lib/dowozy/weekend-preview";
+import {
+  buildNextMondayPreview,
+  listNextMondayPreviews,
+} from "@/lib/dowozy/weekend-preview";
 import {
   buildMergedTimeline,
   findNextMergedEntry,
@@ -775,14 +778,78 @@ export function ScheduleBoard({
   const bestTodayPlace =
     activeBestTodayPlan?.place ?? singlePlaceForWidgets;
 
-  const mondayPreview =
-    isWeekendView && planReady
-      ? buildNextMondayPreview(schedule, lessonPlan, {
-          place: singlePlaceForWidgets,
-          windowMin: effectiveWindowMin,
-          now,
-        })
-      : null;
+  const multiAccountPlans = accountPlans.length > 1;
+  const mondayPlans =
+    isWeekendView && matchActive
+      ? (() => {
+          const previewOpts = {
+            windowMin: effectiveWindowMin,
+            now,
+          };
+
+          if (typeof planMatch === "number" && accountPlans[planMatch]) {
+            const preview = buildNextMondayPreview(
+              schedule,
+              fromAccountPlan(accountPlans[planMatch]!),
+              {
+                place: accountPlans[planMatch]!.place,
+                ...previewOpts,
+              },
+            );
+            if (!preview) return [];
+            return [
+              {
+                index: planMatch,
+                label: multiAccountPlans
+                  ? accountPlanLabel(accountPlans[planMatch]!, planMatch)
+                  : "",
+                ymd: preview.ymd,
+                lessonStart: preview.lessonStart,
+                busTime: preview.busTime,
+              },
+            ];
+          }
+
+          if (accountPlans.length > 0) {
+            return listNextMondayPreviews(
+              schedule,
+              accountPlans.map((plan, index) => ({
+                plan: fromAccountPlan(plan),
+                label: multiAccountPlans
+                  ? accountPlanLabel(plan, index)
+                  : undefined,
+                index,
+              })),
+              previewOpts,
+            ).map((preview) => ({
+              index: preview.planIndex,
+              label: multiAccountPlans ? preview.planLabel : "",
+              ymd: preview.ymd,
+              lessonStart: preview.lessonStart,
+              busTime: preview.busTime,
+            }));
+          }
+
+          const localPreview = buildNextMondayPreview(
+            schedule,
+            lessonPlan,
+            {
+              place: lessonPlan.place,
+              ...previewOpts,
+            },
+          );
+          if (!localPreview) return [];
+          return [
+            {
+              index: 0,
+              label: "",
+              ymd: localPreview.ymd,
+              lessonStart: localPreview.lessonStart,
+              busTime: localPreview.busTime,
+            },
+          ];
+        })()
+      : [];
 
   const bestTodayOptions =
     filtersReady &&
@@ -1882,22 +1949,17 @@ export function ScheduleBoard({
         </div>
       ) : isWeekendView ? (
         <WeekendPlaceholder
-          mondayPreview={
-            mondayPreview
-              ? {
-                  ymd: mondayPreview.ymd,
-                  weekdayName: mondayPreview.weekdayName,
-                  lessonStart: mondayPreview.lessonStart,
-                  busTime: mondayPreview.busTime,
-                  onViewDay: () => {
-                    startTransition(() => {
-                      setDateFilter(mondayPreview.ymd);
-                      setPlanMatch("all");
-                    });
-                  },
-                }
-              : null
-          }
+          mondayPlans={mondayPlans}
+          onViewDay={(ymd, planIndex) => {
+            startTransition(() => {
+              setDateFilter(ymd);
+              if (multiAccountPlans) {
+                setPlanMatch(planIndex);
+              } else {
+                setPlanMatch("all");
+              }
+            });
+          }}
         />
       ) : isEmpty ? (
         <p className="border-l-2 border-border bg-muted/30 px-4 py-8 text-center text-muted-foreground">
