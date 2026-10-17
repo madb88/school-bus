@@ -20,16 +20,21 @@ export type NewsItem = {
 export const NEWS_ITEMS: readonly NewsItem[] = [
   {
     id: "trial-and-account-plans",
-    dateLabel: "16 października 2026",
-    title: "Okres próbny Planu Plus i do 5 planów na koncie",
-    lead: "Nowe konto dostaje okres próbny Planu Plus. Przy dostępie Plus zapiszesz do pięciu planów lekcji na koncie — na każdym urządzeniu.",
-    body: "Po zalogowaniu możesz skorzystać z bezpłatnego okresu próbnego Planu Plus (domyślnie dwa tygodnie od utworzenia konta). W tym czasie — i po wykupieniu Planu Plus — zapiszesz do pięciu planów lekcji na koncie. Plany synchronizują się między urządzeniami. Po zakończeniu dostępu Plus plany na koncie zostają zachowane i wrócą po ponownym wykupieniu; na urządzeniu nadal działa jeden lokalny plan.",
+    dateLabel: "17 października 2026",
+    title: "Plan Plus, synchronizacja i wygodniejsze korzystanie z planu lekcji",
+    lead: "Poznaj Plan Plus, który daje więcej możliwości korzystania z planów lekcji. Zapisuj kilka planów na jednym koncie, synchronizuj je między urządzeniami i korzystaj z nowych udogodnień na telefonie.",
+    body: "Po założeniu konta możesz bezpłatnie wypróbować Plan Plus przez 14 dni. W ramach dostępu Plus zapiszesz do pięciu planów lekcji, które będą dostępne po zalogowaniu na różnych urządzeniach.",
     pointsTitle: "Co nowego?",
     points: [
-      "Okres próbny Planu Plus przy nowym koncie.",
-      "Do 5 planów lekcji zapisanych na koncie i dostępnych na każdym urządzeniu.",
-      "Lokalny plan na urządzeniu działa jak dotychczas bez logowania.",
+      "🎁 Plan Plus na próbę — nowe konto otrzymuje domyślnie 14 dni bezpłatnego dostępu do Planu Plus.",
+      "📚 Do 5 planów na koncie — zapisuj kilka planów lekcji i wygodnie przełączaj się między nimi.",
+      "🔄 Synchronizacja planów — korzystaj ze swoich planów na różnych urządzeniach po zalogowaniu.",
+      "🔔 Powiadomienia na telefonie — włącz powiadomienia w aplikacji PWA i otrzymuj informacje bezpośrednio na telefonie.",
+      "✨ Odświeżony wygląd strony — bardziej przejrzysty interfejs i dopracowane elementy.",
+      "📱 Wygodniejsze korzystanie na mobile — ulepszenia ułatwiające przeglądanie i obsługę planów na telefonie.",
     ],
+    after:
+      "Dotychczasowy sposób działania również pozostaje dostępny: bez logowania możesz nadal korzystać z jednego planu zapisanego lokalnie na urządzeniu. Plany zapisane na koncie pozostają zachowane po zakończeniu dostępu Plus i będą ponownie dostępne po jego odnowieniu.",
     href: "/lekcje",
     cta: "Otwórz plan lekcji",
   },
