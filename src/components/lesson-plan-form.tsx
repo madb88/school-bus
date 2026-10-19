@@ -2,8 +2,25 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bus, Clock, Home, MapPin, Plus, Printer, School, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState, useTransition } from "react";
+import {
+  Bus,
+  CircleHelp,
+  Clock,
+  Home,
+  MapPin,
+  Plus,
+  Printer,
+  School,
+  Trash2,
+} from "lucide-react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { cn } from "cn";
@@ -26,6 +43,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Popover,
+  PopoverContent,
+  PopoverDescription,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Sheet,
   SheetContent,
@@ -76,6 +101,54 @@ const cardClass =
   "space-y-5 rounded-xl border border-border/70 bg-card/90 p-4 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] dark:shadow-[0_1px_0_rgba(0,0,0,0.35)] sm:p-6";
 
 const actionButtonClass = "h-11 w-full px-4 sm:w-auto";
+
+function FieldHelpHint({
+  title,
+  description,
+  icon,
+}: {
+  title: string;
+  description: string;
+  icon?: ReactNode;
+}) {
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-1">
+        <h2 className="flex min-w-0 items-center gap-2 text-base font-semibold text-foreground">
+          {icon}
+          {title}
+        </h2>
+        <Popover>
+          <PopoverTrigger
+            type="button"
+            aria-label={`Pomoc: ${title}`}
+            className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-bus/40 aria-expanded:text-foreground md:hidden"
+          >
+            <CircleHelp className="size-3.5" aria-hidden />
+          </PopoverTrigger>
+          <PopoverContent
+            side="bottom"
+            align="start"
+            sideOffset={6}
+            className="w-[min(18rem,calc(100vw-2rem))] gap-1 p-3"
+          >
+            <PopoverHeader>
+              <PopoverTitle className="text-xs font-semibold">
+                {title}
+              </PopoverTitle>
+              <PopoverDescription className="text-xs leading-snug">
+                {description}
+              </PopoverDescription>
+            </PopoverHeader>
+          </PopoverContent>
+        </Popover>
+      </div>
+      <p className="hidden text-sm leading-relaxed text-muted-foreground md:block">
+        {description}
+      </p>
+    </div>
+  );
+}
 
 type LessonPlanFormProps = {
   places: string[];
@@ -137,7 +210,9 @@ function dayHasEndBeforeStart(
   return endMin < startMin;
 }
 
-function dayTimeSummary(day: { start?: string; end?: string } | undefined): string {
+function dayTimeSummary(
+  day: { start?: string; end?: string } | undefined,
+): string {
   if (!day?.start) return "Brak";
   if (!day.end) return `${day.start} – …`;
   return `${day.start} – ${day.end}`;
@@ -193,22 +268,21 @@ export function LessonPlanForm({
   const mzkRoute = useMzkRoutePreference();
   const [accountPlans, setAccountPlans] = useState<AccountPlan[]>(initialPlans);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [planName, setPlanName] = useState(
-    () => initialPlans[0]?.name ?? "",
-  );
+  const [planName, setPlanName] = useState(() => initialPlans[0]?.name ?? "");
   const [draft, setDraft] = useState<ChildLessonPlan | null>(null);
   const [pending, startTransition] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [printMode, setPrintMode] = useState<LessonPlanPrintMode>("school");
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [stickySaveMounted, setStickySaveMounted] = useState(false);
   const accountBootstrapped = useRef(false);
   const previousSelectedIndexRef = useRef(0);
   const planNameInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setStickySaveMounted(true);
-  }, []);
+  // Server=false, client=true — avoids setState-in-effect for the sticky portal.
+  const stickySaveMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   const accountBase =
     mode === "account" && accountPlans[selectedIndex]
@@ -519,9 +593,7 @@ export function LessonPlanForm({
         }
 
         const preferredId = asAccount.id ?? null;
-        const preferredIndex = isNew
-          ? nextPlans.length - 1
-          : selectedIndex;
+        const preferredIndex = isNew ? nextPlans.length - 1 : selectedIndex;
         const ok = await persistAccountPlans(nextPlans, preferredId, {
           preferredIndex,
         });
@@ -622,74 +694,78 @@ export function LessonPlanForm({
     <>
       <div className="space-y-6 pb-24 print:hidden md:pb-0">
         {mode === "account" ? (
-          <section className={cardClass}>
+          <section
+            className={cn(
+              cardClass,
+              "border-bus/35 bg-white shadow-[0_1px_0_color-mix(in_srgb,var(--bus)_12%,white)] dark:border-bus/25 dark:bg-card dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]",
+            )}
+          >
             <div className="space-y-1">
               <h2 className="text-base font-semibold text-foreground">
                 Plany na koncie
               </h2>
               <p className="text-sm leading-relaxed text-muted-foreground">
                 Do {MAX_ACCOUNT_PLANS} planów, synchronizowanych między
-                urządzeniami. Wybrany plan jest też używany w rozkładzie i
-                powiadomieniach.
+                urządzeniami.
               </p>
             </div>
             {accountPlans.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {accountPlans.map((item, index) => (
-                  <button
-                    key={`${item.place}-${item.name ?? ""}-${index}`}
-                    type="button"
-                    onClick={() => selectAccountPlan(index)}
-                    className={cn(
-                      "rounded-full border px-3.5 py-2 text-sm font-medium transition-colors",
-                      index === selectedIndex
-                        ? "border-bus/50 bg-bus/10 text-foreground"
-                        : "border-border/70 bg-background text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {accountPlanLabel(item, index)}
-                  </button>
-                ))}
-                {accountPlans.length < MAX_ACCOUNT_PLANS ? (
-                  <button
-                    type="button"
-                    onClick={handleAddPlan}
-                    disabled={isDraftingNewPlan}
-                    title={
-                      isDraftingNewPlan
-                        ? "Najpierw zapisz nowy plan"
-                        : undefined
-                    }
-                    className={cn(
-                      "inline-flex items-center gap-1.5 rounded-full border border-dashed px-3.5 py-2 text-sm font-medium transition-colors",
-                      isDraftingNewPlan
-                        ? "cursor-not-allowed border-border/50 text-muted-foreground/60"
-                        : "border-border/70 bg-background text-muted-foreground hover:border-bus/40 hover:text-foreground",
-                    )}
-                  >
-                    <Plus aria-hidden className="size-3.5" />
-                    Dodaj plan
-                  </button>
-                ) : null}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex min-w-0 flex-1 flex-wrap gap-2 rounded-2xl border border-dashed border-border/70 p-2">
+                  {accountPlans.map((item, index) => (
+                    <button
+                      key={`${item.place}-${item.name ?? ""}-${index}`}
+                      type="button"
+                      onClick={() => selectAccountPlan(index)}
+                      className={cn(
+                        "rounded-full border px-3.5 py-2 text-sm font-medium transition-colors",
+                        index === selectedIndex
+                          ? "border-bus/50 bg-bus/10 text-foreground"
+                          : "border-border/70 bg-background text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {accountPlanLabel(item, index)}
+                    </button>
+                  ))}
+                  {accountPlans.length < MAX_ACCOUNT_PLANS ? (
+                    <button
+                      type="button"
+                      onClick={handleAddPlan}
+                      disabled={isDraftingNewPlan}
+                      title={
+                        isDraftingNewPlan
+                          ? "Najpierw zapisz nowy plan"
+                          : undefined
+                      }
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full border border-dashed px-3.5 py-2 text-sm font-medium transition-colors",
+                        isDraftingNewPlan
+                          ? "cursor-not-allowed border-border/50 text-muted-foreground/60"
+                          : "border-border/70 bg-background text-muted-foreground hover:border-bus/40 hover:text-foreground",
+                      )}
+                    >
+                      <Plus aria-hidden className="size-3.5" />
+                      Dodaj plan
+                    </button>
+                  ) : null}
+                </div>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="lg"
+                  className="h-11 shrink-0 px-4"
+                  disabled={pending || isDraftingNewPlan}
+                  title={
+                    isDraftingNewPlan
+                      ? "Nie można usunąć planu w trakcie dodawania"
+                      : undefined
+                  }
+                  onClick={() => setDeleteConfirmOpen(true)}
+                >
+                  <Trash2 aria-hidden className="size-4" />
+                  Usuń plan
+                </Button>
               </div>
-            ) : null}
-            {accountPlans.length > 0 ? (
-              <Button
-                type="button"
-                variant="destructive"
-                size="lg"
-                className={actionButtonClass}
-                disabled={pending || isDraftingNewPlan}
-                title={
-                  isDraftingNewPlan
-                    ? "Nie można usunąć planu w trakcie dodawania"
-                    : undefined
-                }
-                onClick={() => setDeleteConfirmOpen(true)}
-              >
-                <Trash2 aria-hidden className="size-4" />
-                Usuń plan
-              </Button>
             ) : null}
             {accountPlans.length >= MAX_ACCOUNT_PLANS ? (
               <p className="text-sm text-muted-foreground">
@@ -733,16 +809,13 @@ export function LessonPlanForm({
           )}
         >
           {mode === "account" ? (
-            <section className={cn(cardClass, "flex h-full flex-col space-y-0")}>
-              <div className="space-y-1">
-                <h2 className="text-base font-semibold text-foreground">
-                  Nazwa planu
-                </h2>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Opcjonalna nazwa (np. imię dziecka) — widać ją w przełączniku i
-                  na rozkładzie.
-                </p>
-              </div>
+            <section
+              className={cn(cardClass, "flex h-full flex-col space-y-0")}
+            >
+              <FieldHelpHint
+                title="Nazwa planu"
+                description="Opcjonalna nazwa (np. imię dziecka) — widać ją w przełączniku i na rozkładzie."
+              />
               <div className="mt-auto flex w-full min-w-0 flex-col gap-1.5 pt-5">
                 <Label htmlFor="lesson-plan-name" className="sr-only">
                   Nazwa planu
@@ -765,15 +838,13 @@ export function LessonPlanForm({
           ) : null}
 
           <section className={cn(cardClass, "flex h-full flex-col space-y-0")}>
-            <div className="space-y-1">
-              <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
-                <MapPin className="size-4 text-bus-deep" aria-hidden />
-                Przystanek
-              </h2>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                Wybierz przystanek, z którego dziecko jedzie do szkoły.
-              </p>
-            </div>
+            <FieldHelpHint
+              title="Przystanek"
+              description="Wybierz przystanek, z którego dziecko jedzie do szkoły."
+              icon={
+                <MapPin className="size-4 shrink-0 text-bus-deep" aria-hidden />
+              }
+            />
             <div className="mt-auto flex w-full min-w-0 flex-col gap-1.5 pt-5">
               <Label
                 id="lesson-place-label"
@@ -788,10 +859,14 @@ export function LessonPlanForm({
                 aria-labelledby="lesson-place-label"
                 value={plan.place ?? ""}
                 onChange={(event) => {
-                  setPlace(event.target.value === "" ? null : event.target.value);
+                  setPlace(
+                    event.target.value === "" ? null : event.target.value,
+                  );
                 }}
               >
-                <NativeSelectOption value="">Wybierz miejsce</NativeSelectOption>
+                <NativeSelectOption value="">
+                  Wybierz miejsce
+                </NativeSelectOption>
                 {places.map((place) => (
                   <NativeSelectOption key={place} value={place}>
                     {place}
@@ -904,40 +979,51 @@ export function LessonPlanForm({
             </div>
           </div>
 
-          <div className="rounded-xl border border-border/70 bg-muted/30 px-4 py-4 sm:px-5">
-            <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Bus className="size-4 text-bus-deep" aria-hidden />
-              Jak dobieramy kursy?
-            </h3>
-            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-              Na podstawie podanych godzin lekcji dopasowujemy odpowiednie
-              kursy.
-            </p>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div className="flex items-start gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-card text-muted-foreground">
-                  <Home className="size-4" aria-hidden />
+          <Accordion className="overflow-hidden rounded-xl border border-border/70 bg-muted/30">
+            <AccordionItem value="match-info" className="border-0">
+              <AccordionTrigger className="rounded-none px-4 py-4 font-sans text-sm font-semibold tracking-normal hover:bg-muted/50 sm:px-5 sm:text-sm">
+                <span className="flex items-center gap-2">
+                  <Bus className="size-4 text-bus-deep" aria-hidden />
+                  Jak dobieramy kursy?
                 </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground">Dowóz</p>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    Wybieramy kurs przed rozpoczęciem lekcji.
-                  </p>
+              </AccordionTrigger>
+              <AccordionContent className="space-y-4 px-4 pt-0 pb-4 sm:px-5">
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  Na podstawie podanych godzin lekcji dopasowujemy odpowiednie
+                  kursy.
+                </p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="flex items-start gap-3">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-card text-muted-foreground">
+                      <Home className="size-4" aria-hidden />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground">
+                        Dowóz
+                      </p>
+                      <p className="text-sm leading-relaxed text-muted-foreground">
+                        Wybieramy kurs przed rozpoczęciem lekcji.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-card text-muted-foreground">
+                      <School className="size-4" aria-hidden />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground">
+                        Odwóz
+                      </p>
+                      <p className="text-sm leading-relaxed text-muted-foreground">
+                        Wybieramy kurs o godzinie zakończenia lekcji lub
+                        późniejszy.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-card text-muted-foreground">
-                  <School className="size-4" aria-hidden />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground">Odwóz</p>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    Wybieramy kurs o godzinie zakończenia lekcji lub późniejszy.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
 
           {daysMissingEnd.length > 0 ||
           daysInvalidEnd.length > 0 ||
@@ -1030,7 +1116,10 @@ export function LessonPlanForm({
                 </p>
                 <Link
                   href="/login"
-                  className={buttonVariants({ size: "lg", className: actionButtonClass })}
+                  className={buttonVariants({
+                    size: "lg",
+                    className: actionButtonClass,
+                  })}
                 >
                   Zaloguj się
                 </Link>
@@ -1049,7 +1138,10 @@ export function LessonPlanForm({
                 ) : null}
                 <Link
                   href="/profil?plus=1"
-                  className={buttonVariants({ size: "lg", className: actionButtonClass })}
+                  className={buttonVariants({
+                    size: "lg",
+                    className: actionButtonClass,
+                  })}
                 >
                   Zobacz Plan Plus
                 </Link>
@@ -1058,168 +1150,179 @@ export function LessonPlanForm({
           </section>
         ) : null}
 
-        <section className={cardClass}>
-          <div className="space-y-1">
-            <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
-              <Printer className="size-4 text-bus-deep" aria-hidden />
-              Wydrukuj plan dojazdów dopasowany do planu lekcji
-            </h2>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Wybierz, jakie połączenia chcesz uwzględnić na wydruku.
-            </p>
-          </div>
+        <Accordion
+          className={cn(
+            cardClass,
+            "space-y-0 overflow-hidden p-0 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:p-0 dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]",
+          )}
+        >
+          <AccordionItem value="print" className="border-0">
+            <AccordionTrigger className="w-full rounded-none px-4 py-4 font-sans text-sm font-semibold tracking-normal hover:bg-muted/50 sm:px-6 sm:text-sm">
+              <span className="flex items-center gap-2">
+                <Printer className="size-4 text-bus-deep" aria-hidden />
+                Wydrukuj plan dojazdów dopasowany do planu lekcji
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="space-y-5 px-4 pt-0 pb-4 sm:px-6 sm:pb-6">
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Wybierz, jakie połączenia chcesz uwzględnić na wydruku.
+              </p>
 
-          <fieldset className="space-y-2">
-            <legend className="sr-only">Rodzaj wydruku</legend>
-            <label
-              className={cn(
-                "flex w-full items-start gap-3 rounded-xl border border-border/70 bg-card px-4 py-3.5 text-left transition-colors",
-                "has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
-                printMode === "school" && "border-bus/40 bg-muted/40",
-                !canPrint && "cursor-not-allowed opacity-60",
-              )}
-            >
-              <input
-                type="radio"
-                name="lesson-print-mode"
-                value="school"
-                checked={printMode === "school"}
-                disabled={!canPrint}
-                onChange={() => setPrintMode("school")}
-                title={
-                  canPrint
-                    ? undefined
-                    : "Wybierz przystanek i uzupełnij godziny lekcji"
-                }
-                className="mt-1 size-4 accent-bus"
-              />
-              <span className="min-w-0">
-                <span className="block text-sm font-medium text-foreground sm:text-base">
-                  Autobus szkolny
-                </span>
-                <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">
-                  Pełny rozkład kursów autobusu szkolnego
-                </span>
-              </span>
-            </label>
-            <label
-              className={cn(
-                "flex w-full items-start gap-3 rounded-xl border border-border/70 bg-card px-4 py-3.5 text-left transition-colors",
-                "has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
-                printMode === "school-mzk" && "border-bus/40 bg-muted/40",
-                !canPrintMzk && "cursor-not-allowed opacity-60",
-              )}
-            >
-              <input
-                type="radio"
-                name="lesson-print-mode"
-                value="school-mzk"
-                checked={printMode === "school-mzk"}
-                disabled={!canPrintMzk}
-                onChange={() => setPrintMode("school-mzk")}
-                title={
-                  canPrintMzk
-                    ? undefined
-                    : canPrint
-                      ? "Najpierw ustaw trasę MZK w zakładce MZK"
-                      : "Wybierz przystanek, uzupełnij lekcje i ustaw trasę MZK"
-                }
-                className="mt-1 size-4 accent-bus"
-              />
-              <span className="min-w-0">
-                <span className="block text-sm font-medium text-foreground sm:text-base">
-                  Autobus szkolny + MZK
-                </span>
-                <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">
-                  Autobus szkolny oraz najbliższe kursy MZK
-                </span>
-              </span>
-            </label>
-            <label
-              className={cn(
-                "flex w-full items-start gap-3 rounded-xl border border-border/70 bg-card px-4 py-3.5 text-left transition-colors",
-                "has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
-                printMode === "compact" && "border-bus/40 bg-muted/40",
-                !canPrint && "cursor-not-allowed opacity-60",
-              )}
-            >
-              <input
-                type="radio"
-                name="lesson-print-mode"
-                value="compact"
-                checked={printMode === "compact"}
-                disabled={!canPrint}
-                onChange={() => setPrintMode("compact")}
-                title={
-                  canPrint
-                    ? undefined
-                    : "Wybierz przystanek i uzupełnij godziny lekcji"
-                }
-                className="mt-1 size-4 accent-bus"
-              />
-              <span className="min-w-0">
-                <span className="block text-sm font-medium text-foreground sm:text-base">
-                  Kompaktowy rozkład do kieszeni
-                </span>
-                <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">
-                  Skrócona wersja rozkładu do wycięcia i schowania do kieszeni
-                </span>
-              </span>
-            </label>
-          </fieldset>
+              <fieldset className="space-y-2">
+                <legend className="sr-only">Rodzaj wydruku</legend>
+                <label
+                  className={cn(
+                    "flex w-full items-start gap-3 rounded-xl border border-border/70 bg-card px-4 py-3.5 text-left transition-colors",
+                    "has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
+                    printMode === "school" && "border-bus/40 bg-muted/40",
+                    !canPrint && "cursor-not-allowed opacity-60",
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="lesson-print-mode"
+                    value="school"
+                    checked={printMode === "school"}
+                    disabled={!canPrint}
+                    onChange={() => setPrintMode("school")}
+                    title={
+                      canPrint
+                        ? undefined
+                        : "Wybierz przystanek i uzupełnij godziny lekcji"
+                    }
+                    className="mt-1 size-4 accent-bus"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-foreground sm:text-base">
+                      Autobus szkolny
+                    </span>
+                    <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">
+                      Pełny rozkład kursów autobusu szkolnego
+                    </span>
+                  </span>
+                </label>
+                <label
+                  className={cn(
+                    "flex w-full items-start gap-3 rounded-xl border border-border/70 bg-card px-4 py-3.5 text-left transition-colors",
+                    "has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
+                    printMode === "school-mzk" && "border-bus/40 bg-muted/40",
+                    !canPrintMzk && "cursor-not-allowed opacity-60",
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="lesson-print-mode"
+                    value="school-mzk"
+                    checked={printMode === "school-mzk"}
+                    disabled={!canPrintMzk}
+                    onChange={() => setPrintMode("school-mzk")}
+                    title={
+                      canPrintMzk
+                        ? undefined
+                        : canPrint
+                          ? "Najpierw ustaw trasę MZK w zakładce MZK"
+                          : "Wybierz przystanek, uzupełnij lekcje i ustaw trasę MZK"
+                    }
+                    className="mt-1 size-4 accent-bus"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-foreground sm:text-base">
+                      Autobus szkolny + MZK
+                    </span>
+                    <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">
+                      Autobus szkolny oraz najbliższe kursy MZK
+                    </span>
+                  </span>
+                </label>
+                <label
+                  className={cn(
+                    "flex w-full items-start gap-3 rounded-xl border border-border/70 bg-card px-4 py-3.5 text-left transition-colors",
+                    "has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
+                    printMode === "compact" && "border-bus/40 bg-muted/40",
+                    !canPrint && "cursor-not-allowed opacity-60",
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="lesson-print-mode"
+                    value="compact"
+                    checked={printMode === "compact"}
+                    disabled={!canPrint}
+                    onChange={() => setPrintMode("compact")}
+                    title={
+                      canPrint
+                        ? undefined
+                        : "Wybierz przystanek i uzupełnij godziny lekcji"
+                    }
+                    className="mt-1 size-4 accent-bus"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-foreground sm:text-base">
+                      Kompaktowy rozkład do kieszeni
+                    </span>
+                    <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">
+                      Skrócona wersja rozkładu do wycięcia i schowania do
+                      kieszeni
+                    </span>
+                  </span>
+                </label>
+              </fieldset>
 
-          {!canPrint ? (
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Uzupełnij godziny lekcji (i wybierz przystanek), żeby wydrukować
-              spersonalizowany plan dojazdów.
-            </p>
-          ) : null}
-          {canPrint && !canPrintMzk ? (
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Wydruk ze szkolnym + MZK wymaga zapisanej trasy w zakładce{" "}
-              <Link
-                href="/mzk"
-                className="font-medium text-asphalt underline underline-offset-2 hover:text-foreground"
+              {!canPrint ? (
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  Uzupełnij godziny lekcji (i wybierz przystanek), żeby
+                  wydrukować spersonalizowany plan dojazdów.
+                </p>
+              ) : null}
+              {canPrint && !canPrintMzk ? (
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Wydruk ze szkolnym + MZK wymaga zapisanej trasy w zakładce{" "}
+                  <Link
+                    href="/mzk"
+                    className="font-medium text-asphalt underline underline-offset-2 hover:text-foreground"
+                  >
+                    MZK
+                  </Link>
+                  . Na kartce pojawi się tylko najbliższy kurs MZK do planu
+                  lekcji.
+                </p>
+              ) : canPrintMzk ? (
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Wariant z MZK dodaje najbliższe połączenia MZK na początku i
+                  końcu trasy, bez pełnego rozkładu linii.
+                </p>
+              ) : null}
+
+              <Button
+                type="button"
+                size="lg"
+                variant="outline"
+                className={actionButtonClass}
+                disabled={!selectedPrintReady}
+                aria-label={
+                  printMode === "school"
+                    ? "Wydrukuj plan dojazdów szkolnych"
+                    : printMode === "school-mzk"
+                      ? "Wydrukuj plan dojazdów szkolnych z najbliższym MZK"
+                      : "Wydrukuj kompaktowy plan dojazdów do kieszeni"
+                }
+                title={
+                  selectedPrintReady
+                    ? undefined
+                    : printMode === "school-mzk"
+                      ? canPrint
+                        ? "Najpierw ustaw trasę MZK w zakładce MZK"
+                        : "Wybierz przystanek, uzupełnij lekcje i ustaw trasę MZK"
+                      : "Wybierz przystanek i uzupełnij godziny lekcji"
+                }
+                onClick={() => handlePrint(printMode)}
               >
-                MZK
-              </Link>
-              . Na kartce pojawi się tylko najbliższy kurs MZK do planu lekcji.
-            </p>
-          ) : canPrintMzk ? (
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Wariant z MZK dodaje najbliższe połączenia MZK na początku i końcu
-              trasy, bez pełnego rozkładu linii.
-            </p>
-          ) : null}
-
-          <Button
-            type="button"
-            size="lg"
-            variant="outline"
-            className={actionButtonClass}
-            disabled={!selectedPrintReady}
-            aria-label={
-              printMode === "school"
-                ? "Wydrukuj plan dojazdów szkolnych"
-                : printMode === "school-mzk"
-                  ? "Wydrukuj plan dojazdów szkolnych z najbliższym MZK"
-                  : "Wydrukuj kompaktowy plan dojazdów do kieszeni"
-            }
-            title={
-              selectedPrintReady
-                ? undefined
-                : printMode === "school-mzk"
-                  ? canPrint
-                    ? "Najpierw ustaw trasę MZK w zakładce MZK"
-                    : "Wybierz przystanek, uzupełnij lekcje i ustaw trasę MZK"
-                  : "Wybierz przystanek i uzupełnij godziny lekcji"
-            }
-            onClick={() => handlePrint(printMode)}
-          >
-            <Printer aria-hidden />
-            Drukuj
-          </Button>
-        </section>
+                <Printer aria-hidden />
+                Drukuj
+              </Button>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </div>
       {stickySaveMounted
         ? createPortal(
