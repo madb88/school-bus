@@ -83,9 +83,14 @@ export function InstallNotifications({
   const isSubscribed = notificationsInBrowser && subscribed === "1";
   const showDenied = notificationsInBrowser && permission === "denied";
   const canToggle =
-    notificationsInBrowser && permission !== "denied" && (isSubscribed || planReady);
+    notificationsInBrowser &&
+    permission !== "denied" &&
+    (isSubscribed || planReady);
   const showNeedPlan =
-    notificationsInBrowser && !isSubscribed && permission !== "denied" && !planReady;
+    notificationsInBrowser &&
+    !isSubscribed &&
+    permission !== "denied" &&
+    !planReady;
   const canTest = notificationsInBrowser && permission !== "denied";
 
   async function togglePush() {
@@ -182,7 +187,10 @@ export function InstallNotifications({
             Zapisz plan na koncie, żeby włączyć powiadomienia.{" "}
             <Link
               href="/lekcje"
-              className={cn(buttonVariants({ variant: "link", size: "sm" }), "h-auto px-0")}
+              className={cn(
+                buttonVariants({ variant: "link", size: "sm" }),
+                "h-auto px-0",
+              )}
             >
               Przejdź do planu lekcji
             </Link>
@@ -228,7 +236,8 @@ export function InstallNotifications({
               Wyślij powiadomienie testowe
             </Button>
             <p className="text-sm text-foreground/80">
-              Na Macu działa w Safari. Na iPhonie dopiero w zainstalowanej aplikacji.
+              Na komputerze działa w przeglądarce. Na telefonie dopiero w
+              zainstalowanej aplikacji.
             </p>
           </div>
         ) : null}

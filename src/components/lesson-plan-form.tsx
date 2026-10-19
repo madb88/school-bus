@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Bus,
+  Check,
   CircleHelp,
   Clock,
   Home,
@@ -711,22 +712,33 @@ export function LessonPlanForm({
             </div>
             {accountPlans.length > 0 ? (
               <div className="flex flex-wrap items-center gap-2.5">
-                <div className="flex min-w-0 flex-1 flex-wrap gap-2 rounded-2xl border border-dashed border-border/70 p-2">
-                  {accountPlans.map((item, index) => (
-                    <button
-                      key={`${item.place}-${item.name ?? ""}-${index}`}
-                      type="button"
-                      onClick={() => selectAccountPlan(index)}
-                      className={cn(
-                        "rounded-full border px-3.5 py-2 text-sm font-medium transition-colors",
-                        index === selectedIndex
-                          ? "border-bus/50 bg-bus/10 text-foreground"
-                          : "border-border/70 bg-background text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      {accountPlanLabel(item, index)}
-                    </button>
-                  ))}
+                <div className="flex min-w-0 flex-1 flex-wrap gap-2 overflow-visible rounded-2xl border border-dashed border-border/70 p-2">
+                  {accountPlans.map((item, index) => {
+                    const selected = index === selectedIndex;
+                    return (
+                      <button
+                        key={`${item.place}-${item.name ?? ""}-${index}`}
+                        type="button"
+                        onClick={() => selectAccountPlan(index)}
+                        className={cn(
+                          "relative rounded-full border px-3.5 py-2 text-sm font-medium transition-colors",
+                          selected
+                            ? "border-bus/50 bg-bus/10 text-foreground"
+                            : "border-border/70 bg-background text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        {accountPlanLabel(item, index)}
+                        {selected ? (
+                          <span
+                            aria-hidden
+                            className="pointer-events-none absolute top-0 right-0 z-10 grid size-4 translate-x-1/3 -translate-y-1/3 place-items-center rounded-full bg-bus text-bus-foreground shadow-xs"
+                          >
+                            <Check className="size-2.5 stroke-[3]" />
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
                   {accountPlans.length < MAX_ACCOUNT_PLANS ? (
                     <button
                       type="button"

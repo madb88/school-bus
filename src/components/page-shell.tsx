@@ -6,14 +6,19 @@ import { cn } from "cn";
 export function PageShell({
   children,
   wide = false,
+  roomy = false,
   header,
 }: {
   children: ReactNode;
   /** Wider content column — used by the schedule filters layout. */
   wide?: boolean;
+  /** Wider mobile horizontal padding — used by the schedule board. */
+  roomy?: boolean;
   /** Shared header column (max-w-6xl) — same width on every page. */
   header?: ReactNode;
 }) {
+  const padX = roomy ? "px-6 sm:px-10" : "px-3 sm:px-10";
+
   return (
     <>
       <main className="relative min-w-0 flex-1 overflow-x-clip">
@@ -22,13 +27,19 @@ export function PageShell({
           className="page-atmosphere pointer-events-none absolute inset-0 print:hidden"
         />
         {header ? (
-          <div className="relative mx-auto mb-4 w-full max-w-6xl px-6 pt-10 sm:px-10 sm:pt-14 md:mb-8 print:hidden">
+          <div
+            className={cn(
+              "relative mx-auto mb-4 w-full max-w-6xl pt-10 sm:pt-14 md:mb-8 print:hidden",
+              padX,
+            )}
+          >
             {header}
           </div>
         ) : null}
         <div
           className={cn(
-            "relative mx-auto w-full min-w-0 px-6 sm:px-10 print:max-w-none print:px-0 print:py-0",
+            "relative mx-auto w-full min-w-0 print:max-w-none print:px-0 print:py-0",
+            padX,
             header ? "pb-10 sm:pb-14" : "py-10 sm:py-14",
             wide ? "max-w-6xl" : "max-w-4xl",
           )}

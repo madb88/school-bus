@@ -20,7 +20,11 @@ export const metadata: Metadata = {
 };
 
 type ProfilePageProps = {
-  searchParams: Promise<{ paid?: string; plus?: string; powiadomienia?: string }>;
+  searchParams: Promise<{
+    paid?: string;
+    plus?: string;
+    powiadomienia?: string;
+  }>;
 };
 
 export default async function ProfilePage({ searchParams }: ProfilePageProps) {
@@ -47,14 +51,8 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
   return (
     <PageShell wide header={<SiteHeader />}>
       <div className="page-enter">
-        <header className="mb-8 space-y-3 sm:mb-10">
+        <header className="mb-4 space-y-3 sm:mb-10">
           <PageEyebrow>Konto</PageEyebrow>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">
-            Profil
-          </h1>
-          <p className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Zarządzaj swoim kontem i planem.
-          </p>
         </header>
 
         <ProfilePanel

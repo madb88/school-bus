@@ -194,20 +194,20 @@ export function ProfilePanel({
     }
   }
 
-  const nav = <AccountNav section={section} onSelect={selectSection} />;
-
   return (
-    <div className="w-full rounded-2xl border border-border/45 bg-card p-5 shadow-[0_1px_2px_color-mix(in_srgb,var(--foreground)_3%,transparent),0_12px_32px_color-mix(in_srgb,var(--bus)_6%,transparent)] sm:p-8 lg:p-9 dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]">
+    <div className="w-full rounded-2xl border border-border/45 bg-card px-3 py-4 shadow-[0_1px_2px_color-mix(in_srgb,var(--foreground)_3%,transparent),0_12px_32px_color-mix(in_srgb,var(--bus)_6%,transparent)] sm:p-8 lg:p-9 dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]">
+      {section !== "logout" ? (
+        <div className="sticky top-0 z-10 -mx-3 mb-4 border-b border-border/40 bg-card/95 px-3 py-2.5 backdrop-blur-sm sm:hidden">
+          <AccountMobileTabs section={section} onSelect={selectSection} />
+        </div>
+      ) : null}
+
       <div className="flex flex-col gap-8 sm:flex-row sm:gap-8 lg:gap-12">
-        <div className="hidden sm:block sm:w-44 sm:shrink-0 lg:w-48">{nav}</div>
+        <div className="hidden sm:block sm:w-44 sm:shrink-0 lg:w-48">
+          <AccountSidebar section={section} onSelect={selectSection} />
+        </div>
 
         <div className="min-w-0 flex-1 space-y-6 sm:border-l sm:border-border/40 sm:pl-8 lg:space-y-7 lg:pl-10">
-          {section === "profil" ||
-          section === "plus" ||
-          section === "powiadomienia" ? (
-            <div className="sm:hidden">{nav}</div>
-          ) : null}
-
           {section === "logout" ? (
             <button
               type="button"
@@ -219,7 +219,12 @@ export function ProfilePanel({
             </button>
           ) : null}
 
-          {section === "profil" ? <ProfileSection email={email} /> : null}
+          {section === "profil" ? (
+            <ProfileSection
+              email={email}
+              onRequestLogout={() => selectSection("logout")}
+            />
+          ) : null}
 
           {section === "plus" ? (
             <PlusSection
@@ -256,7 +261,23 @@ export function ProfilePanel({
   );
 }
 
-function AccountNav({
+const ACCOUNT_TABS: {
+  id: Exclude<Section, "logout">;
+  label: string;
+  shortLabel: string;
+  icon: LucideIcon;
+}[] = [
+  { id: "profil", label: "Profil", shortLabel: "Profil", icon: CircleUser },
+  { id: "plus", label: "Pakiet Plus", shortLabel: "Plus", icon: Crown },
+  {
+    id: "powiadomienia",
+    label: "Powiadomienia",
+    shortLabel: "Powiadomienia",
+    icon: Bell,
+  },
+];
+
+function AccountSidebar({
   section,
   onSelect,
 }: {
@@ -265,30 +286,67 @@ function AccountNav({
 }) {
   return (
     <nav aria-label="Sekcje konta" className="flex flex-col gap-1.5">
-      <MenuButton
-        label="Profil"
-        icon={CircleUser}
-        selected={section === "profil"}
-        onSelect={() => onSelect("profil")}
-      />
-      <MenuButton
-        label="Pakiet Plus"
-        icon={Crown}
-        selected={section === "plus"}
-        onSelect={() => onSelect("plus")}
-      />
-      <MenuButton
-        label="Powiadomienia"
-        icon={Bell}
-        selected={section === "powiadomienia"}
-        onSelect={() => onSelect("powiadomienia")}
-      />
+      {ACCOUNT_TABS.map((tab) => (
+        <MenuButton
+          key={tab.id}
+          label={tab.label}
+          icon={tab.icon}
+          selected={section === tab.id}
+          onSelect={() => onSelect(tab.id)}
+        />
+      ))}
       <MenuButton
         label="Wyloguj"
         icon={LogOut}
         selected={section === "logout"}
         onSelect={() => onSelect("logout")}
       />
+    </nav>
+  );
+}
+
+function AccountMobileTabs({
+  section,
+  onSelect,
+}: {
+  section: Exclude<Section, "logout">;
+  onSelect: (section: Section) => void;
+}) {
+  return (
+    <nav
+      aria-label="Sekcje konta"
+      className="grid grid-cols-3 gap-1"
+    >
+      {ACCOUNT_TABS.map((tab) => {
+        const selected = section === tab.id;
+        const Icon = tab.icon;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            aria-label={tab.label}
+            aria-current={selected ? "page" : undefined}
+            onClick={() => onSelect(tab.id)}
+            className={cn(
+              "flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-center text-[0.7rem] leading-tight font-medium transition-colors",
+              selected
+                ? "bg-secondary font-semibold text-bus-deep dark:bg-bus/15 dark:text-bus"
+                : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+            )}
+          >
+            <Icon
+              aria-hidden
+              className={cn(
+                "size-4 shrink-0",
+                selected ? "text-bus" : "text-muted-foreground",
+              )}
+            />
+            <span className="max-w-full hyphens-auto break-words">
+              {tab.shortLabel}
+            </span>
+          </button>
+        );
+      })}
     </nav>
   );
 }
@@ -329,11 +387,17 @@ function MenuButton({
   );
 }
 
-function ProfileSection({ email }: { email: string }) {
+function ProfileSection({
+  email,
+  onRequestLogout,
+}: {
+  email: string;
+  onRequestLogout: () => void;
+}) {
   return (
     <div className="space-y-7">
       <div className="space-y-2">
-        <h2 className="font-display text-xl font-semibold tracking-tight text-asphalt sm:text-2xl">
+        <h2 className="hidden font-display text-xl font-semibold tracking-tight text-asphalt sm:block sm:text-2xl">
           Profil
         </h2>
         <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
@@ -349,6 +413,16 @@ function ProfileSection({ email }: { email: string }) {
         </p>
       </div>
       <HelpContactCard />
+      <Button
+        type="button"
+        variant="outline"
+        size="lg"
+        className="h-11 w-full gap-2 sm:hidden"
+        onClick={onRequestLogout}
+      >
+        <LogOut aria-hidden className="size-4" />
+        Wyloguj
+      </Button>
     </div>
   );
 }
@@ -1090,7 +1164,7 @@ function NotificationsSection({
   return (
     <div className="space-y-5">
       <div className="space-y-1.5">
-        <h2 className="font-display text-xl font-semibold tracking-tight text-asphalt sm:text-2xl">
+        <h2 className="hidden font-display text-xl font-semibold tracking-tight text-asphalt sm:block sm:text-2xl">
           Powiadomienia
         </h2>
         <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">

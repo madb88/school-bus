@@ -46,7 +46,7 @@ export default async function Home() {
   const accountPlans = plusAccess && user ? user.plans : [];
 
   return (
-    <PageShell wide header={<SiteHeader current="rozklad" />}>
+    <PageShell wide roomy header={<SiteHeader current="rozklad" />}>
       <div className="page-enter">
         {schedule ? (
           <>

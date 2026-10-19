@@ -8,7 +8,7 @@ export function SiteFooter() {
 
   return (
     <footer className="border-t border-border/60 print:hidden">
-      <div className="mx-auto flex max-w-4xl flex-col gap-4 px-6 py-8 sm:px-10">
+      <div className="mx-auto flex max-w-4xl flex-col gap-4 px-3 py-8 sm:px-10">
         <p className="text-sm text-muted-foreground">
           © {year} {siteName}
           <span aria-hidden className="mx-1.5 text-border">
