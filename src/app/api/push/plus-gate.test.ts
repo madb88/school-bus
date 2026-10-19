@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { GET as listByUser } from "./by-user/[userId]/route";
 import { PUT as updateKinds } from "./kinds/route";
 import { PUT as updatePlan } from "./plan/route";
+import { POST as pushStatus } from "./status/route";
 import { DELETE, POST as subscribe } from "./subscribe/route";
+import { PUT as updateSubscription } from "./subscriptions/[id]/route";
 import { POST as sendTest } from "./test/route";
 
 const backendFetch = vi.fn();
@@ -11,6 +14,8 @@ vi.mock("@/lib/auth/backend", () => ({
 }));
 
 const TOKEN = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG";
+const USER_ID = "11111111-1111-4111-8111-111111111111";
+const SUB_ID = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
 
 const subscription = {
   endpoint: "https://push.example/device",
@@ -18,6 +23,7 @@ const subscription = {
 };
 
 const planId = "550e8400-e29b-41d4-a716-446655440000";
+const planIds = [planId];
 
 function jsonRequest(url: string, method: string, body: unknown, cookie?: string) {
   return new Request(url, {
@@ -31,6 +37,16 @@ function jsonRequest(url: string, method: string, body: unknown, cookie?: string
   });
 }
 
+function getRequest(url: string, cookie?: string) {
+  return new Request(url, {
+    method: "GET",
+    headers: {
+      ...(cookie ? { cookie } : {}),
+      "x-forwarded-for": "203.0.113.10",
+    },
+  });
+}
+
 describe("push BFF proxy", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -38,7 +54,7 @@ describe("push BFF proxy", () => {
   });
 
   it("forwards subscribe with session, body, and client IP", async () => {
-    const body = { subscription, planId };
+    const body = { subscription, planIds };
     const response = await subscribe(
       jsonRequest(
         "http://localhost:3000/api/push/subscribe",
@@ -59,7 +75,7 @@ describe("push BFF proxy", () => {
   });
 
   it("forwards plan, kinds, test, and delete with the same proxy shape", async () => {
-    const planBody = { subscription, planId };
+    const planBody = { subscription, planIds };
     const kindsBody = {
       subscription,
       kinds: { departure: true, return: false, schedule: true },
@@ -111,6 +127,99 @@ describe("push BFF proxy", () => {
     });
   });
 
+  it("forwards status, by-user, and subscriptions update", async () => {
+    const cookie = `sb_session=${TOKEN}`;
+    const statusBody = { subscription };
+    const statusData = {
+      subscribed: true,
+      planIds,
+      kinds: { departure: true, return: true, schedule: false },
+    };
+    backendFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      data: statusData,
+    });
+
+    const statusResponse = await pushStatus(
+      jsonRequest(
+        "http://localhost:3000/api/push/status",
+        "POST",
+        statusBody,
+        cookie,
+      ),
+    );
+    expect(statusResponse.status).toBe(200);
+    expect(await statusResponse.json()).toEqual(statusData);
+    expect(backendFetch).toHaveBeenNthCalledWith(1, "/api/v1/push/status", {
+      method: "POST",
+      body: statusBody,
+      sessionToken: TOKEN,
+      clientIp: "203.0.113.10",
+    });
+
+    const devices = [
+      {
+        id: SUB_ID,
+        endpoint: subscription.endpoint,
+        planIds,
+        kinds: { departure: true, return: true, schedule: true },
+      },
+    ];
+    backendFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      data: devices,
+    });
+
+    const listResponse = await listByUser(
+      getRequest(
+        `http://localhost:3000/api/push/by-user/${USER_ID}`,
+        cookie,
+      ),
+      { params: Promise.resolve({ userId: USER_ID }) },
+    );
+    expect(listResponse.status).toBe(200);
+    expect(await listResponse.json()).toEqual(devices);
+    expect(backendFetch).toHaveBeenNthCalledWith(
+      2,
+      `/api/v1/push/by-user/${USER_ID}`,
+      {
+        method: "GET",
+        sessionToken: TOKEN,
+        clientIp: "203.0.113.10",
+      },
+    );
+
+    const patchBody = { planIds, kinds: { departure: false, return: true, schedule: true } };
+    backendFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      data: { ok: true },
+    });
+
+    const updateResponse = await updateSubscription(
+      jsonRequest(
+        `http://localhost:3000/api/push/subscriptions/${SUB_ID}`,
+        "PUT",
+        patchBody,
+        cookie,
+      ),
+      { params: Promise.resolve({ id: SUB_ID }) },
+    );
+    expect(updateResponse.status).toBe(200);
+    expect(backendFetch).toHaveBeenNthCalledWith(
+      3,
+      `/api/v1/push/subscriptions/${SUB_ID}`,
+      {
+        method: "PUT",
+        body: patchBody,
+        sessionToken: TOKEN,
+        clientIp: "203.0.113.10",
+      },
+    );
+  });
+
   it("maps backend detail to {error} and preserves status / Retry-After", async () => {
     backendFetch.mockResolvedValue({
       ok: false,
@@ -122,7 +231,7 @@ describe("push BFF proxy", () => {
       jsonRequest(
         "http://localhost:3000/api/push/subscribe",
         "POST",
-        { subscription, planId },
+        { subscription, planIds },
         `sb_session=${TOKEN}`,
       ),
     );
@@ -141,7 +250,7 @@ describe("push BFF proxy", () => {
       jsonRequest(
         "http://localhost:3000/api/push/plan",
         "PUT",
-        { subscription, planId },
+        { subscription, planIds },
         `sb_session=${TOKEN}`,
       ),
     );
@@ -182,14 +291,14 @@ describe("push BFF proxy", () => {
     const response = await subscribe(
       jsonRequest("http://localhost:3000/api/push/subscribe", "POST", {
         subscription,
-        planId,
+        planIds,
       }),
     );
 
     expect(response.status).toBe(401);
     expect(backendFetch).toHaveBeenCalledWith("/api/v1/push/subscribe", {
       method: "POST",
-      body: { subscription, planId },
+      body: { subscription, planIds },
       sessionToken: undefined,
       clientIp: "203.0.113.10",
     });

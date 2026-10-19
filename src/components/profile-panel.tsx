@@ -27,7 +27,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { FeedbackForm } from "@/components/feedback-form";
-import { InstallNotifications } from "@/components/install-notifications";
+import { NotificationsPanel } from "@/components/notifications-panel";
 import { PlusComplaint } from "@/components/plus-complaint";
 import { Button } from "@/components/ui/button";
 import {
@@ -92,6 +92,7 @@ function scrollToId(id: string) {
 }
 
 export function ProfilePanel({
+  userId,
   email,
   role,
   createdAt,
@@ -101,6 +102,7 @@ export function ProfilePanel({
   focusNotifications,
   pushUiEnabled,
 }: {
+  userId: string;
   email: string;
   role: BackendRole;
   createdAt: string;
@@ -242,6 +244,7 @@ export function ProfilePanel({
           ) : null}
           {section === "powiadomienia" ? (
             <NotificationsSection
+              userId={userId}
               plusAccess={hasPushPlusAccessFromPanel(role, plus)}
               pushUiEnabled={pushUiEnabled}
               accountPlans={plans}
@@ -315,7 +318,7 @@ function AccountMobileTabs({
   return (
     <nav
       aria-label="Sekcje konta"
-      className="grid grid-cols-3 gap-1"
+      className="flex w-full flex-row items-stretch gap-1"
     >
       {ACCOUNT_TABS.map((tab) => {
         const selected = section === tab.id;
@@ -328,7 +331,7 @@ function AccountMobileTabs({
             aria-current={selected ? "page" : undefined}
             onClick={() => onSelect(tab.id)}
             className={cn(
-              "flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-center text-[0.7rem] leading-tight font-medium transition-colors",
+              "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-center text-[0.7rem] leading-tight font-medium transition-colors",
               selected
                 ? "bg-secondary font-semibold text-bus-deep dark:bg-bus/15 dark:text-bus"
                 : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
@@ -1151,11 +1154,13 @@ function PlusSection({
 }
 
 function NotificationsSection({
+  userId,
   plusAccess,
   pushUiEnabled,
   accountPlans,
   onOpenPlus,
 }: {
+  userId: string;
   plusAccess: boolean;
   pushUiEnabled: boolean;
   accountPlans: AccountPlan[];
@@ -1172,7 +1177,7 @@ function NotificationsSection({
         </p>
       </div>
       {pushUiEnabled && plusAccess ? (
-        <InstallNotifications accountPlans={accountPlans} />
+        <NotificationsPanel userId={userId} accountPlans={accountPlans} />
       ) : null}
       {pushUiEnabled && !plusAccess ? (
         <div className="space-y-4 rounded-2xl bg-muted/40 p-5 dark:bg-muted/20">

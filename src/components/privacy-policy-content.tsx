@@ -32,7 +32,7 @@ const SECTIONS: Section[] = [
     paragraphs: [
       "Aplikacja służy do przeglądania rozkładów autobusów szkolnych i wybranych kursów MZK, dopasowania ich do planu lekcji oraz — opcjonalnie — przenoszenia ustawień między urządzeniami, logowania do konta, zakupu Planu Plus i włączania przypomnień.",
       "Podstawowe rozkłady i lokalny plan lekcji działają bez konta. Konto (logowanie adresem e-mail) jest opcjonalne i potrzebne do Planu Plus oraz powiązanych funkcji, w tym powiadomień Web Push i planów lekcji zapisanych na koncie.",
-      "Bez konta (lub bez Planu Plus) plan lekcji pozostaje na Twoim urządzeniu. Przy aktywnym Planie Plus możesz zapisać do pięciu planów lekcji na koncie — są one przechowywane w bazie backendu (MongoDB) i synchronizowane między urządzeniami. Po włączeniu powiadomień (wymaga aktywnego Planu Plus) urządzenie łączy się z wybranym planem konta — serwer korzysta z tego planu do wysyłania przypomnień, bez osobnej kopii planu w rekordzie powiadomień.",
+      "Bez konta (lub bez Planu Plus) plan lekcji pozostaje na Twoim urządzeniu. Przy aktywnym Planie Plus możesz zapisać do pięciu planów lekcji na koncie — są one przechowywane w bazie backendu (MongoDB) i synchronizowane między urządzeniami. Po włączeniu powiadomień (wymaga aktywnego Planu Plus) urządzenie łączy się z jednym lub wieloma wybranymi planami konta — serwer korzysta z tych planów do wysyłania przypomnień, bez osobnej kopii planu w rekordzie powiadomień.",
       "Podanie danych (np. e-mail przy logowaniu lub w formularzu opinii albo włączenie powiadomień) jest dobrowolne.",
     ],
   },
@@ -100,18 +100,18 @@ const SECTIONS: Section[] = [
     title: "7. Powiadomienia Web Push (opcjonalne)",
     paragraphs: [
       "Powiadomienia są funkcją opcjonalną — uruchamianą dopiero wtedy, gdy o to poprosisz, zezwolisz na nie w przeglądarce i masz aktywny Plan Plus oraz sesję logowania.",
-      "Bez powiadomień plan lekcji pozostaje na Twoim urządzeniu (oraz — przy Planie Plus — na koncie). Po włączeniu powiadomień rekord subskrypcji na serwerze wskazuje wybrany plan konta (identyfikator planu), zamiast przechowywać osobną kopię planu lekcji na urządzenie. Przypomnienia korzystają z miejsca i godzin tego planu.",
+      "Bez powiadomień plan lekcji pozostaje na Twoim urządzeniu (oraz — przy Planie Plus — na koncie). Po włączeniu powiadomień rekord subskrypcji na serwerze wskazuje jeden lub więcej wybranych planów konta (lista identyfikatorów), zamiast przechowywać osobną kopię planu lekcji na urządzenie. Przypomnienia korzystają z miejsca i godzin tych planów.",
       "Cel przetwarzania: przypomnienia o odjeździe autobusu szkolnego (ok. 20 minut przed), o autobusie powrotnym (ok. 20 minut przed, gdy podasz godzinę końca lekcji), informacje o zmianie godzin w rozkładzie szkolnym, a także krótkie potwierdzenie włączenia oraz — na żądanie — powiadomienie testowe. Przypomnienia dotyczą autobusu szkolnego, nie kursów MZK.",
     ],
     bullets: [
       "subskrypcja Push z przeglądarki: adres endpointu oraz klucze techniczne (p256dh, auth) potrzebne do zaszyfrowanego dostarczenia powiadomienia,",
       "identyfikator rekordu oparty o skrót (hash) endpointu oraz powiązanie z kontem (userId),",
-      "identyfikator wybranego planu konta (planId) — dane planu (miejsce, godziny) są brane z planów zapisanych na koncie,",
+      "lista identyfikatorów wybranych planów konta (planIds) — dane planów (miejsce, godziny) są brane z planów zapisanych na koncie,",
       "wybrane rodzaje powiadomień (odjazd, powrót, zmiana rozkładu),",
       "dane techniczne do unikania powtórzeń (np. lista już wysłanych przypomnień danego dnia) oraz skrót treści rozkładu szkolnego (do wykrycia zmiany godzin).",
     ],
     afterBullets: [
-      "Te dane subskrypcji są danymi technicznymi służącymi do dostarczenia powiadomienia na konkretne urządzenie. W połączeniu z wybranym planem konta pozwalają wysłać spersonalizowane przypomnienie. Przechowujemy je w magazynie serwera backendu (MongoDB), nie w Redis aplikacji frontowej.",
+      "Te dane subskrypcji są danymi technicznymi służącymi do dostarczenia powiadomienia na konkretne urządzenie. W połączeniu z wybranymi planami konta pozwalają wysłać spersonalizowane przypomnienia. Przechowujemy je w magazynie serwera backendu (MongoDB), nie w Redis aplikacji frontowej.",
       "Rekordy powiadomień na serwerze nie mają automatycznego terminu ważności (TTL). Usuwamy je, gdy wyłączysz powiadomienia w aplikacji, gdy Plan Plus wygaśnie lub zostanie cofnięty (np. po zwrocie płatności), albo gdy dostawca Push zgłosi, że subskrypcja jest już nieaktualna (np. odpowiedź 404/410).",
       "Wysyłkę przypomnień uruchamia zaplanowane zadanie w backendzie aplikacji. Dostawcą kanału Push jest usługa wynikająca z przeglądarki / systemu (adres endpointu), np. Google, Mozilla lub Apple — wyłącznie w zakresie dostarczenia powiadomienia.",
     ],

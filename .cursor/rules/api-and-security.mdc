@@ -32,7 +32,7 @@ alwaysApply: false
 | `api/billing/checkout` | BFF → backend Checkout; sesja wymagana, URL tylko `checkout.stripe.com` |
 | `api/settings-transfer` | create / peek / redeem QR |
 | `api/mzk-departures` | odjazdy MZK z schedule API (`DOWOZY_API_BASE_URL`) |
-| `api/push/subscribe\|plan\|kinds\|test` | BFF → backend `/api/v1/push/*` (Mongo + VAPID); Plus/admin na backendzie |
+| `api/push/subscribe\|plan\|kinds\|test\|status` + `by-user` / `subscriptions/[id]` | BFF → backend `/api/v1/push/*` (Mongo + VAPID); Plus/admin na backendzie; body z `planIds` |
 
 Rozszerzaj te ścieżki zamiast mnożyć równoległe API.
 

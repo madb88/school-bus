@@ -1,8 +1,21 @@
 import { isAccountPlanId } from "@/lib/child-schedule/account-plan";
-import type { PushKinds } from "./kinds";
+import { parsePushKinds, type PushKinds } from "./kinds";
 
 const DISMISS_KEY = "school-bus.pwa-banner.v2";
 const UI_EVENT = "school-bus-pwa-banner";
+
+export type PushStatus = {
+  subscribed: boolean;
+  planIds: string[];
+  kinds: PushKinds | null;
+};
+
+export type PushDevice = {
+  id: string;
+  endpoint: string;
+  planIds: string[];
+  kinds: PushKinds;
+};
 
 export function urlBase64ToUint8Array(value: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (value.length % 4)) % 4);
@@ -93,9 +106,22 @@ export function notifyPwaUi(): void {
   window.dispatchEvent(new Event(UI_EVENT));
 }
 
-/** Backend validates that the plan exists and has usable days. */
-export function planReadyForPush(planId: string | null | undefined): boolean {
-  return isAccountPlanId(planId);
+/** At least one valid account-plan UUID (backend validates ownership / usable days). */
+export function planReadyForPush(planIds: string[] | null | undefined): boolean {
+  if (!Array.isArray(planIds) || planIds.length === 0) return false;
+  return planIds.every(isAccountPlanId);
+}
+
+export function normalizePlanIds(planIds: unknown): string[] {
+  if (!Array.isArray(planIds)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const id of planIds) {
+    if (!isAccountPlanId(id) || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
 }
 
 async function currentSubscription(): Promise<PushSubscription | null> {
@@ -104,11 +130,25 @@ async function currentSubscription(): Promise<PushSubscription | null> {
   return registration.pushManager.getSubscription();
 }
 
-/** Re-point this device's subscription to a different account plan. */
-export async function repointPush(planId: string): Promise<
+/** Current Push endpoint for this browser, if any. */
+export async function getCurrentPushEndpoint(): Promise<string | null> {
+  const subscription = await currentSubscription();
+  return subscription?.endpoint ?? null;
+}
+
+function errorMessage(
+  data: { error?: string } | null,
+  fallback: string,
+): string {
+  return data?.error ?? fallback;
+}
+
+/** Replace this device's linked account plans. */
+export async function setPushPlans(planIds: string[]): Promise<
   { ok: true } | { ok: false; message: string }
 > {
-  if (!isAccountPlanId(planId)) {
+  const ids = normalizePlanIds(planIds);
+  if (ids.length === 0) {
     return { ok: false, message: "Najpierw zapisz plan lekcji na koncie." };
   }
 
@@ -120,15 +160,20 @@ export async function repointPush(planId: string): Promise<
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       subscription: subscription.toJSON(),
-      planId,
+      planIds: ids,
     }),
   });
 
   if (!response.ok) {
-    const data = (await response.json().catch(() => null)) as { error?: string } | null;
+    const data = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
     return {
       ok: false,
-      message: data?.error ?? "Nie udało się przełączyć powiadomień na wybrany plan.",
+      message: errorMessage(
+        data,
+        "Nie udało się zaktualizować planów powiadomień.",
+      ),
     };
   }
 
@@ -136,13 +181,14 @@ export async function repointPush(planId: string): Promise<
 }
 
 export async function enablePush(
-  planId: string,
+  planIds: string[],
   kinds: PushKinds,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
     return { ok: false, message: "Ta przeglądarka nie obsługuje powiadomień." };
   }
-  if (!planReadyForPush(planId)) {
+  const ids = normalizePlanIds(planIds);
+  if (!planReadyForPush(ids)) {
     return { ok: false, message: "Najpierw zapisz plan lekcji na koncie." };
   }
 
@@ -170,17 +216,19 @@ export async function enablePush(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       subscription: subscription.toJSON(),
-      planId,
+      planIds: ids,
       kinds,
     }),
   });
 
   if (!response.ok) {
     if (!existing) await subscription.unsubscribe();
-    const data = (await response.json().catch(() => null)) as { error?: string } | null;
+    const data = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
     return {
       ok: false,
-      message: data?.error ?? "Nie udało się zapisać powiadomień.",
+      message: errorMessage(data, "Nie udało się zapisać powiadomień."),
     };
   }
 
@@ -189,11 +237,154 @@ export async function enablePush(
   return { ok: true };
 }
 
+/** Hydrate this device's push set from the backend (keyed by subscription). */
+export async function getPushStatus(): Promise<PushStatus> {
+  const empty: PushStatus = { subscribed: false, planIds: [], kinds: null };
+  const subscription = await currentSubscription();
+  if (!subscription) return empty;
+
+  const response = await fetch("/api/push/status", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ subscription: subscription.toJSON() }),
+  });
+
+  if (!response.ok) return empty;
+
+  const data = (await response.json().catch(() => null)) as {
+    subscribed?: unknown;
+    planIds?: unknown;
+    kinds?: unknown;
+  } | null;
+
+  const subscribed = data?.subscribed === true;
+  if (subscribed !== pushSubscribed) {
+    pushSubscribed = subscribed;
+    notifyPwaUi();
+  }
+
+  return {
+    subscribed,
+    planIds: normalizePlanIds(data?.planIds),
+    kinds: data?.kinds != null ? parsePushKinds(data.kinds) : null,
+  };
+}
+
+function parsePushDevice(value: unknown): PushDevice | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  if (typeof record.id !== "string" || !record.id) return null;
+  if (typeof record.endpoint !== "string" || !record.endpoint) return null;
+  const planIds = normalizePlanIds(record.planIds);
+  return {
+    id: record.id,
+    endpoint: record.endpoint,
+    planIds,
+    kinds: parsePushKinds(record.kinds),
+  };
+}
+
+/** List this user's push devices (one per endpoint). Needs Plus / admin. */
+export async function listMyDevices(
+  userId: string,
+): Promise<
+  { ok: true; devices: PushDevice[] } | { ok: false; message: string }
+> {
+  if (!userId.trim()) {
+    return { ok: false, message: "Brak identyfikatora konta." };
+  }
+
+  const response = await fetch(
+    `/api/push/by-user/${encodeURIComponent(userId)}`,
+    { method: "GET" },
+  );
+
+  if (!response.ok) {
+    const data = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
+    return {
+      ok: false,
+      message: errorMessage(data, "Nie udało się wczytać urządzeń."),
+    };
+  }
+
+  const data = (await response.json().catch(() => null)) as unknown;
+  const list = Array.isArray(data)
+    ? data
+    : data &&
+        typeof data === "object" &&
+        Array.isArray((data as { devices?: unknown }).devices)
+      ? (data as { devices: unknown[] }).devices
+      : null;
+
+  if (!list) {
+    return { ok: false, message: "Nie udało się wczytać urządzeń." };
+  }
+
+  const devices: PushDevice[] = [];
+  for (const item of list) {
+    const device = parsePushDevice(item);
+    if (device) devices.push(device);
+  }
+  return { ok: true, devices };
+}
+
+/** Update another (or this) device by subscription record id — no device keys. */
+export async function updateDeviceSubscription(
+  id: string,
+  patch: { planIds?: string[]; kinds?: PushKinds },
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (!id.trim()) {
+    return { ok: false, message: "Brak identyfikatora urządzenia." };
+  }
+
+  const body: { planIds?: string[]; kinds?: PushKinds } = {};
+  if (patch.planIds !== undefined) {
+    const ids = normalizePlanIds(patch.planIds);
+    if (ids.length === 0) {
+      return { ok: false, message: "Wybierz przynajmniej jeden plan." };
+    }
+    body.planIds = ids;
+  }
+  if (patch.kinds !== undefined) {
+    body.kinds = patch.kinds;
+  }
+  if (body.planIds === undefined && body.kinds === undefined) {
+    return { ok: false, message: "Brak zmian do zapisania." };
+  }
+
+  const response = await fetch(
+    `/api/push/subscriptions/${encodeURIComponent(id)}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
+
+  if (!response.ok) {
+    const data = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
+    return {
+      ok: false,
+      message: errorMessage(data, "Nie udało się zaktualizować urządzenia."),
+    };
+  }
+
+  return { ok: true };
+}
+
 /** One-off push to this browser. Does not require a lesson plan. */
 export async function sendTestPush(): Promise<
   { ok: true } | { ok: false; message: string }
 > {
-  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+  if (
+    !("serviceWorker" in navigator) ||
+    !("PushManager" in window) ||
+    !("Notification" in window)
+  ) {
     return { ok: false, message: "Ta przeglądarka nie obsługuje powiadomień." };
   }
 
@@ -219,7 +410,10 @@ export async function sendTestPush(): Promise<
         applicationServerKey: urlBase64ToUint8Array(publicKey),
       }));
   } catch {
-    return { ok: false, message: "Nie udało się włączyć powiadomień w tej przeglądarce." };
+    return {
+      ok: false,
+      message: "Nie udało się włączyć powiadomień w tej przeglądarce.",
+    };
   }
 
   const response = await fetch("/api/push/test", {
@@ -230,10 +424,15 @@ export async function sendTestPush(): Promise<
 
   if (!response.ok) {
     if (!existing) await subscription.unsubscribe();
-    const data = (await response.json().catch(() => null)) as { error?: string } | null;
+    const data = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
     return {
       ok: false,
-      message: data?.error ?? "Nie udało się wysłać powiadomienia testowego.",
+      message: errorMessage(
+        data,
+        "Nie udało się wysłać powiadomienia testowego.",
+      ),
     };
   }
 
@@ -256,10 +455,12 @@ export async function syncStoredPushKinds(kinds: PushKinds): Promise<
   });
 
   if (!response.ok) {
-    const data = (await response.json().catch(() => null)) as { error?: string } | null;
+    const data = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
     return {
       ok: false,
-      message: data?.error ?? "Nie udało się zapisać wyboru powiadomień.",
+      message: errorMessage(data, "Nie udało się zapisać wyboru powiadomień."),
     };
   }
 

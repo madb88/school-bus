@@ -66,6 +66,7 @@ import {
   ACCOUNT_PLAN_NAME_MAX,
   accountPlanLabel,
   fromAccountPlan,
+  isAccountPlanId,
   toAccountPlan,
   type AccountPlan,
 } from "@/lib/child-schedule/account-plan";
@@ -96,7 +97,7 @@ import { useLessonPlan } from "@/lib/child-schedule/use-lesson-plan";
 import { hasConfiguredMzkRoute } from "@/lib/mzk/route-storage";
 import type { MzkSchedule } from "@/lib/mzk/types";
 import { useMzkRoutePreference } from "@/lib/mzk/use-mzk-route";
-import { disablePush, repointPush } from "@/lib/push/browser";
+import { disablePush, getPushStatus, setPushPlans } from "@/lib/push/browser";
 
 const cardClass =
   "space-y-5 rounded-xl border border-border/70 bg-card/90 p-4 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] dark:shadow-[0_1px_0_rgba(0,0,0,0.35)] sm:p-6";
@@ -166,25 +167,33 @@ function mirrorPlanToDevice(plan: ChildLessonPlan) {
   if (plan.place) savePreferredPlace(plan.place);
 }
 
-async function syncPushLink(
+/** Drop deleted plan ids from this device's push set (or disable when none remain). */
+async function syncPushAfterPlanSave(
   plans: AccountPlan[],
-  selectedId: string | null,
   opts?: { toastOnChange?: boolean },
 ): Promise<void> {
-  if (!selectedId) {
+  const remainingIds = plans
+    .map((plan) => plan.id)
+    .filter((id): id is string => isAccountPlanId(id));
+
+  const status = await getPushStatus();
+  if (!status.subscribed) return;
+
+  const next = status.planIds.filter((id) => remainingIds.includes(id));
+  if (next.length === 0) {
     await disablePush();
     if (opts?.toastOnChange) {
-      toast.message("Powiadomienia wyłączone (usunięto plan)");
+      toast.message("Powiadomienia wyłączono (usunięto plan)");
     }
     return;
   }
-  const result = await repointPush(selectedId);
+
+  if (next.length === status.planIds.length) return;
+
+  const result = await setPushPlans(next);
   if (!result.ok) return;
   if (opts?.toastOnChange) {
-    const index = indexOfPlanId(plans, selectedId);
-    const plan = plans[index];
-    const label = plan ? accountPlanLabel(plan, index) : "wybrany plan";
-    toast.message(`Powiadomienia przełączono na: ${label}`);
+    toast.message("Zaktualizowano powiadomienia (usunięto plan)");
   }
 }
 
@@ -408,9 +417,6 @@ export function LessonPlanForm({
       const local = fromAccountPlan(next);
       setDraft(null);
       mirrorPlanToDevice(local);
-      if (next.id) {
-        void syncPushLink(nextPlans, next.id);
-      }
     } else {
       saveSelectedPlanId(null);
       setPlanName("");
@@ -520,7 +526,7 @@ export function LessonPlanForm({
     } else {
       clearLessonPlan();
     }
-    await syncPushLink(saved, selectedId, {
+    await syncPushAfterPlanSave(saved, {
       toastOnChange: opts?.toastPushChange,
     });
     setDraft(null);

@@ -56,6 +56,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
         </header>
 
         <ProfilePanel
+          userId={user.userId}
           email={user.email}
           role={user.role}
           createdAt={user.createdAt}
