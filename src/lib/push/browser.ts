@@ -29,6 +29,38 @@ export function urlBase64ToUint8Array(value: string): Uint8Array<ArrayBuffer> {
   return output;
 }
 
+/** Uncompressed P-256 point: 65 bytes, leading 0x04 (WebKit rejects anything else). */
+export function parseApplicationServerKey(
+  value: string,
+): Uint8Array<ArrayBuffer> | null {
+  try {
+    const key = urlBase64ToUint8Array(value.trim());
+    if (key.byteLength !== 65 || key[0] !== 0x04) return null;
+    return key;
+  } catch {
+    return null;
+  }
+}
+
+function pushClientErrorMessage(error: unknown): string {
+  const name =
+    error instanceof DOMException || error instanceof Error ? error.name : "";
+  switch (name) {
+    case "NotAllowedError":
+      return "Brak zgody na powiadomienia.";
+    case "InvalidStateError":
+      return "Service worker nie jest gotowy. Zamknij aplikację i otwórz ją ponownie z ikony, potem spróbuj znów.";
+    case "InvalidAccessError":
+      return "Powiadomienia nie są poprawnie skonfigurowane (klucz VAPID).";
+    case "AbortError":
+      return "Przeglądarka przerwała włączanie. Zamknij aplikację z wielozadaniowości, otwórz z ikony i spróbuj ponownie.";
+    case "NotSupportedError":
+      return "Ta przeglądarka nie obsługuje powiadomień push.";
+    default:
+      return "Nie udało się włączyć powiadomień w tej przeglądarce.";
+  }
+}
+
 export function isIosDevice(): boolean {
   const userAgent = window.navigator.userAgent;
   const iOS = /iPad|iPhone|iPod/.test(userAgent);
@@ -124,6 +156,13 @@ export function normalizePlanIds(planIds: unknown): string[] {
   return out;
 }
 
+let registrationWarm: Promise<ServiceWorkerRegistration> | null = null;
+
+/** @internal Vitest only — clears the SW registration warm cache between tests. */
+export function resetPushRegistrationWarmForTests(): void {
+  registrationWarm = null;
+}
+
 /**
  * Ensure `/sw.js` is registered before waiting on `ready`.
  * On iOS PWA a first-tap enable can race the layout `PwaRegister` effect;
@@ -135,13 +174,82 @@ async function ensurePushRegistration(): Promise<ServiceWorkerRegistration> {
   if (!existing) {
     await navigator.serviceWorker.register("/sw.js", { scope: "/" });
   }
-  return navigator.serviceWorker.ready;
+  const registration = await navigator.serviceWorker.ready;
+  if (!registration.active) {
+    throw new DOMException(
+      "Subscribing for push requires an active service worker",
+      "InvalidStateError",
+    );
+  }
+  if (!registration.pushManager) {
+    throw new DOMException(
+      "PushManager is not available on this registration",
+      "NotSupportedError",
+    );
+  }
+  return registration;
+}
+
+async function resolvePushRegistration(): Promise<ServiceWorkerRegistration> {
+  if (!registrationWarm) {
+    registrationWarm = ensurePushRegistration().catch((error) => {
+      registrationWarm = null;
+      throw error;
+    });
+  }
+  return registrationWarm;
+}
+
+/** Prefetch SW so the tap handler can call `subscribe()` sooner (iOS gesture). */
+export function warmPushServiceWorker(): void {
+  if (!("serviceWorker" in navigator)) return;
+  void resolvePushRegistration().catch(() => {
+    // Private mode / unsupported — enablePush will surface a clear error.
+  });
+}
+
+/**
+ * Prefer `pushManager.subscribe()` as the permission prompt (WebKit).
+ * Do not call `Notification.requestPermission()` first — that burns the
+ * user gesture; slow work before `subscribe()` then fails on iOS.
+ */
+async function subscribePushManager(
+  registration: ServiceWorkerRegistration,
+  applicationServerKey: Uint8Array<ArrayBuffer>,
+): Promise<{ subscription: PushSubscription; created: boolean }> {
+  const existing = await registration.pushManager.getSubscription();
+  if (existing) {
+    return { subscription: existing, created: false };
+  }
+
+  try {
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey,
+    });
+    return { subscription, created: true };
+  } catch (error) {
+    // Stale subscription with a different VAPID key.
+    if (
+      error instanceof DOMException &&
+      error.name === "InvalidStateError"
+    ) {
+      const stale = await registration.pushManager.getSubscription();
+      if (stale) await stale.unsubscribe();
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey,
+      });
+      return { subscription, created: true };
+    }
+    throw error;
+  }
 }
 
 async function currentSubscription(): Promise<PushSubscription | null> {
   if (!("serviceWorker" in navigator)) return null;
   try {
-    const registration = await ensurePushRegistration();
+    const registration = await resolvePushRegistration();
     return registration.pushManager.getSubscription();
   } catch {
     return null;
@@ -214,30 +322,30 @@ export async function enablePush(
   if (!publicKey) {
     return { ok: false, message: "Powiadomienia nie są jeszcze skonfigurowane." };
   }
-
-  const permission = await Notification.requestPermission();
-  notifyPwaUi();
-  if (permission !== "granted") {
-    return { ok: false, message: "Brak zgody na powiadomienia." };
-  }
-
-  let existing: PushSubscription | null = null;
-  let subscription: PushSubscription;
-  try {
-    const registration = await ensurePushRegistration();
-    existing = await registration.pushManager.getSubscription();
-    subscription =
-      existing ??
-      (await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey),
-      }));
-  } catch {
+  const applicationServerKey = parseApplicationServerKey(publicKey);
+  if (!applicationServerKey) {
     return {
       ok: false,
-      message: "Nie udało się włączyć powiadomień w tej przeglądarce.",
+      message: "Powiadomienia nie są poprawnie skonfigurowane (klucz VAPID).",
     };
   }
+
+  // WebKit: let subscribe() own the permission prompt; keep it close to the tap.
+  let created = false;
+  let subscription: PushSubscription;
+  try {
+    const registration = await resolvePushRegistration();
+    const result = await subscribePushManager(
+      registration,
+      applicationServerKey,
+    );
+    subscription = result.subscription;
+    created = result.created;
+  } catch (error) {
+    notifyPwaUi();
+    return { ok: false, message: pushClientErrorMessage(error) };
+  }
+  notifyPwaUi();
 
   let response: Response;
   try {
@@ -251,7 +359,7 @@ export async function enablePush(
       }),
     });
   } catch {
-    if (!existing) {
+    if (created) {
       try {
         await subscription.unsubscribe();
       } catch {
@@ -262,7 +370,7 @@ export async function enablePush(
   }
 
   if (!response.ok) {
-    if (!existing) {
+    if (created) {
       try {
         await subscription.unsubscribe();
       } catch {
@@ -438,30 +546,29 @@ export async function sendTestPush(): Promise<
   if (!publicKey) {
     return { ok: false, message: "Powiadomienia nie są jeszcze skonfigurowane." };
   }
-
-  const permission = await Notification.requestPermission();
-  notifyPwaUi();
-  if (permission !== "granted") {
-    return { ok: false, message: "Brak zgody na powiadomienia." };
-  }
-
-  let existing: PushSubscription | null = null;
-  let subscription: PushSubscription;
-  try {
-    const registration = await ensurePushRegistration();
-    existing = await registration.pushManager.getSubscription();
-    subscription =
-      existing ??
-      (await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey),
-      }));
-  } catch {
+  const applicationServerKey = parseApplicationServerKey(publicKey);
+  if (!applicationServerKey) {
     return {
       ok: false,
-      message: "Nie udało się włączyć powiadomień w tej przeglądarce.",
+      message: "Powiadomienia nie są poprawnie skonfigurowane (klucz VAPID).",
     };
   }
+
+  let created = false;
+  let subscription: PushSubscription;
+  try {
+    const registration = await resolvePushRegistration();
+    const result = await subscribePushManager(
+      registration,
+      applicationServerKey,
+    );
+    subscription = result.subscription;
+    created = result.created;
+  } catch (error) {
+    notifyPwaUi();
+    return { ok: false, message: pushClientErrorMessage(error) };
+  }
+  notifyPwaUi();
 
   const response = await fetch("/api/push/test", {
     method: "POST",
@@ -470,7 +577,13 @@ export async function sendTestPush(): Promise<
   });
 
   if (!response.ok) {
-    if (!existing) await subscription.unsubscribe();
+    if (created) {
+      try {
+        await subscription.unsubscribe();
+      } catch {
+        // ignore
+      }
+    }
     const data = (await response.json().catch(() => null)) as {
       error?: string;
     } | null;

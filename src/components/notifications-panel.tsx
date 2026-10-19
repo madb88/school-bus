@@ -24,6 +24,7 @@ import {
   subscribePwaUi,
   syncStoredPushKinds,
   updateDeviceSubscription,
+  warmPushServiceWorker,
   type PushDevice,
 } from "@/lib/push/browser";
 import {
@@ -156,6 +157,10 @@ export function NotificationsPanel({
     }
     setDevices(listResult.devices);
   }
+
+  useEffect(() => {
+    warmPushServiceWorker();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

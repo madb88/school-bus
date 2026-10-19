@@ -3,12 +3,17 @@ import {
   enablePush,
   getPushStatus,
   normalizePlanIds,
+  parseApplicationServerKey,
   planReadyForPush,
+  resetPushRegistrationWarmForTests,
   setPushPlans,
 } from "./browser";
 
 const PLAN_ID = "550e8400-e29b-41d4-a716-446655440000";
 const PLAN_ID_2 = "660e8400-e29b-41d4-a716-446655440001";
+/** Valid uncompressed P-256 VAPID public key (65 bytes, leading 0x04). */
+const VAPID_PUBLIC_KEY =
+  "BA2RgoeKvCjWFPtv_GSwA1jBUXVlKhanYRkYX1cE3l55yf8U1yQjcpoNwYgozjMKhSB40rglSF2dAQzszThCZQw";
 
 describe("planReadyForPush / normalizePlanIds", () => {
   it("requires a non-empty list of UUID planIds", () => {
@@ -43,15 +48,15 @@ describe("enablePush / setPushPlans / getPushStatus bodies", () => {
   beforeEach(() => {
     fetchMock.mockReset();
     unsubscribe.mockReset();
+    resetPushRegistrationWarmForTests();
     vi.stubGlobal("fetch", fetchMock);
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY =
-      "BPtestpublickeyfortests0123456789abcdefghijklmnopqrs";
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY = VAPID_PUBLIC_KEY;
 
     const pushManager = {
       getSubscription: vi.fn().mockResolvedValue(subscription),
       subscribe: vi.fn().mockResolvedValue(subscription),
     };
-    const registration = { pushManager };
+    const registration = { pushManager, active: {} };
     vi.stubGlobal("navigator", {
       serviceWorker: {
         getRegistration: vi.fn().mockResolvedValue(registration),
@@ -75,6 +80,7 @@ describe("enablePush / setPushPlans / getPushStatus bodies", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    resetPushRegistrationWarmForTests();
     delete process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   });
 
@@ -152,11 +158,13 @@ describe("enablePush / setPushPlans / getPushStatus bodies", () => {
   });
 
   it("returns a browser message when PushManager.subscribe throws", async () => {
+    resetPushRegistrationWarmForTests();
+    const abort = new DOMException("aborted", "AbortError");
     const pushManager = {
       getSubscription: vi.fn().mockResolvedValue(null),
-      subscribe: vi.fn().mockRejectedValue(new Error("AbortError")),
+      subscribe: vi.fn().mockRejectedValue(abort),
     };
-    const registration = { pushManager };
+    const registration = { pushManager, active: {} };
     vi.stubGlobal("navigator", {
       serviceWorker: {
         getRegistration: vi.fn().mockResolvedValue(registration),
@@ -171,19 +179,20 @@ describe("enablePush / setPushPlans / getPushStatus bodies", () => {
       schedule: false,
     });
 
-    expect(result).toEqual({
-      ok: false,
-      message: "Nie udało się włączyć powiadomień w tej przeglądarce.",
-    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.message).toContain("Przeglądarka przerwała włączanie");
+    }
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("registers the service worker when none is active yet", async () => {
+    resetPushRegistrationWarmForTests();
     const pushManager = {
       getSubscription: vi.fn().mockResolvedValue(null),
       subscribe: vi.fn().mockResolvedValue(subscription),
     };
-    const registration = { pushManager };
+    const registration = { pushManager, active: {} };
     const register = vi.fn().mockResolvedValue(registration);
     vi.stubGlobal("navigator", {
       serviceWorker: {
@@ -206,6 +215,23 @@ describe("enablePush / setPushPlans / getPushStatus bodies", () => {
     expect(result).toEqual({ ok: true });
     expect(register).toHaveBeenCalledWith("/sw.js", { scope: "/" });
     expect(fetchMock).toHaveBeenCalled();
+  });
+
+  it("rejects a malformed VAPID public key before subscribe", async () => {
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY = "not-a-real-key";
+    expect(parseApplicationServerKey("not-a-real-key")).toBeNull();
+
+    const result = await enablePush([PLAN_ID], {
+      departure: true,
+      return: true,
+      schedule: false,
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      message: "Powiadomienia nie są poprawnie skonfigurowane (klucz VAPID).",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("POSTs status and returns subscribed planIds", async () => {
