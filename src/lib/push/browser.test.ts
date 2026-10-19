@@ -183,7 +183,10 @@ describe("enablePush / setPushPlans / getPushStatus bodies", () => {
     if (!result.ok) {
       expect(result.message).toContain("Przeglądarka przerwała włączanie");
     }
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      "/api/push/subscribe",
+      expect.anything(),
+    );
   });
 
   it("registers the service worker when none is active yet", async () => {
@@ -229,9 +232,8 @@ describe("enablePush / setPushPlans / getPushStatus bodies", () => {
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.message).toContain("Klucz VAPID w aplikacji jest niepoprawny");
+      expect(result.message).toContain("Brak poprawnego publicznego klucza VAPID");
     }
-    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("accepts a quoted VAPID public key from env", () => {

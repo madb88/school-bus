@@ -1,5 +1,15 @@
 import { isAccountPlanId } from "@/lib/child-schedule/account-plan";
 import { parsePushKinds, type PushKinds } from "./kinds";
+import {
+  parseApplicationServerKey,
+  urlBase64ToUint8Array,
+} from "./vapid-key";
+
+export {
+  normalizeVapidPublicKey,
+  parseApplicationServerKey,
+  urlBase64ToUint8Array,
+} from "./vapid-key";
 
 const DISMISS_KEY = "school-bus.pwa-banner.v2";
 const UI_EVENT = "school-bus-pwa-banner";
@@ -16,43 +26,6 @@ export type PushDevice = {
   planIds: string[];
   kinds: PushKinds;
 };
-
-export function urlBase64ToUint8Array(value: string): Uint8Array<ArrayBuffer> {
-  const padding = "=".repeat((4 - (value.length % 4)) % 4);
-  const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = atob(base64);
-  const buffer = new ArrayBuffer(raw.length);
-  const output = new Uint8Array(buffer);
-  for (let index = 0; index < raw.length; index += 1) {
-    output[index] = raw.charCodeAt(index);
-  }
-  return output;
-}
-
-/** Strip quotes / whitespace that sneak in from .env or Vercel env UI. */
-export function normalizeVapidPublicKey(value: string): string {
-  let key = value.trim();
-  if (
-    (key.startsWith('"') && key.endsWith('"')) ||
-    (key.startsWith("'") && key.endsWith("'"))
-  ) {
-    key = key.slice(1, -1).trim();
-  }
-  return key;
-}
-
-/** Uncompressed P-256 point: 65 bytes, leading 0x04 (WebKit rejects anything else). */
-export function parseApplicationServerKey(
-  value: string,
-): Uint8Array<ArrayBuffer> | null {
-  try {
-    const key = urlBase64ToUint8Array(normalizeVapidPublicKey(value));
-    if (key.byteLength !== 65 || key[0] !== 0x04) return null;
-    return key;
-  } catch {
-    return null;
-  }
-}
 
 function pushClientErrorMessage(error: unknown): string {
   const name =
@@ -169,10 +142,52 @@ export function normalizePlanIds(planIds: unknown): string[] {
 }
 
 let registrationWarm: Promise<ServiceWorkerRegistration> | null = null;
+let vapidPublicKeyWarm: string | null = null;
+let vapidPublicKeyWarmPromise: Promise<string | null> | null = null;
 
-/** @internal Vitest only — clears the SW registration warm cache between tests. */
+/** @internal Vitest only — clears the SW / VAPID warm caches between tests. */
 export function resetPushRegistrationWarmForTests(): void {
   registrationWarm = null;
+  vapidPublicKeyWarm = null;
+  vapidPublicKeyWarmPromise = null;
+}
+
+async function fetchRuntimeVapidPublicKey(): Promise<string | null> {
+  try {
+    const response = await fetch("/api/push/vapid-public", {
+      cache: "no-store",
+    });
+    if (!response?.ok) return null;
+    const data = (await response.json()) as { publicKey?: unknown };
+    if (typeof data.publicKey !== "string") return null;
+    return parseApplicationServerKey(data.publicKey) ? data.publicKey : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Runtime key (Railway) with NEXT_PUBLIC fallback for local/tests. */
+async function resolveVapidPublicKey(): Promise<string | null> {
+  if (vapidPublicKeyWarm) return vapidPublicKeyWarm;
+  if (!vapidPublicKeyWarmPromise) {
+    vapidPublicKeyWarmPromise = (async () => {
+      const fromApi = await fetchRuntimeVapidPublicKey();
+      if (fromApi) {
+        vapidPublicKeyWarm = fromApi;
+        return fromApi;
+      }
+      const fromEnv = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (fromEnv && parseApplicationServerKey(fromEnv)) {
+        vapidPublicKeyWarm = fromEnv;
+        return fromEnv;
+      }
+      return null;
+    })().finally(() => {
+      // Allow retry after a failed warm (missing env during early boot).
+      if (!vapidPublicKeyWarm) vapidPublicKeyWarmPromise = null;
+    });
+  }
+  return vapidPublicKeyWarmPromise;
 }
 
 /**
@@ -212,8 +227,9 @@ async function resolvePushRegistration(): Promise<ServiceWorkerRegistration> {
   return registrationWarm;
 }
 
-/** Prefetch SW so the tap handler can call `subscribe()` sooner (iOS gesture). */
+/** Prefetch SW + VAPID so the tap handler can `subscribe()` sooner (iOS gesture). */
 export function warmPushServiceWorker(): void {
+  void resolveVapidPublicKey();
   if (!("serviceWorker" in navigator)) return;
   void resolvePushRegistration().catch(() => {
     // Private mode / unsupported — enablePush will surface a clear error.
@@ -330,16 +346,20 @@ export async function enablePush(
     return { ok: false, message: "Najpierw zapisz plan lekcji na koncie." };
   }
 
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  if (!publicKey?.trim()) {
-    return { ok: false, message: "Powiadomienia nie są jeszcze skonfigurowane." };
+  const publicKey = await resolveVapidPublicKey();
+  if (!publicKey) {
+    return {
+      ok: false,
+      message:
+        "Brak poprawnego publicznego klucza VAPID na serwerze (P-256). Ustaw NEXT_PUBLIC_VAPID_PUBLIC_KEY w Variables serwisu Next na Railway.",
+    };
   }
   const applicationServerKey = parseApplicationServerKey(publicKey);
   if (!applicationServerKey) {
     return {
       ok: false,
       message:
-        "Klucz VAPID w aplikacji jest niepoprawny (oczekiwany publiczny P-256). Zredeployuj Next po zmianie NEXT_PUBLIC_VAPID_PUBLIC_KEY.",
+        "Brak poprawnego publicznego klucza VAPID na serwerze (P-256). Ustaw NEXT_PUBLIC_VAPID_PUBLIC_KEY w Variables serwisu Next na Railway.",
     };
   }
 
@@ -555,16 +575,20 @@ export async function sendTestPush(): Promise<
     return { ok: false, message: "Ta przeglądarka nie obsługuje powiadomień." };
   }
 
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  if (!publicKey?.trim()) {
-    return { ok: false, message: "Powiadomienia nie są jeszcze skonfigurowane." };
+  const publicKey = await resolveVapidPublicKey();
+  if (!publicKey) {
+    return {
+      ok: false,
+      message:
+        "Brak poprawnego publicznego klucza VAPID na serwerze (P-256). Ustaw NEXT_PUBLIC_VAPID_PUBLIC_KEY w Variables serwisu Next na Railway.",
+    };
   }
   const applicationServerKey = parseApplicationServerKey(publicKey);
   if (!applicationServerKey) {
     return {
       ok: false,
       message:
-        "Klucz VAPID w aplikacji jest niepoprawny (oczekiwany publiczny P-256). Zredeployuj Next po zmianie NEXT_PUBLIC_VAPID_PUBLIC_KEY.",
+        "Brak poprawnego publicznego klucza VAPID na serwerze (P-256). Ustaw NEXT_PUBLIC_VAPID_PUBLIC_KEY w Variables serwisu Next na Railway.",
     };
   }
 
