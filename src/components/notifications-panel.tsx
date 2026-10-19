@@ -266,6 +266,8 @@ export function NotificationsPanel({
         description: "Dostaniesz tylko te rodzaje, które są zaznaczone.",
       });
       await reloadDevices();
+    } catch {
+      toast.error("Nie udało się zmienić powiadomień. Spróbuj ponownie.");
     } finally {
       setPending(false);
     }

@@ -51,9 +51,12 @@ describe("enablePush / setPushPlans / getPushStatus bodies", () => {
       getSubscription: vi.fn().mockResolvedValue(subscription),
       subscribe: vi.fn().mockResolvedValue(subscription),
     };
+    const registration = { pushManager };
     vi.stubGlobal("navigator", {
       serviceWorker: {
-        ready: Promise.resolve({ pushManager }),
+        getRegistration: vi.fn().mockResolvedValue(registration),
+        register: vi.fn().mockResolvedValue(registration),
+        ready: Promise.resolve(registration),
       },
     });
     vi.stubGlobal("Notification", {
@@ -146,6 +149,63 @@ describe("enablePush / setPushPlans / getPushStatus bodies", () => {
       ok: false,
       message: "Nie znaleziono wybranego planu.",
     });
+  });
+
+  it("returns a browser message when PushManager.subscribe throws", async () => {
+    const pushManager = {
+      getSubscription: vi.fn().mockResolvedValue(null),
+      subscribe: vi.fn().mockRejectedValue(new Error("AbortError")),
+    };
+    const registration = { pushManager };
+    vi.stubGlobal("navigator", {
+      serviceWorker: {
+        getRegistration: vi.fn().mockResolvedValue(registration),
+        register: vi.fn().mockResolvedValue(registration),
+        ready: Promise.resolve(registration),
+      },
+    });
+
+    const result = await enablePush([PLAN_ID], {
+      departure: true,
+      return: true,
+      schedule: false,
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      message: "Nie udało się włączyć powiadomień w tej przeglądarce.",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("registers the service worker when none is active yet", async () => {
+    const pushManager = {
+      getSubscription: vi.fn().mockResolvedValue(null),
+      subscribe: vi.fn().mockResolvedValue(subscription),
+    };
+    const registration = { pushManager };
+    const register = vi.fn().mockResolvedValue(registration);
+    vi.stubGlobal("navigator", {
+      serviceWorker: {
+        getRegistration: vi.fn().mockResolvedValue(undefined),
+        register,
+        ready: Promise.resolve(registration),
+      },
+    });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true }),
+    });
+
+    const result = await enablePush([PLAN_ID], {
+      departure: true,
+      return: true,
+      schedule: false,
+    });
+
+    expect(result).toEqual({ ok: true });
+    expect(register).toHaveBeenCalledWith("/sw.js", { scope: "/" });
+    expect(fetchMock).toHaveBeenCalled();
   });
 
   it("POSTs status and returns subscribed planIds", async () => {

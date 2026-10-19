@@ -124,10 +124,28 @@ export function normalizePlanIds(planIds: unknown): string[] {
   return out;
 }
 
+/**
+ * Ensure `/sw.js` is registered before waiting on `ready`.
+ * On iOS PWA a first-tap enable can race the layout `PwaRegister` effect;
+ * without an active worker `serviceWorker.ready` never settles and no
+ * `/api/push/subscribe` request is sent.
+ */
+async function ensurePushRegistration(): Promise<ServiceWorkerRegistration> {
+  const existing = await navigator.serviceWorker.getRegistration("/");
+  if (!existing) {
+    await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+  }
+  return navigator.serviceWorker.ready;
+}
+
 async function currentSubscription(): Promise<PushSubscription | null> {
   if (!("serviceWorker" in navigator)) return null;
-  const registration = await navigator.serviceWorker.ready;
-  return registration.pushManager.getSubscription();
+  try {
+    const registration = await ensurePushRegistration();
+    return registration.pushManager.getSubscription();
+  } catch {
+    return null;
+  }
 }
 
 /** Current Push endpoint for this browser, if any. */
@@ -198,31 +216,59 @@ export async function enablePush(
   }
 
   const permission = await Notification.requestPermission();
+  notifyPwaUi();
   if (permission !== "granted") {
     return { ok: false, message: "Brak zgody na powiadomienia." };
   }
 
-  const registration = await navigator.serviceWorker.ready;
-  const existing = await registration.pushManager.getSubscription();
-  const subscription =
-    existing ??
-    (await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicKey),
-    }));
+  let existing: PushSubscription | null = null;
+  let subscription: PushSubscription;
+  try {
+    const registration = await ensurePushRegistration();
+    existing = await registration.pushManager.getSubscription();
+    subscription =
+      existing ??
+      (await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      }));
+  } catch {
+    return {
+      ok: false,
+      message: "Nie udało się włączyć powiadomień w tej przeglądarce.",
+    };
+  }
 
-  const response = await fetch("/api/push/subscribe", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      subscription: subscription.toJSON(),
-      planIds: ids,
-      kinds,
-    }),
-  });
+  let response: Response;
+  try {
+    response = await fetch("/api/push/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        subscription: subscription.toJSON(),
+        planIds: ids,
+        kinds,
+      }),
+    });
+  } catch {
+    if (!existing) {
+      try {
+        await subscription.unsubscribe();
+      } catch {
+        // ignore
+      }
+    }
+    return { ok: false, message: "Nie udało się połączyć z serwerem." };
+  }
 
   if (!response.ok) {
-    if (!existing) await subscription.unsubscribe();
+    if (!existing) {
+      try {
+        await subscription.unsubscribe();
+      } catch {
+        // ignore
+      }
+    }
     const data = (await response.json().catch(() => null)) as {
       error?: string;
     } | null;
@@ -399,10 +445,11 @@ export async function sendTestPush(): Promise<
     return { ok: false, message: "Brak zgody na powiadomienia." };
   }
 
-  const registration = await navigator.serviceWorker.ready;
-  const existing = await registration.pushManager.getSubscription();
-  let subscription = existing;
+  let existing: PushSubscription | null = null;
+  let subscription: PushSubscription;
   try {
+    const registration = await ensurePushRegistration();
+    existing = await registration.pushManager.getSubscription();
     subscription =
       existing ??
       (await registration.pushManager.subscribe({
