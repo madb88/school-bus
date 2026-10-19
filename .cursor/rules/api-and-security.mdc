@@ -14,8 +14,8 @@ alwaysApply: false
 
 ## Sekrety
 
-- Tylko po stronie serwera: `RESEND_*`, `TURNSTILE_SECRET_KEY`, `SETTINGS_TRANSFER_SECRET`, `BACKEND_API_URL`, `BACKEND_SERVICE_KEY`, `VAPID_PRIVATE_KEY`, `QSTASH_*`, Upstash tokeny
-- Stripe (`BILLING__STRIPE_*`) i webhook płatności są wyłącznie w backendzie — Next nie trzyma sekretów Stripe
+- Tylko po stronie serwera: `RESEND_*`, `TURNSTILE_SECRET_KEY`, `SETTINGS_TRANSFER_SECRET`, `BACKEND_API_URL`, `BACKEND_SERVICE_KEY`, Upstash tokeny
+- Stripe (`BILLING__STRIPE_*`), VAPID private (`PUSH__VAPID_*`) i webhook płatności są wyłącznie w backendzie — Next nie trzyma tych sekretów
 - `NEXT_PUBLIC_*` wyłącznie dla rzeczy naprawdę publicznych (Turnstile site key, VAPID **public**, site URL)
 - Nigdy nie commitować `.env.local`; nowe zmienne → `.env.example` + krótki opis
 - Nie ujawniać `FEEDBACK_TO_EMAIL` ani sekretów w HTML / odpowiedziach API
@@ -32,7 +32,7 @@ alwaysApply: false
 | `api/billing/checkout` | BFF → backend Checkout; sesja wymagana, URL tylko `checkout.stripe.com` |
 | `api/settings-transfer` | create / peek / redeem QR |
 | `api/mzk-departures` | odjazdy MZK z schedule API (`DOWOZY_API_BASE_URL`) |
-| `api/push/subscribe\|plan\|kinds\|test\|dispatch` | Web Push + QStash; zapis wymaga sesji i aktywnego Plus |
+| `api/push/subscribe\|plan\|kinds\|test` | BFF → backend `/api/v1/push/*` (Mongo + VAPID); Plus/admin na backendzie |
 
 Rozszerzaj te ścieżki zamiast mnożyć równoległe API.
 
@@ -40,9 +40,9 @@ Rozszerzaj te ścieżki zamiast mnożyć równoległe API.
 
 Wymagany (server-only): `GET /health`, `GET /api/v1/dowozy/schedule`, `GET /api/v1/mzk/schedule`, `GET /api/v1/mzk/meta`. Front **nie** czyta `data/*.json`. Fetch używa Next Data Cache (`revalidate` ~120 s, tagi w `src/lib/schedule-api-cache.ts`).
 
-### Auth / billing backend (`BACKEND_API_URL` + `BACKEND_SERVICE_KEY`)
+### Auth / billing / push backend (`BACKEND_API_URL` + `BACKEND_SERVICE_KEY`)
 
-Next jest BFF: przeglądarka woła `/api/auth/*` i `/api/billing/checkout`; serwer woła `/api/v1/auth/*`, `/api/v1/users/*` i `/api/v1/billing/*` z `X-Service-Key`, opcjonalnie `Authorization: Bearer` + `X-Client-IP`. Cookie `sb_session` trzyma surowy `sessionToken` z backendu. Webhook Stripe trafia bezpośrednio na backend (`/api/v1/billing/webhook`), nie na Next.
+Next jest BFF: przeglądarka woła `/api/auth/*`, `/api/billing/checkout` i `/api/push/*`; serwer woła `/api/v1/auth/*`, `/api/v1/users/*`, `/api/v1/billing/*` i `/api/v1/push/*` z `X-Service-Key`, opcjonalnie `Authorization: Bearer` + `X-Client-IP`. Cookie `sb_session` trzyma surowy `sessionToken` z backendu. Webhook Stripe i cron dispatch push trafiają bezpośrednio na backend — nie na Next.
 
 ## Walidacja i błędy
 
@@ -57,6 +57,6 @@ Next jest BFF: przeglądarka woła `/api/auth/*` i `/api/billing/checkout`; serw
 2. Dodać do `.env.example` z komentarzem
 3. Udokumentować w README tylko jeśli user-facing / setup
 
-## QStash / dispatch
+## Push dispatch
 
-`POST /api/push/dispatch` weryfikowany signing keys QStash — nie osłabiaj weryfikacji i nie eksponuj endpointu bez auth.
+Dispatch przypomnień jest in-process na backendzie. W Next **nie** ma `POST /api/push/dispatch` — nie dodawaj go z powrotem.

@@ -62,6 +62,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
           role={user.role}
           createdAt={user.createdAt}
           plus={plus}
+          plans={user.plans}
           focusPlus={focusPlus}
           focusNotifications={focusNotifications}
           pushUiEnabled={isPushNotificationsUiEnabled()}

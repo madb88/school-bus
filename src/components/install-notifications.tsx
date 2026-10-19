@@ -5,7 +5,13 @@ import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { useLessonPlan } from "@/lib/child-schedule/use-lesson-plan";
+import type { AccountPlan } from "@/lib/child-schedule/account-plan";
+import {
+  getSelectedPlanIdServerSnapshot,
+  getSelectedPlanIdSnapshot,
+  resolveSelectedPlanId,
+  subscribeSelectedPlan,
+} from "@/lib/child-schedule/selected-plan";
 import {
   disablePush,
   enablePush,
@@ -43,8 +49,21 @@ const KINDS = [
   },
 ] as const;
 
-export function InstallNotifications() {
-  const plan = useLessonPlan();
+export function InstallNotifications({
+  accountPlans = [],
+}: {
+  accountPlans?: AccountPlan[];
+}) {
+  const selectedRaw = useSyncExternalStore(
+    subscribeSelectedPlan,
+    getSelectedPlanIdSnapshot,
+    getSelectedPlanIdServerSnapshot,
+  );
+  const selectedPlanId = resolveSelectedPlanId(
+    accountPlans,
+    selectedRaw || null,
+  );
+
   const ui = useSyncExternalStore(
     subscribePwaUi,
     getPwaUiSnapshot,
@@ -60,7 +79,7 @@ export function InstallNotifications() {
   const [pending, setPending] = useState(false);
 
   const notificationsInBrowser = ios !== "1" || standalone === "1";
-  const planReady = planReadyForPush(plan);
+  const planReady = planReadyForPush(selectedPlanId);
   const isSubscribed = notificationsInBrowser && subscribed === "1";
   const showDenied = notificationsInBrowser && permission === "denied";
   const canToggle =
@@ -77,7 +96,11 @@ export function InstallNotifications() {
         toast.success("Powiadomienia wyłączone");
         return;
       }
-      const result = await enablePush(plan, kinds);
+      if (!selectedPlanId) {
+        toast.error("Najpierw zapisz plan lekcji na koncie.");
+        return;
+      }
+      const result = await enablePush(selectedPlanId, kinds);
       if (!result.ok) {
         toast.error(result.message);
         return;
@@ -150,17 +173,18 @@ export function InstallNotifications() {
         ) : null}
         {isSubscribed ? (
           <p className="text-sm text-foreground/80">
-            Powiadomienia są włączone. Przypomnienie dotyczy tylko Twojego planu.
+            Powiadomienia są włączone. Przypomnienie dotyczy wybranego planu na
+            koncie.
           </p>
         ) : null}
         {showNeedPlan ? (
           <p className="text-sm leading-relaxed text-foreground/80">
-            Żeby dostawać przypomnienia o swoim kursie, najpierw{" "}
+            Zapisz plan na koncie, żeby włączyć powiadomienia.{" "}
             <Link
               href="/lekcje"
               className={cn(buttonVariants({ variant: "link", size: "sm" }), "h-auto px-0")}
             >
-              ustaw plan lekcji
+              Przejdź do planu lekcji
             </Link>
             .
           </p>

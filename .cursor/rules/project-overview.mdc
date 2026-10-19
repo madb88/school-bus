@@ -11,7 +11,7 @@ Aplikacja webowa (PWA) dla rodziców i dzieci: szybkie sprawdzenie **najbliższe
 
 - Next.js **16.3.x** (App Router), React **19**, TypeScript (strict)
 - Tailwind CSS **v4**, shadcn/ui (`base-nova` + `@base-ui/react`), Lucide
-- Vitest, Upstash Redis / Ratelimit / QStash, Resend, Cloudflare Turnstile, `web-push`
+- Vitest, Upstash Redis / Ratelimit, Resend, Cloudflare Turnstile
 - **Brak** Zod, Zustand, React Hook Form — nie zakładaj ich istnienia
 
 ## Główne ścieżki użytkownika
@@ -32,7 +32,7 @@ Nawigacja: `NAV_ITEMS` w `src/components/site-nav.tsx`. Layout stron: `PageShell
 
 - **Rozkład szkolny** (`Schedule`): pickupy, odwozy po dacie / weekday — z schedule API (`DOWOZY_API_BASE_URL`)
 - **MZK** (`MzkSchedule`): przystanki i kursy z GTFS — z tego samego API
-- **Plan lekcji** (`ChildLessonPlan`): miejsce + godziny Pn–Pt — tylko localStorage (opcjonalnie Redis przy transferze / push)
+- **Plan lekcji** (`ChildLessonPlan`): miejsce + godziny Pn–Pt — localStorage (kopia na backendzie przy Web Push; Redis tylko przy transferze QR)
 - **Trasa MZK** (`MzkRoutePreference`), **okno dopasowania** (minuty) — localStorage
 
 ## Źródła danych
@@ -44,9 +44,8 @@ Nawigacja: `NAV_ITEMS` w `src/components/site-nav.tsx`. Layout stron: `PageShell
 ## Integracje zewnętrzne
 
 - Resend + Turnstile — feedback (server action)
-- Upstash Redis — rate limit, transfer QR (TTL 15 min, AES-GCM), subskrypcje push
-- Backend (`BACKEND_API_URL` + `BACKEND_SERVICE_KEY`) — users, magic-link, sesje, Plan Plus / Stripe (Next BFF `/api/auth/*`, `/api/billing/checkout`); schedule: `DOWOZY_API_BASE_URL`
-- QStash — cron `POST /api/push/dispatch` (Pn–Pt, 06:00–16:55 Europe/Warsaw)
+- Upstash Redis — rate limit, transfer QR (TTL 15 min, AES-GCM)
+- Backend (`BACKEND_API_URL` + `BACKEND_SERVICE_KEY`) — users, magic-link, sesje, Plan Plus / Stripe, Web Push (Mongo + VAPID + cron); Next BFF: `/api/auth/*`, `/api/billing/checkout`, `/api/push/*`; schedule: `DOWOZY_API_BASE_URL`
 - Vercel Analytics / Speed Insights
 
 ## Ograniczenia

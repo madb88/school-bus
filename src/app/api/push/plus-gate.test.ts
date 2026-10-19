@@ -1,53 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PUSH_LOGIN_REQUIRED, PUSH_NOT_YOURS, PUSH_PLUS_REQUIRED } from "@/lib/push/access";
 import { PUT as updateKinds } from "./kinds/route";
 import { PUT as updatePlan } from "./plan/route";
 import { DELETE, POST as subscribe } from "./subscribe/route";
 import { POST as sendTest } from "./test/route";
 
-const getCurrentUser = vi.fn();
-const fetchPlus = vi.fn();
-const getPushRecord = vi.fn();
-const savePushRecord = vi.fn();
-const deletePushRecord = vi.fn();
-const sendPush = vi.fn();
-
-vi.mock("@/lib/auth/current-user", () => ({
-  getCurrentUser: () => getCurrentUser(),
-}));
+const backendFetch = vi.fn();
 
 vi.mock("@/lib/auth/backend", () => ({
-  fetchPlus: (...args: unknown[]) => fetchPlus(...args),
+  backendFetch: (...args: unknown[]) => backendFetch(...args),
 }));
 
-vi.mock("@/lib/push/rate-limit", () => ({
-  checkPushSubscribeRateLimit: async () => ({ ok: true }),
-  checkPushTestRateLimit: async () => ({ ok: true }),
-  getClientIpFromHeaders: () => "203.0.113.10",
-}));
-
-vi.mock("@/lib/push/send", () => ({
-  sendPush: (...args: unknown[]) => sendPush(...args),
-  pushIsConfigured: () => true,
-}));
-
-vi.mock("@/lib/dowozy/load-schedule", () => ({
-  loadScheduleSnapshot: async () => null,
-}));
-
-vi.mock("@/lib/push/store", async () => {
-  const actual = await vi.importActual<typeof import("@/lib/push/store")>("@/lib/push/store");
-  return {
-    ...actual,
-    getPushRedis: () => ({}),
-    getPushRecord: (...args: unknown[]) => getPushRecord(...args),
-    savePushRecord: (...args: unknown[]) => savePushRecord(...args),
-    deletePushRecord: (...args: unknown[]) => deletePushRecord(...args),
-  };
-});
-
-const SESSION = "11111111-1111-4111-8111-111111111111";
-const OTHER = "22222222-2222-4222-8222-222222222222";
 const TOKEN = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG";
 
 const subscription = {
@@ -55,262 +17,195 @@ const subscription = {
   keys: { p256dh: "p256dh-key", auth: "auth-secret" },
 };
 
-const plan = {
-  place: "Zatonie",
-  days: { 1: { start: "08:00", end: "14:00" } },
-};
+const planId = "550e8400-e29b-41d4-a716-446655440000";
 
-function stored(userId?: string) {
-  return {
-    subscription,
-    plan,
-    sentOn: "",
-    sent: [] as string[],
-    scheduleFingerprint: "",
-    kinds: { departure: true, return: true, schedule: true },
-    ...(userId ? { userId } : {}),
-  };
-}
-
-function jsonRequest(url: string, method: string, body: unknown) {
+function jsonRequest(url: string, method: string, body: unknown, cookie?: string) {
   return new Request(url, {
     method,
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      ...(cookie ? { cookie } : {}),
+      "x-forwarded-for": "203.0.113.10",
+    },
     body: JSON.stringify(body),
   });
 }
 
-function asUser(userId = SESSION) {
-  getCurrentUser.mockResolvedValue({
-    userId,
-    email: "parent@example.com",
-    role: "individual",
-    plans: [],
-    createdAt: "2026-01-01T00:00:00.000Z",
-    sessionToken: TOKEN,
-  });
-}
-
-function asPlus(userId = SESSION) {
-  asUser(userId);
-  fetchPlus.mockResolvedValue({ state: "active", validUntil: "2099-08-31" });
-}
-
-describe("push Plus gate", () => {
+describe("push BFF proxy", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getPushRecord.mockResolvedValue(null);
-    savePushRecord.mockResolvedValue(undefined);
-    deletePushRecord.mockResolvedValue(undefined);
-    sendPush.mockResolvedValue("ok");
+    backendFetch.mockResolvedValue({ ok: true, status: 200, data: { ok: true } });
   });
 
-  it("refuses subscribe without a session", async () => {
-    getCurrentUser.mockResolvedValue(null);
+  it("forwards subscribe with session, body, and client IP", async () => {
+    const body = { subscription, planId };
+    const response = await subscribe(
+      jsonRequest(
+        "http://localhost:3000/api/push/subscribe",
+        "POST",
+        body,
+        `sb_session=${TOKEN}`,
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
+    expect(backendFetch).toHaveBeenCalledWith("/api/v1/push/subscribe", {
+      method: "POST",
+      body,
+      sessionToken: TOKEN,
+      clientIp: "203.0.113.10",
+    });
+  });
+
+  it("forwards plan, kinds, test, and delete with the same proxy shape", async () => {
+    const planBody = { subscription, planId };
+    const kindsBody = {
+      subscription,
+      kinds: { departure: true, return: false, schedule: true },
+    };
+    const testBody = { subscription };
+    const cookie = `sb_session=${TOKEN}`;
+
+    await updatePlan(
+      jsonRequest("http://localhost:3000/api/push/plan", "PUT", planBody, cookie),
+    );
+    await updateKinds(
+      jsonRequest("http://localhost:3000/api/push/kinds", "PUT", kindsBody, cookie),
+    );
+    await sendTest(
+      jsonRequest("http://localhost:3000/api/push/test", "POST", testBody, cookie),
+    );
+    await DELETE(
+      jsonRequest(
+        "http://localhost:3000/api/push/subscribe",
+        "DELETE",
+        testBody,
+        cookie,
+      ),
+    );
+
+    expect(backendFetch).toHaveBeenNthCalledWith(1, "/api/v1/push/plan", {
+      method: "PUT",
+      body: planBody,
+      sessionToken: TOKEN,
+      clientIp: "203.0.113.10",
+    });
+    expect(backendFetch).toHaveBeenNthCalledWith(2, "/api/v1/push/kinds", {
+      method: "PUT",
+      body: kindsBody,
+      sessionToken: TOKEN,
+      clientIp: "203.0.113.10",
+    });
+    expect(backendFetch).toHaveBeenNthCalledWith(3, "/api/v1/push/test", {
+      method: "POST",
+      body: testBody,
+      sessionToken: TOKEN,
+      clientIp: "203.0.113.10",
+    });
+    expect(backendFetch).toHaveBeenNthCalledWith(4, "/api/v1/push/subscribe", {
+      method: "DELETE",
+      body: testBody,
+      sessionToken: TOKEN,
+      clientIp: "203.0.113.10",
+    });
+  });
+
+  it("maps backend detail to {error} and preserves status / Retry-After", async () => {
+    backendFetch.mockResolvedValue({
+      ok: false,
+      status: 403,
+      error: "Powiadomienia wymagają aktywnego Planu Plus.",
+    });
+
+    const denied = await subscribe(
+      jsonRequest(
+        "http://localhost:3000/api/push/subscribe",
+        "POST",
+        { subscription, planId },
+        `sb_session=${TOKEN}`,
+      ),
+    );
+    expect(denied.status).toBe(403);
+    expect(await denied.json()).toEqual({
+      error: "Powiadomienia wymagają aktywnego Planu Plus.",
+    });
+
+    backendFetch.mockResolvedValue({
+      ok: false,
+      status: 400,
+      error: "Nie znaleziono wybranego planu.",
+    });
+
+    const unknownPlan = await updatePlan(
+      jsonRequest(
+        "http://localhost:3000/api/push/plan",
+        "PUT",
+        { subscription, planId },
+        `sb_session=${TOKEN}`,
+      ),
+    );
+    expect(unknownPlan.status).toBe(400);
+    expect(await unknownPlan.json()).toEqual({
+      error: "Nie znaleziono wybranego planu.",
+    });
+
+    backendFetch.mockResolvedValue({
+      ok: false,
+      status: 429,
+      error: "Zbyt wiele prób. Spróbuj ponownie za chwilę.",
+      retryAfterSec: 42,
+    });
+
+    const limited = await sendTest(
+      jsonRequest(
+        "http://localhost:3000/api/push/test",
+        "POST",
+        { subscription },
+        `sb_session=${TOKEN}`,
+      ),
+    );
+    expect(limited.status).toBe(429);
+    expect(limited.headers.get("Retry-After")).toBe("42");
+    expect(await limited.json()).toEqual({
+      error: "Zbyt wiele prób. Spróbuj ponownie za chwilę.",
+    });
+  });
+
+  it("forwards without a session token when the cookie is missing", async () => {
+    backendFetch.mockResolvedValue({
+      ok: false,
+      status: 401,
+      error: "Zaloguj się, żeby korzystać z powiadomień.",
+    });
 
     const response = await subscribe(
-      jsonRequest("http://localhost:3000/api/push/subscribe", "POST", {}),
+      jsonRequest("http://localhost:3000/api/push/subscribe", "POST", {
+        subscription,
+        planId,
+      }),
     );
 
     expect(response.status).toBe(401);
-    expect(await response.json()).toEqual({ error: PUSH_LOGIN_REQUIRED });
-    expect(fetchPlus).not.toHaveBeenCalled();
-    expect(savePushRecord).not.toHaveBeenCalled();
-  });
-
-  it("refuses subscribe without an active Plan Plus", async () => {
-    asUser();
-    fetchPlus.mockResolvedValue({ state: "inactive" });
-
-    const response = await subscribe(
-      jsonRequest("http://localhost:3000/api/push/subscribe", "POST", {
-        subscription,
-        plan,
-      }),
-    );
-
-    expect(response.status).toBe(403);
-    expect(await response.json()).toEqual({ error: PUSH_PLUS_REQUIRED });
-    expect(savePushRecord).not.toHaveBeenCalled();
-  });
-
-  it("refuses subscribe during trial until dispatch can check trial access", async () => {
-    asUser();
-    fetchPlus.mockResolvedValue({ state: "trial", validUntil: "2026-10-30" });
-
-    const response = await subscribe(
-      jsonRequest("http://localhost:3000/api/push/subscribe", "POST", {
-        subscription,
-        plan,
-      }),
-    );
-
-    expect(response.status).toBe(403);
-    expect(await response.json()).toEqual({ error: PUSH_PLUS_REQUIRED });
-  });
-
-  it("allows admin subscribe even when entitlement is inactive", async () => {
-    getCurrentUser.mockResolvedValue({
-      userId: SESSION,
-      email: "admin@example.com",
-      role: "admin",
-      plans: [],
-      createdAt: "2026-01-01T00:00:00.000Z",
-      sessionToken: TOKEN,
+    expect(backendFetch).toHaveBeenCalledWith("/api/v1/push/subscribe", {
+      method: "POST",
+      body: { subscription, planId },
+      sessionToken: undefined,
+      clientIp: "203.0.113.10",
     });
-    fetchPlus.mockResolvedValue({ state: "inactive" });
-    getPushRecord.mockResolvedValue(null);
+  });
 
+  it("rejects invalid JSON before calling the backend", async () => {
     const response = await subscribe(
-      jsonRequest("http://localhost:3000/api/push/subscribe", "POST", {
-        subscription,
-        plan,
+      new Request("http://localhost:3000/api/push/subscribe", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{",
       }),
     );
 
-    expect(response.status).toBe(200);
-    expect(savePushRecord).toHaveBeenCalled();
-  });
-
-  it("refuses subscribe when Plan Plus is unavailable", async () => {
-    asUser();
-    fetchPlus.mockResolvedValue("unavailable");
-
-    const response = await subscribe(
-      jsonRequest("http://localhost:3000/api/push/subscribe", "POST", {
-        subscription,
-        plan,
-      }),
-    );
-
-    expect(response.status).toBe(403);
-    expect(savePushRecord).not.toHaveBeenCalled();
-  });
-
-  it("does not replace another account's endpoint, even when the caller knows the keys", async () => {
-    asPlus();
-    getPushRecord.mockResolvedValue(stored(OTHER));
-
-    const response = await subscribe(
-      jsonRequest("http://localhost:3000/api/push/subscribe", "POST", {
-        subscription,
-        plan,
-        userId: OTHER,
-      }),
-    );
-
-    expect(response.status).toBe(403);
-    expect(await response.json()).toEqual({ error: PUSH_NOT_YOURS });
-    expect(savePushRecord).not.toHaveBeenCalled();
-  });
-
-  it("does not claim an existing endpoint when only the URL is known", async () => {
-    asPlus();
-    getPushRecord.mockResolvedValue({
-      ...stored(),
-      subscription: {
-        ...subscription,
-        keys: { ...subscription.keys, auth: "other-auth" },
-      },
-    });
-
-    const response = await subscribe(
-      jsonRequest("http://localhost:3000/api/push/subscribe", "POST", {
-        subscription,
-        plan,
-      }),
-    );
-
-    expect(response.status).toBe(403);
-    expect(savePushRecord).not.toHaveBeenCalled();
-  });
-
-  it("stores the session user id and ignores userId from the body", async () => {
-    asPlus();
-
-    const response = await subscribe(
-      jsonRequest("http://localhost:3000/api/push/subscribe", "POST", {
-        subscription,
-        plan,
-        userId: OTHER,
-      }),
-    );
-
-    expect(response.status).toBe(200);
-    expect(savePushRecord).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: SESSION, subscription, plan }),
-    );
-  });
-
-  it("refuses plan, kinds, and test writes without a session or Plus", async () => {
-    getCurrentUser.mockResolvedValue(null);
-    const planResponse = await updatePlan(
-      jsonRequest("http://localhost:3000/api/push/plan", "PUT", { subscription, plan }),
-    );
-    const kindsResponse = await updateKinds(
-      jsonRequest("http://localhost:3000/api/push/kinds", "PUT", {
-        subscription,
-        kinds: { departure: true, return: false, schedule: true },
-      }),
-    );
-    const testResponse = await sendTest(
-      jsonRequest("http://localhost:3000/api/push/test", "POST", { subscription }),
-    );
-
-    expect(planResponse.status).toBe(401);
-    expect(kindsResponse.status).toBe(401);
-    expect(testResponse.status).toBe(401);
-    expect(savePushRecord).not.toHaveBeenCalled();
-    expect(sendPush).not.toHaveBeenCalled();
-
-    asUser();
-    fetchPlus.mockResolvedValue({ state: "inactive" });
-    const blocked = await updatePlan(
-      jsonRequest("http://localhost:3000/api/push/plan", "PUT", { subscription, plan }),
-    );
-    expect(blocked.status).toBe(403);
-    expect(await blocked.json()).toEqual({ error: PUSH_PLUS_REQUIRED });
-  });
-
-  it("does not update or test another account's subscription", async () => {
-    asPlus();
-    getPushRecord.mockResolvedValue(stored(OTHER));
-
-    const planResponse = await updatePlan(
-      jsonRequest("http://localhost:3000/api/push/plan", "PUT", { subscription, plan }),
-    );
-    const testResponse = await sendTest(
-      jsonRequest("http://localhost:3000/api/push/test", "POST", { subscription }),
-    );
-
-    expect(planResponse.status).toBe(403);
-    expect(testResponse.status).toBe(403);
-    expect(savePushRecord).not.toHaveBeenCalled();
-    expect(sendPush).not.toHaveBeenCalled();
-  });
-
-  it("does not delete another account's subscription", async () => {
-    asUser();
-    getPushRecord.mockResolvedValue(stored(OTHER));
-
-    const response = await DELETE(
-      jsonRequest("http://localhost:3000/api/push/subscribe", "DELETE", { subscription }),
-    );
-
-    expect(response.status).toBe(403);
-    expect(deletePushRecord).not.toHaveBeenCalled();
-  });
-
-  it("deletes the caller's subscription without an active Plan Plus", async () => {
-    asUser();
-    fetchPlus.mockResolvedValue({ state: "inactive" });
-    getPushRecord.mockResolvedValue(stored(SESSION));
-
-    const response = await DELETE(
-      jsonRequest("http://localhost:3000/api/push/subscribe", "DELETE", { subscription }),
-    );
-
-    expect(response.status).toBe(200);
-    expect(deletePushRecord).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "Niepoprawne żądanie." });
+    expect(backendFetch).not.toHaveBeenCalled();
   });
 });

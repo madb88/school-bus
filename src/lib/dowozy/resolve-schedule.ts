@@ -1,10 +1,10 @@
-import { schoolScheduleFingerprint } from "@/lib/push/schedule-fingerprint";
 import type {
   DowozyOverride,
   OverrideStatus,
   Schedule,
   ScheduleSnapshotResult,
 } from "./types";
+import { schoolScheduleFingerprint } from "./schedule-fingerprint";
 import { isScheduleSnapshot } from "./validate-schedule";
 import { isValidIsoTimestamp } from "./validate-override";
 

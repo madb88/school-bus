@@ -1,5 +1,4 @@
-import { hasConfiguredLessons } from "@/lib/child-schedule/storage";
-import type { ChildLessonPlan } from "@/lib/child-schedule/types";
+import { isAccountPlanId } from "@/lib/child-schedule/account-plan";
 import type { PushKinds } from "./kinds";
 
 const DISMISS_KEY = "school-bus.pwa-banner.v2";
@@ -94,8 +93,9 @@ export function notifyPwaUi(): void {
   window.dispatchEvent(new Event(UI_EVENT));
 }
 
-export function planReadyForPush(plan: ChildLessonPlan): boolean {
-  return Boolean(plan.place) && hasConfiguredLessons(plan);
+/** Backend validates that the plan exists and has usable days. */
+export function planReadyForPush(planId: string | null | undefined): boolean {
+  return isAccountPlanId(planId);
 }
 
 async function currentSubscription(): Promise<PushSubscription | null> {
@@ -104,29 +104,46 @@ async function currentSubscription(): Promise<PushSubscription | null> {
   return registration.pushManager.getSubscription();
 }
 
-export async function syncStoredPushPlan(plan: ChildLessonPlan): Promise<void> {
-  const subscription = await currentSubscription();
-  if (!subscription) return;
+/** Re-point this device's subscription to a different account plan. */
+export async function repointPush(planId: string): Promise<
+  { ok: true } | { ok: false; message: string }
+> {
+  if (!isAccountPlanId(planId)) {
+    return { ok: false, message: "Najpierw zapisz plan lekcji na koncie." };
+  }
 
-  await fetch("/api/push/plan", {
+  const subscription = await currentSubscription();
+  if (!subscription) return { ok: true };
+
+  const response = await fetch("/api/push/plan", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       subscription: subscription.toJSON(),
-      plan,
+      planId,
     }),
   });
+
+  if (!response.ok) {
+    const data = (await response.json().catch(() => null)) as { error?: string } | null;
+    return {
+      ok: false,
+      message: data?.error ?? "Nie udało się przełączyć powiadomień na wybrany plan.",
+    };
+  }
+
+  return { ok: true };
 }
 
 export async function enablePush(
-  plan: ChildLessonPlan,
+  planId: string,
   kinds: PushKinds,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
     return { ok: false, message: "Ta przeglądarka nie obsługuje powiadomień." };
   }
-  if (!planReadyForPush(plan)) {
-    return { ok: false, message: "Najpierw ustaw miejsce i godziny w planie lekcji." };
+  if (!planReadyForPush(planId)) {
+    return { ok: false, message: "Najpierw zapisz plan lekcji na koncie." };
   }
 
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
@@ -153,7 +170,7 @@ export async function enablePush(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       subscription: subscription.toJSON(),
-      plan,
+      planId,
       kinds,
     }),
   });

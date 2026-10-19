@@ -76,14 +76,6 @@ const nextConfig: NextConfig = {
       "./data/mzk-schedule-meta.json",
     ],
     "/api/mzk-departures": ["./data/mzk-schedule.json"],
-    "/api/push/dispatch": [
-      "./data/dowozy-schedule.json",
-      "./data/dowozy-overrides.json",
-    ],
-    "/api/push/subscribe": [
-      "./data/dowozy-schedule.json",
-      "./data/dowozy-overrides.json",
-    ],
   },
 };
 

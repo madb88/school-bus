@@ -45,13 +45,41 @@ describe("toAccountPlan", () => {
   it("merges optional name", () => {
     const { plan } = toAccountPlan(
       { place: "Złote Piaski", days: { 1: { start: "08:00", end: "14:00" } } },
-      " Ania ",
+      { name: " Ania " },
     );
     expect(plan).toEqual({
       place: "Złote Piaski",
       name: "Ania",
       days: { "1": { start: "08:00", end: "14:00" } },
     });
+  });
+
+  it("preserves existing id and omits id for a new plan", () => {
+    const existing: AccountPlan = {
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      place: "Zatonie",
+      days: { "1": { start: "08:00", end: "14:00" } },
+    };
+    const { plan: edited } = toAccountPlan(
+      { place: "Ochla", days: { 1: { start: "09:00", end: "15:00" } } },
+      { name: "Ania", existing },
+    );
+    expect(edited).toEqual({
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      place: "Ochla",
+      name: "Ania",
+      days: { "1": { start: "09:00", end: "15:00" } },
+    });
+
+    const { plan: created } = toAccountPlan({
+      place: "Ochla",
+      days: { 1: { start: "09:00", end: "15:00" } },
+    });
+    expect(created).toEqual({
+      place: "Ochla",
+      days: { "1": { start: "09:00", end: "15:00" } },
+    });
+    expect(created).not.toHaveProperty("id");
   });
 });
 
@@ -124,10 +152,31 @@ describe("parseAccountPlan name", () => {
       }),
     ).toBeNull();
   });
+
+  it("keeps a valid id and rejects a non-UUID id", () => {
+    expect(
+      parseAccountPlan({
+        id: "550e8400-e29b-41d4-a716-446655440000",
+        place: "Zatonie",
+        days: { "1": { start: "08:00", end: "14:00" } },
+      }),
+    ).toEqual({
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      place: "Zatonie",
+      days: { "1": { start: "08:00", end: "14:00" } },
+    });
+    expect(
+      parseAccountPlan({
+        id: "not-a-uuid",
+        place: "Zatonie",
+        days: { "1": { start: "08:00", end: "14:00" } },
+      }),
+    ).toBeNull();
+  });
 });
 
 describe("serializeAccountPlan", () => {
-  it("omits empty name from the payload", () => {
+  it("omits empty name and echoes id when present", () => {
     expect(
       serializeAccountPlan({
         place: "Zatonie",
@@ -135,6 +184,17 @@ describe("serializeAccountPlan", () => {
         days: { "1": { start: "08:00", end: "14:00" } },
       }),
     ).toEqual({
+      place: "Zatonie",
+      days: { "1": { start: "08:00", end: "14:00" } },
+    });
+    expect(
+      serializeAccountPlan({
+        id: "550e8400-e29b-41d4-a716-446655440000",
+        place: "Zatonie",
+        days: { "1": { start: "08:00", end: "14:00" } },
+      }),
+    ).toEqual({
+      id: "550e8400-e29b-41d4-a716-446655440000",
       place: "Zatonie",
       days: { "1": { start: "08:00", end: "14:00" } },
     });

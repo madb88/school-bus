@@ -147,7 +147,7 @@ const SECTIONS: Section[] = [
     title: "§9 Powiadomienia Web Push",
     paragraphs: [
       "Powiadomienia Web Push są funkcją Serwisu dostępną przy aktywnym Planie Plus i włączaną dobrowolnie. Użytkownik włącza je samodzielnie i musi wyrazić zgodę w mechanizmie powiadomień przeglądarki lub systemu.",
-      "Włączenie powiadomień wymaga zalogowania, aktywnego Planu Plus oraz wcześniej ustawionego miejsca oraz godzin w planie lekcji. Po zapisaniu subskrypcji Serwis może wysłać krótkie potwierdzenie włączenia. Użytkownik może także zamówić powiadomienie testowe.",
+      "Włączenie powiadomień wymaga zalogowania, aktywnego Planu Plus oraz zapisanego na koncie planu lekcji. Powiadomienia na danym urządzeniu są powiązane z wybranym planem konta (identyfikator planu). Po zapisaniu subskrypcji Serwis może wysłać krótkie potwierdzenie włączenia. Użytkownik może także zamówić powiadomienie testowe.",
       "Aktualnie przypomnienia dotyczą autobusu szkolnego, a nie kursów MZK. Użytkownik może wybrać rodzaje powiadomień:",
     ],
     bullets: [
@@ -156,7 +156,7 @@ const SECTIONS: Section[] = [
       "informacja o zmianie godzin w rozkładzie szkolnym (gdy wykryta zostanie aktualizacja treści rozkładu).",
     ],
     afterBullets: [
-      "W celu realizacji powiadomień Serwis przechowuje na serwerze m.in.: subskrypcję Push (endpoint oraz klucze techniczne potrzebne do dostarczenia powiadomienia), powiązanie z kontem, dane planu niezbędne do wyliczenia przypomnień, wybrane rodzaje powiadomień oraz dane techniczne ograniczające powtórzenia (np. lista już wysłanych przypomnień danego dnia) i skrót treści rozkładu szkolnego.",
+      "W celu realizacji powiadomień Serwis przechowuje na serwerze m.in.: subskrypcję Push (endpoint oraz klucze techniczne potrzebne do dostarczenia powiadomienia), powiązanie z kontem, identyfikator wybranego planu konta (bez osobnej kopii planu w rekordzie powiadomień), wybrane rodzaje powiadomień oraz dane techniczne ograniczające powtórzenia (np. lista już wysłanych przypomnień danego dnia) i skrót treści rozkładu szkolnego.",
       "Rekordy powiadomień na serwerze nie mają w aplikacji automatycznego terminu ważności (TTL). Użytkownik przestaje otrzymywać powiadomienia, wyłączając je w Serwisie (lub cofając zgodę w ustawieniach przeglądarki / systemu), a także gdy Plan Plus wygaśnie lub zostanie cofnięty. Serwis usuwa rekord subskrypcji także wtedy, gdy dostawca kanału Push zgłosi, że subskrypcja jest nieaktualna.",
       "Dostarczenie powiadomienia zależy od przeglądarki, systemu, dostawcy Push oraz dostępności infrastruktury (w tym harmonogramu wysyłki). Usługodawca nie gwarantuje, że każde przypomnienie dotrze w oczekiwanej chwili.",
     ],

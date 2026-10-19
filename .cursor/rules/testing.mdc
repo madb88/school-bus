@@ -14,7 +14,7 @@ alwaysApply: false
 
 ## Co testować
 
-- Logika domenowa niezależnie od UI: filtry, match, parse, validate, crypto, payload transfer, push due-trips / fingerprint / dispatch
+- Logika domenowa niezależnie od UI: filtry, match, parse, validate, crypto, payload transfer, schedule fingerprint; push BFF proxy (mock `backendFetch`)
 - Nowe istotne funkcje w `src/lib` → dodaj / zaktualizuj test
 - Przy zmianie istniejącego zachowania **najpierw** przeczytaj sąsiednie `*.test.ts`
 

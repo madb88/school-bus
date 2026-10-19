@@ -48,6 +48,7 @@ import { isAllowedCheckoutUrl } from "@/lib/billing/checkout-url";
 import { PLUS_PRICE_LABEL } from "@/lib/billing/constants";
 import { formatRemainingMonthsLabel } from "@/lib/billing/format";
 import type { PlusPanelState } from "@/lib/billing/status";
+import type { AccountPlan } from "@/lib/child-schedule/account-plan";
 import { cn } from "cn";
 
 type Section = "profil" | "plus" | "powiadomienia" | "logout";
@@ -95,6 +96,7 @@ export function ProfilePanel({
   role,
   createdAt,
   plus,
+  plans,
   focusPlus,
   focusNotifications,
   pushUiEnabled,
@@ -103,6 +105,7 @@ export function ProfilePanel({
   role: BackendRole;
   createdAt: string;
   plus: PlusPanelState;
+  plans: AccountPlan[];
   focusPlus: boolean;
   focusNotifications: boolean;
   pushUiEnabled: boolean;
@@ -236,6 +239,7 @@ export function ProfilePanel({
             <NotificationsSection
               plusAccess={hasPushPlusAccessFromPanel(role, plus)}
               pushUiEnabled={pushUiEnabled}
+              accountPlans={plans}
               onOpenPlus={() => selectSection("plus")}
             />
           ) : null}
@@ -1075,10 +1079,12 @@ function PlusSection({
 function NotificationsSection({
   plusAccess,
   pushUiEnabled,
+  accountPlans,
   onOpenPlus,
 }: {
   plusAccess: boolean;
   pushUiEnabled: boolean;
+  accountPlans: AccountPlan[];
   onOpenPlus: () => void;
 }) {
   return (
@@ -1091,7 +1097,9 @@ function NotificationsSection({
           Przypomnienia o odjeździe autobusu szkolnego.
         </p>
       </div>
-      {pushUiEnabled && plusAccess ? <InstallNotifications /> : null}
+      {pushUiEnabled && plusAccess ? (
+        <InstallNotifications accountPlans={accountPlans} />
+      ) : null}
       {pushUiEnabled && !plusAccess ? (
         <div className="space-y-4 rounded-2xl bg-muted/40 p-5 dark:bg-muted/20">
           <p className="text-base leading-relaxed text-foreground">

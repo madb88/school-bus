@@ -18,8 +18,7 @@ export function hasPlusAccess(
 }
 
 /**
- * Push subscribe/dispatch gate until the backend exposes plusAccess by user id
- * for QStash (trial users would otherwise be dropped on the next dispatch).
+ * Push UI gate (active + admin; trial excluded) — mirrors backend push access.
  */
 export function hasPushPlusAccess(
   role: UserRole,

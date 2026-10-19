@@ -18,10 +18,10 @@ src/lib/
   child-schedule/  # plan lekcji, match, preferred place
   settings-transfer/
   feedback/
-  push/
+  push/            # client + BFF proxy (stan push w backendzie / Mongo)
   auth/            # BFF magic-link / sesja → backend
   billing/         # Plan Plus UI helpers (status, checkout URL); płatność w backendzie
-  redis/           # wspólny klient Upstash (push, transfer, limity)
+  redis/           # wspólny klient Upstash (transfer, limity)
   scripts/           # CLI: scrape-dowozy, fetch-mzk-gtfs, migrate-users
   data/              # snapshoty JSON (wynik, nie logika)
 ```

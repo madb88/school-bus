@@ -9,17 +9,33 @@ export type AccountDayTimes = {
 };
 
 export type AccountPlan = {
+  /** Stable server-minted UUID; omitted for unsaved new plans. */
+  id?: string;
   place: string;
   /** Optional display name; omitted when empty (backend + Mongo). */
   name?: string;
   days: Partial<Record<AccountWeekdayKey, AccountDayTimes>>;
 };
 
+export type ToAccountPlanOptions = {
+  name?: string | null;
+  /** When editing, echo the existing plan's id so push links survive. */
+  existing?: AccountPlan | null;
+};
+
 export const ACCOUNT_PLAN_NAME_MAX = 80;
+
+/** UUID (any version) as minted/validated by the backend. */
+const ACCOUNT_PLAN_ID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const ACCOUNT_WEEKDAY_KEYS: AccountWeekdayKey[] = ["1", "2", "3", "4", "5"];
 
 const TIME_RE = /^\d{2}:\d{2}$/;
+
+export function isAccountPlanId(value: unknown): value is string {
+  return typeof value === "string" && ACCOUNT_PLAN_ID_RE.test(value);
+}
 
 function isAccountWeekdayKey(value: string): value is AccountWeekdayKey {
   return (
@@ -71,6 +87,10 @@ export function parseAccountPlan(value: unknown): AccountPlan | null {
   const name = normalizeAccountPlanName(record.name);
   if (name === false) return null;
 
+  if (record.id !== undefined && record.id !== null) {
+    if (!isAccountPlanId(record.id)) return null;
+  }
+
   const rawDays = record.days as Record<string, unknown>;
   const days: AccountPlan["days"] = {};
   for (const [key, day] of Object.entries(rawDays)) {
@@ -81,6 +101,7 @@ export function parseAccountPlan(value: unknown): AccountPlan | null {
   if (Object.keys(days).length === 0) return null;
 
   const plan: AccountPlan = { place: record.place.trim(), days };
+  if (isAccountPlanId(record.id)) plan.id = record.id;
   if (name) plan.name = name;
   return plan;
 }
@@ -98,11 +119,12 @@ export function parseAccountPlans(value: unknown): AccountPlan[] | null {
 }
 
 /**
- * Serialize for PATCH: omit empty `name` (do not send `""` / `null`).
+ * Serialize for PATCH: omit empty `name`; echo `id` when present (never mint client-side).
  */
 export function serializeAccountPlan(plan: AccountPlan): AccountPlan {
   const name = normalizeAccountPlanName(plan.name);
   const out: AccountPlan = { place: plan.place.trim(), days: plan.days };
+  if (isAccountPlanId(plan.id)) out.id = plan.id;
   if (name) out.name = name;
   return out;
 }
@@ -120,12 +142,17 @@ export type ToAccountPlanResult = {
 /**
  * Convert a device lesson plan for the account API.
  * Returns `plan: null` when place is missing or no day has both start and end.
- * Pass `name` to preserve optional account metadata (not stored in localStorage).
+ * Pass `existing` so edits keep a stable `id` for push links.
  */
 export function toAccountPlan(
   plan: ChildLessonPlan,
-  name?: string | null,
+  opts?: ToAccountPlanOptions | string | null,
 ): ToAccountPlanResult {
+  const options: ToAccountPlanOptions =
+    typeof opts === "string" || opts === null || opts === undefined
+      ? { name: opts }
+      : opts;
+
   const droppedDaysWithoutEnd: WeekdayKey[] = [];
   if (!plan.place?.trim()) {
     return { plan: null, droppedDaysWithoutEnd };
@@ -149,8 +176,9 @@ export function toAccountPlan(
     return { plan: null, droppedDaysWithoutEnd };
   }
 
-  const normalizedName = normalizeAccountPlanName(name ?? null);
+  const normalizedName = normalizeAccountPlanName(options.name ?? null);
   const account: AccountPlan = { place: plan.place.trim(), days };
+  if (isAccountPlanId(options.existing?.id)) account.id = options.existing.id;
   if (normalizedName) account.name = normalizedName;
 
   return {

@@ -45,8 +45,10 @@ import {
 } from "@/lib/child-schedule/account-plan";
 import { accountPlanMatchesLocal } from "@/lib/child-schedule/plans-equal";
 import {
-  loadSelectedPlanIndex,
-  saveSelectedPlanIndex,
+  indexOfPlanId,
+  loadSelectedPlanId,
+  reconcileSelectedPlanId,
+  saveSelectedPlanId,
 } from "@/lib/child-schedule/selected-plan";
 import {
   clearLessonPlan,
@@ -68,7 +70,7 @@ import { useLessonPlan } from "@/lib/child-schedule/use-lesson-plan";
 import { hasConfiguredMzkRoute } from "@/lib/mzk/route-storage";
 import type { MzkSchedule } from "@/lib/mzk/types";
 import { useMzkRoutePreference } from "@/lib/mzk/use-mzk-route";
-import { syncStoredPushPlan } from "@/lib/push/browser";
+import { disablePush, repointPush } from "@/lib/push/browser";
 
 const cardClass =
   "space-y-5 rounded-xl border border-border/70 bg-card/90 p-4 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] dark:shadow-[0_1px_0_rgba(0,0,0,0.35)] sm:p-6";
@@ -88,7 +90,28 @@ type LessonPlanFormProps = {
 function mirrorPlanToDevice(plan: ChildLessonPlan) {
   saveLessonPlan(plan);
   if (plan.place) savePreferredPlace(plan.place);
-  void syncStoredPushPlan(plan);
+}
+
+async function syncPushLink(
+  plans: AccountPlan[],
+  selectedId: string | null,
+  opts?: { toastOnChange?: boolean },
+): Promise<void> {
+  if (!selectedId) {
+    await disablePush();
+    if (opts?.toastOnChange) {
+      toast.message("Powiadomienia wyłączone (usunięto plan)");
+    }
+    return;
+  }
+  const result = await repointPush(selectedId);
+  if (!result.ok) return;
+  if (opts?.toastOnChange) {
+    const index = indexOfPlanId(plans, selectedId);
+    const plan = plans[index];
+    const label = plan ? accountPlanLabel(plan, index) : "wybrany plan";
+    toast.message(`Powiadomienia przełączono na: ${label}`);
+  }
 }
 
 function normalizeLocalPlan(source: ChildLessonPlan): ChildLessonPlan {
@@ -180,6 +203,8 @@ export function LessonPlanForm({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [stickySaveMounted, setStickySaveMounted] = useState(false);
   const accountBootstrapped = useRef(false);
+  const previousSelectedIndexRef = useRef(0);
+  const planNameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setStickySaveMounted(true);
@@ -214,6 +239,7 @@ export function LessonPlanForm({
         if (!imported) {
           setAccountPlans([]);
           setSelectedIndex(0);
+          saveSelectedPlanId(null);
           return;
         }
         const response = await fetch("/api/account/plans", {
@@ -227,19 +253,21 @@ export function LessonPlanForm({
         } | null;
         const saved = data?.plans ?? [imported];
         setAccountPlans(saved);
+        const selectedId = saved[0]?.id ?? null;
         setSelectedIndex(0);
         setPlanName(saved[0]?.name ?? "");
-        saveSelectedPlanIndex(0);
+        saveSelectedPlanId(selectedId);
         mirrorPlanToDevice(fromAccountPlan(saved[0]!));
         toast.success("Twój plan lekcji został zapisany na koncie");
         return;
       }
 
-      const index = loadSelectedPlanIndex(initialPlans.length);
+      const selectedId = loadSelectedPlanId(initialPlans);
+      const index = indexOfPlanId(initialPlans, selectedId);
       setAccountPlans(initialPlans);
       setSelectedIndex(index);
       setPlanName(initialPlans[index]?.name ?? "");
-      saveSelectedPlanIndex(index);
+      saveSelectedPlanId(selectedId);
       const selected = initialPlans[index]!;
       const localDiffers = !accountPlanMatchesLocal(selected, local);
       mirrorPlanToDevice(fromAccountPlan(selected));
@@ -287,30 +315,51 @@ export function LessonPlanForm({
   function selectAccountPlan(index: number) {
     if (index === selectedIndex) return;
     const current = basePlan();
-    const { plan: asAccount } = toAccountPlan(current, planName);
+    const existing = accountPlans[selectedIndex];
+    const { plan: asAccount } = toAccountPlan(current, {
+      name: planName,
+      existing,
+    });
     const nextPlans = [...accountPlans];
     if (asAccount && nextPlans[selectedIndex]) {
       nextPlans[selectedIndex] = asAccount;
     }
     setAccountPlans(nextPlans);
     setSelectedIndex(index);
-    saveSelectedPlanIndex(index);
     const next = nextPlans[index];
     if (next) {
+      saveSelectedPlanId(next.id ?? null);
       setPlanName(next.name ?? "");
       const local = fromAccountPlan(next);
       setDraft(null);
       mirrorPlanToDevice(local);
+      if (next.id) {
+        void syncPushLink(nextPlans, next.id);
+      }
     } else {
+      saveSelectedPlanId(null);
       setPlanName("");
       setDraft({ ...EMPTY_LESSON_PLAN, days: {} });
     }
   }
 
+  function focusPlanNameInput() {
+    requestAnimationFrame(() => {
+      const input = planNameInputRef.current;
+      if (!input) return;
+      input.focus();
+      input.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
+
   function handleAddPlan() {
-    if (accountPlans.length >= MAX_ACCOUNT_PLANS) return;
+    if (accountPlans.length >= MAX_ACCOUNT_PLANS || isDraftingNewPlan) return;
     const current = basePlan();
-    const { plan: asAccount } = toAccountPlan(current, planName);
+    const existing = accountPlans[selectedIndex];
+    const { plan: asAccount } = toAccountPlan(current, {
+      name: planName,
+      existing,
+    });
     const nextPlans = [...accountPlans];
     if (asAccount) {
       if (nextPlans.length === 0) nextPlans.push(asAccount);
@@ -323,14 +372,39 @@ export function LessonPlanForm({
       toast.message("Możesz zapisać najwyżej 5 planów");
       return;
     }
+    previousSelectedIndexRef.current = selectedIndex;
     setAccountPlans(nextPlans);
     setSelectedIndex(nextPlans.length);
     setPlanName("");
     setDraft({ ...EMPTY_LESSON_PLAN, days: {} });
     setSaveError(null);
+    focusPlanNameInput();
   }
 
-  async function persistAccountPlans(nextPlans: AccountPlan[], index: number) {
+  function handleCancelDraft() {
+    if (!isDraftingNewPlan || accountPlans.length === 0) return;
+    const index = Math.min(
+      Math.max(previousSelectedIndexRef.current, 0),
+      accountPlans.length - 1,
+    );
+    const next = accountPlans[index];
+    setSelectedIndex(index);
+    setPlanName(next?.name ?? "");
+    setDraft(null);
+    setSaveError(null);
+    if (next?.id) {
+      saveSelectedPlanId(next.id);
+      mirrorPlanToDevice(fromAccountPlan(next));
+    } else {
+      saveSelectedPlanId(null);
+    }
+  }
+
+  async function persistAccountPlans(
+    nextPlans: AccountPlan[],
+    preferredId: string | null,
+    opts?: { toastPushChange?: boolean; preferredIndex?: number },
+  ) {
     const response = await fetch("/api/account/plans", {
       method: "PUT",
       headers: { "content-type": "application/json" },
@@ -352,14 +426,28 @@ export function LessonPlanForm({
       return false;
     }
     const saved = data?.plans ?? nextPlans;
+    let selectedId = reconcileSelectedPlanId(saved, preferredId);
+    // New plans have no id until the server mints one — pick by list index.
+    if (
+      !preferredId &&
+      opts?.preferredIndex != null &&
+      saved[opts.preferredIndex]?.id
+    ) {
+      selectedId = saved[opts.preferredIndex]!.id!;
+    }
+    const safeIndex = indexOfPlanId(saved, selectedId);
     setAccountPlans(saved);
-    const safeIndex = Math.min(index, Math.max(0, saved.length - 1));
     setSelectedIndex(safeIndex);
     setPlanName(saved[safeIndex]?.name ?? "");
-    saveSelectedPlanIndex(safeIndex);
+    saveSelectedPlanId(selectedId);
     if (saved[safeIndex]) {
       mirrorPlanToDevice(fromAccountPlan(saved[safeIndex]!));
+    } else {
+      clearLessonPlan();
     }
+    await syncPushLink(saved, selectedId, {
+      toastOnChange: opts?.toastPushChange,
+    });
     setDraft(null);
     setSaveError(null);
     return true;
@@ -405,9 +493,13 @@ export function LessonPlanForm({
           return;
         }
 
+        const existing =
+          selectedIndex < accountPlans.length
+            ? accountPlans[selectedIndex]
+            : null;
         const { plan: asAccount, droppedDaysWithoutEnd } = toAccountPlan(
           normalized,
-          planName,
+          { name: planName, existing },
         );
         if (!asAccount) {
           const message =
@@ -418,18 +510,21 @@ export function LessonPlanForm({
         }
 
         const nextPlans = [...accountPlans];
-        if (selectedIndex >= nextPlans.length) {
-          nextPlans.push(asAccount);
-        } else if (nextPlans.length === 0) {
+        const isNew =
+          selectedIndex >= nextPlans.length || nextPlans.length === 0;
+        if (isNew) {
           nextPlans.push(asAccount);
         } else {
           nextPlans[selectedIndex] = asAccount;
         }
 
-        const ok = await persistAccountPlans(
-          nextPlans,
-          Math.min(selectedIndex, nextPlans.length - 1),
-        );
+        const preferredId = asAccount.id ?? null;
+        const preferredIndex = isNew
+          ? nextPlans.length - 1
+          : selectedIndex;
+        const ok = await persistAccountPlans(nextPlans, preferredId, {
+          preferredIndex,
+        });
         if (!ok) return;
 
         trackEvent(AnalyticsEvent.lessonPlanSaved, {
@@ -454,11 +549,11 @@ export function LessonPlanForm({
       if (accountPlans.length <= 1) {
         startTransition(() => {
           void (async () => {
-            const ok = await persistAccountPlans([], 0);
+            const ok = await persistAccountPlans([], null, {
+              toastPushChange: true,
+            });
             if (!ok) return;
-            clearLessonPlan();
             setDraft({ ...EMPTY_LESSON_PLAN, days: {} });
-            void syncStoredPushPlan({ ...EMPTY_LESSON_PLAN, days: {} });
             toast.success("Usunięto plany z konta");
           })();
         });
@@ -466,9 +561,14 @@ export function LessonPlanForm({
       }
       startTransition(() => {
         void (async () => {
+          const removedId = accountPlans[selectedIndex]?.id ?? null;
           const nextPlans = accountPlans.filter((_, i) => i !== selectedIndex);
-          const nextIndex = Math.min(selectedIndex, nextPlans.length - 1);
-          const ok = await persistAccountPlans(nextPlans, nextIndex);
+          const fallbackId =
+            nextPlans[Math.min(selectedIndex, nextPlans.length - 1)]?.id ??
+            null;
+          const ok = await persistAccountPlans(nextPlans, fallbackId, {
+            toastPushChange: Boolean(removedId),
+          });
           if (!ok) return;
           toast.success("Usunięto plan");
         })();
@@ -480,7 +580,6 @@ export function LessonPlanForm({
     clearLessonPlan();
     setDraft(cleared);
     setSaveError(null);
-    void syncStoredPushPlan(cleared);
   }
 
   const deleteTargetLabel =
@@ -517,6 +616,7 @@ export function LessonPlanForm({
   }
 
   const saveDisabled = pending || daysInvalidEnd.length > 0;
+  const saveLabel = isDraftingNewPlan ? "Zapisz nowy plan" : "Zapisz plan";
 
   return (
     <>
@@ -533,52 +633,7 @@ export function LessonPlanForm({
                 powiadomieniach.
               </p>
             </div>
-            {accountPlans.length === 0 && selectedIndex === 0 && !draft ? (
-              <p className="text-sm text-muted-foreground">
-                Brak planów na koncie — uzupełnij formularz i zapisz.
-              </p>
-            ) : null}
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Button
-                type="button"
-                size="lg"
-                className={actionButtonClass}
-                disabled={
-                  isDraftingNewPlan ||
-                  accountPlans.length >= MAX_ACCOUNT_PLANS
-                }
-                title={
-                  isDraftingNewPlan
-                    ? "Najpierw zapisz nowy plan"
-                    : accountPlans.length >= MAX_ACCOUNT_PLANS
-                      ? "Możesz zapisać najwyżej 5 planów"
-                      : undefined
-                }
-                onClick={handleAddPlan}
-              >
-                <Plus aria-hidden className="size-4" />
-                Dodaj plan
-              </Button>
-              {accountPlans.length > 0 ? (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="lg"
-                  className={actionButtonClass}
-                  disabled={pending || isDraftingNewPlan}
-                  title={
-                    isDraftingNewPlan
-                      ? "Nie można usunąć planu w trakcie dodawania"
-                      : undefined
-                  }
-                  onClick={() => setDeleteConfirmOpen(true)}
-                >
-                  <Trash2 aria-hidden className="size-4" />
-                  Usuń plan
-                </Button>
-              ) : null}
-            </div>
-            {accountPlans.length > 0 || isDraftingNewPlan ? (
+            {accountPlans.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {accountPlans.map((item, index) => (
                   <button
@@ -595,18 +650,46 @@ export function LessonPlanForm({
                     {accountPlanLabel(item, index)}
                   </button>
                 ))}
-                {isDraftingNewPlan ? (
-                  <span className="rounded-full border border-bus/50 bg-bus/10 px-3.5 py-2 text-sm font-medium text-foreground">
-                    Nowy plan
-                  </span>
+                {accountPlans.length < MAX_ACCOUNT_PLANS ? (
+                  <button
+                    type="button"
+                    onClick={handleAddPlan}
+                    disabled={isDraftingNewPlan}
+                    title={
+                      isDraftingNewPlan
+                        ? "Najpierw zapisz nowy plan"
+                        : undefined
+                    }
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full border border-dashed px-3.5 py-2 text-sm font-medium transition-colors",
+                      isDraftingNewPlan
+                        ? "cursor-not-allowed border-border/50 text-muted-foreground/60"
+                        : "border-border/70 bg-background text-muted-foreground hover:border-bus/40 hover:text-foreground",
+                    )}
+                  >
+                    <Plus aria-hidden className="size-3.5" />
+                    Dodaj plan
+                  </button>
                 ) : null}
               </div>
             ) : null}
-            {isDraftingNewPlan ? (
-              <p className="rounded-lg border border-bus/30 bg-bus/5 px-3.5 py-3 text-sm leading-relaxed text-foreground">
-                Ten plan nie jest jeszcze zapisany. Bez zapisu zniknie po
-                przełączeniu na inny plan lub odświeżeniu strony.
-              </p>
+            {accountPlans.length > 0 ? (
+              <Button
+                type="button"
+                variant="destructive"
+                size="lg"
+                className={actionButtonClass}
+                disabled={pending || isDraftingNewPlan}
+                title={
+                  isDraftingNewPlan
+                    ? "Nie można usunąć planu w trakcie dodawania"
+                    : undefined
+                }
+                onClick={() => setDeleteConfirmOpen(true)}
+              >
+                <Trash2 aria-hidden className="size-4" />
+                Usuń plan
+              </Button>
             ) : null}
             {accountPlans.length >= MAX_ACCOUNT_PLANS ? (
               <p className="text-sm text-muted-foreground">
@@ -614,6 +697,33 @@ export function LessonPlanForm({
               </p>
             ) : null}
           </section>
+        ) : null}
+
+        {mode === "account" && isDraftingNewPlan ? (
+          <div className="flex flex-col gap-3 rounded-xl border border-bus/30 bg-bus/5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5 sm:py-4">
+            <div className="min-w-0 space-y-1">
+              <p className="text-base font-semibold text-foreground">
+                Nowy plan
+              </p>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Podaj nazwę i przystanek, uzupełnij godziny, potem zapisz. Bez
+                zapisu zniknie po przełączeniu na inny plan lub odświeżeniu
+                strony.
+              </p>
+            </div>
+            {accountPlans.length > 0 ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="h-11 w-full shrink-0 px-4 sm:w-auto"
+                disabled={pending}
+                onClick={handleCancelDraft}
+              >
+                Anuluj
+              </Button>
+            ) : null}
+          </div>
         ) : null}
 
         <div
@@ -638,6 +748,7 @@ export function LessonPlanForm({
                   Nazwa planu
                 </Label>
                 <Input
+                  ref={planNameInputRef}
                   id="lesson-plan-name"
                   type="text"
                   value={planName}
@@ -861,7 +972,7 @@ export function LessonPlanForm({
                 disabled={saveDisabled}
                 onClick={handleSave}
               >
-                Zapisz plan
+                {saveLabel}
               </Button>
               {mode === "local" ? (
                 <Button
@@ -1123,7 +1234,7 @@ export function LessonPlanForm({
                 disabled={saveDisabled}
                 onClick={handleSave}
               >
-                Zapisz plan
+                {saveLabel}
               </Button>
             </div>,
             document.body,

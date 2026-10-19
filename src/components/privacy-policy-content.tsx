@@ -32,7 +32,7 @@ const SECTIONS: Section[] = [
     paragraphs: [
       "Aplikacja służy do przeglądania rozkładów autobusów szkolnych i wybranych kursów MZK, dopasowania ich do planu lekcji oraz — opcjonalnie — przenoszenia ustawień między urządzeniami, logowania do konta, zakupu Planu Plus i włączania przypomnień.",
       "Podstawowe rozkłady i lokalny plan lekcji działają bez konta. Konto (logowanie adresem e-mail) jest opcjonalne i potrzebne do Planu Plus oraz powiązanych funkcji, w tym powiadomień Web Push i planów lekcji zapisanych na koncie.",
-      "Bez konta (lub bez Planu Plus) plan lekcji pozostaje na Twoim urządzeniu. Przy aktywnym Planie Plus możesz zapisać do pięciu planów lekcji na koncie — są one przechowywane w bazie backendu (MongoDB) i synchronizowane między urządzeniami. Po włączeniu powiadomień (wymaga aktywnego Planu Plus) wybrany plan jest też wykorzystywany po stronie serwera do wysyłania przypomnień.",
+      "Bez konta (lub bez Planu Plus) plan lekcji pozostaje na Twoim urządzeniu. Przy aktywnym Planie Plus możesz zapisać do pięciu planów lekcji na koncie — są one przechowywane w bazie backendu (MongoDB) i synchronizowane między urządzeniami. Po włączeniu powiadomień (wymaga aktywnego Planu Plus) urządzenie łączy się z wybranym planem konta — serwer korzysta z tego planu do wysyłania przypomnień, bez osobnej kopii planu w rekordzie powiadomień.",
       "Podanie danych (np. e-mail przy logowaniu lub w formularzu opinii albo włączenie powiadomień) jest dobrowolne.",
     ],
   },
@@ -49,6 +49,7 @@ const SECTIONS: Section[] = [
       "wybrana trasa komunikacji miejskiej (MZK),",
       "informacja o zamknięciu wskazówek wprowadzających,",
       "wybrany motyw wyglądu (jasny / ciemny),",
+      "przy korzystaniu z planów na koncie: identyfikator wybranego planu,",
       "przy korzystaniu z powiadomień: wybrane rodzaje przypomnień oraz (ewentualnie) informacja o ukryciu banera instalacji aplikacji.",
     ],
     afterBullets: [
@@ -99,20 +100,20 @@ const SECTIONS: Section[] = [
     title: "7. Powiadomienia Web Push (opcjonalne)",
     paragraphs: [
       "Powiadomienia są funkcją opcjonalną — uruchamianą dopiero wtedy, gdy o to poprosisz, zezwolisz na nie w przeglądarce i masz aktywny Plan Plus oraz sesję logowania.",
-      "Bez powiadomień plan lekcji pozostaje na Twoim urządzeniu. Po włączeniu powiadomień część danych planu jest przechowywana na serwerze, ponieważ jest to konieczne do wysyłania spersonalizowanych powiadomień. Rekord subskrypcji jest powiązany z identyfikatorem konta.",
+      "Bez powiadomień plan lekcji pozostaje na Twoim urządzeniu (oraz — przy Planie Plus — na koncie). Po włączeniu powiadomień rekord subskrypcji na serwerze wskazuje wybrany plan konta (identyfikator planu), zamiast przechowywać osobną kopię planu lekcji na urządzenie. Przypomnienia korzystają z miejsca i godzin tego planu.",
       "Cel przetwarzania: przypomnienia o odjeździe autobusu szkolnego (ok. 20 minut przed), o autobusie powrotnym (ok. 20 minut przed, gdy podasz godzinę końca lekcji), informacje o zmianie godzin w rozkładzie szkolnym, a także krótkie potwierdzenie włączenia oraz — na żądanie — powiadomienie testowe. Przypomnienia dotyczą autobusu szkolnego, nie kursów MZK.",
     ],
     bullets: [
       "subskrypcja Push z przeglądarki: adres endpointu oraz klucze techniczne (p256dh, auth) potrzebne do zaszyfrowanego dostarczenia powiadomienia,",
       "identyfikator rekordu oparty o skrót (hash) endpointu oraz powiązanie z kontem (userId),",
-      "plan lekcji niezbędny do wyliczenia przypomnień (miejsce oraz godziny w dni robocze),",
+      "identyfikator wybranego planu konta (planId) — dane planu (miejsce, godziny) są brane z planów zapisanych na koncie,",
       "wybrane rodzaje powiadomień (odjazd, powrót, zmiana rozkładu),",
       "dane techniczne do unikania powtórzeń (np. lista już wysłanych przypomnień danego dnia) oraz skrót treści rozkładu szkolnego (do wykrycia zmiany godzin).",
     ],
     afterBullets: [
-      "Te dane subskrypcji są danymi technicznymi służącymi do dostarczenia powiadomienia na konkretne urządzenie. W połączeniu z planem lekcji pozwalają wysłać spersonalizowane przypomnienie.",
+      "Te dane subskrypcji są danymi technicznymi służącymi do dostarczenia powiadomienia na konkretne urządzenie. W połączeniu z wybranym planem konta pozwalają wysłać spersonalizowane przypomnienie. Przechowujemy je w magazynie serwera backendu (MongoDB), nie w Redis aplikacji frontowej.",
       "Rekordy powiadomień na serwerze nie mają automatycznego terminu ważności (TTL). Usuwamy je, gdy wyłączysz powiadomienia w aplikacji, gdy Plan Plus wygaśnie lub zostanie cofnięty (np. po zwrocie płatności), albo gdy dostawca Push zgłosi, że subskrypcja jest już nieaktualna (np. odpowiedź 404/410).",
-      "Wysyłkę przypomnień uruchamia zaplanowane zadanie (Upstash QStash). Dostawcą kanału Push jest usługa wynikająca z przeglądarki / systemu (adres endpointu), np. Google, Mozilla lub Apple — wyłącznie w zakresie dostarczenia powiadomienia.",
+      "Wysyłkę przypomnień uruchamia zaplanowane zadanie w backendzie aplikacji. Dostawcą kanału Push jest usługa wynikająca z przeglądarki / systemu (adres endpointu), np. Google, Mozilla lub Apple — wyłącznie w zakresie dostarczenia powiadomienia.",
     ],
   },
   {
@@ -148,8 +149,8 @@ const SECTIONS: Section[] = [
     bullets: [
       "Vercel — hosting aplikacji oraz Analytics i Speed Insights,",
       "PostHog — analityka produktowa (pageviewy i zdarzenia; hosting w UE),",
-      "hosting backendu / MongoDB — konto, sesja, Plan Plus (entitlement, zamówienia Stripe, potwierdzenia zakupu),",
-      "Upstash — Redis (transfer ustawień, limity zapytań, rekordy Push) oraz QStash (harmonogram wysyłki przypomnień),",
+      "hosting backendu / MongoDB — konto, sesja, Plan Plus (entitlement, zamówienia Stripe, potwierdzenia zakupu) oraz rekordy Web Push (subskrypcje i wysyłka przypomnień),",
+      "Upstash — Redis (transfer ustawień, limity zapytań formularza / transferu),",
       "Resend — wysyłka maili logowania, potwierdzeń zakupu, formularza opinii i reklamacji,",
       "Stripe — obsługa płatności za Plan Plus (Checkout i powiązane dane płatności),",
       "Cloudflare — Turnstile przy formularzu opinii,",
@@ -182,7 +183,7 @@ const SECTIONS: Section[] = [
     paragraphs: [
       "Dane lokalne w przeglądarce: do czasu ich usunięcia przez Ciebie lub wyczyszczenia danych witryny.",
       "Konto (e-mail, identyfikator): do czasu usunięcia konta na żądanie albo do czasu, gdy przestaniemy świadczyć usługę konta — obecnie w aplikacji nie ma samoobsługowego usuwania konta; możesz napisać do administratora.",
-      "Sesja logowania (Redis + ciasteczko): około 30 dni od ostatniego odświeżenia sesji albo do wylogowania.",
+      "Sesja logowania (MongoDB w backendzie + ciasteczko): około 30 dni od ostatniego odświeżenia sesji albo do wylogowania.",
       "Uprawnienie Plan Plus (entitlement): do końca okresu ważności oraz w zakresie potrzebnym do rozliczeń / reklamacji; przy zwrocie płatności status jest aktualizowany.",
       "Transfer ustawień (zaszyfrowany kod): do 15 minut albo do jednorazowego wykorzystania — w zależności od tego, co nastąpi wcześniej.",
       "Liczniki limitów zapytań (IP): krótkotrwale, zgodnie z oknem limitu (rzędu kilkudziesięciu minut).",

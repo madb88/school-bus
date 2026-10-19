@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { DowozyOverride, Schedule } from "./types";
 import { resolveScheduleSnapshot } from "./resolve-schedule";
-import { schoolScheduleFingerprint } from "@/lib/push/schedule-fingerprint";
+import { schoolScheduleFingerprint } from "./schedule-fingerprint";
 
 const base: Schedule = {
   sourceUrl: "https://example.test/dowozy/",
