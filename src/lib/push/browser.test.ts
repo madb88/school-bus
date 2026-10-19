@@ -227,11 +227,15 @@ describe("enablePush / setPushPlans / getPushStatus bodies", () => {
       schedule: false,
     });
 
-    expect(result).toEqual({
-      ok: false,
-      message: "Powiadomienia nie są poprawnie skonfigurowane (klucz VAPID).",
-    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.message).toContain("Klucz VAPID w aplikacji jest niepoprawny");
+    }
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("accepts a quoted VAPID public key from env", () => {
+    expect(parseApplicationServerKey(`"${VAPID_PUBLIC_KEY}"`)).not.toBeNull();
   });
 
   it("POSTs status and returns subscribed planIds", async () => {

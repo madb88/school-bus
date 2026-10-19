@@ -29,12 +29,24 @@ export function urlBase64ToUint8Array(value: string): Uint8Array<ArrayBuffer> {
   return output;
 }
 
+/** Strip quotes / whitespace that sneak in from .env or Vercel env UI. */
+export function normalizeVapidPublicKey(value: string): string {
+  let key = value.trim();
+  if (
+    (key.startsWith('"') && key.endsWith('"')) ||
+    (key.startsWith("'") && key.endsWith("'"))
+  ) {
+    key = key.slice(1, -1).trim();
+  }
+  return key;
+}
+
 /** Uncompressed P-256 point: 65 bytes, leading 0x04 (WebKit rejects anything else). */
 export function parseApplicationServerKey(
   value: string,
 ): Uint8Array<ArrayBuffer> | null {
   try {
-    const key = urlBase64ToUint8Array(value.trim());
+    const key = urlBase64ToUint8Array(normalizeVapidPublicKey(value));
     if (key.byteLength !== 65 || key[0] !== 0x04) return null;
     return key;
   } catch {
@@ -51,7 +63,7 @@ function pushClientErrorMessage(error: unknown): string {
     case "InvalidStateError":
       return "Service worker nie jest gotowy. Zamknij aplikację i otwórz ją ponownie z ikony, potem spróbuj znów.";
     case "InvalidAccessError":
-      return "Powiadomienia nie są poprawnie skonfigurowane (klucz VAPID).";
+      return "Przeglądarka odrzuciła klucz VAPID (InvalidAccessError). Sprawdź NEXT_PUBLIC_VAPID_PUBLIC_KEY w buildzie PWA.";
     case "AbortError":
       return "Przeglądarka przerwała włączanie. Zamknij aplikację z wielozadaniowości, otwórz z ikony i spróbuj ponownie.";
     case "NotSupportedError":
@@ -318,15 +330,16 @@ export async function enablePush(
     return { ok: false, message: "Najpierw zapisz plan lekcji na koncie." };
   }
 
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
-  if (!publicKey) {
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  if (!publicKey?.trim()) {
     return { ok: false, message: "Powiadomienia nie są jeszcze skonfigurowane." };
   }
   const applicationServerKey = parseApplicationServerKey(publicKey);
   if (!applicationServerKey) {
     return {
       ok: false,
-      message: "Powiadomienia nie są poprawnie skonfigurowane (klucz VAPID).",
+      message:
+        "Klucz VAPID w aplikacji jest niepoprawny (oczekiwany publiczny P-256). Zredeployuj Next po zmianie NEXT_PUBLIC_VAPID_PUBLIC_KEY.",
     };
   }
 
@@ -542,15 +555,16 @@ export async function sendTestPush(): Promise<
     return { ok: false, message: "Ta przeglądarka nie obsługuje powiadomień." };
   }
 
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
-  if (!publicKey) {
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  if (!publicKey?.trim()) {
     return { ok: false, message: "Powiadomienia nie są jeszcze skonfigurowane." };
   }
   const applicationServerKey = parseApplicationServerKey(publicKey);
   if (!applicationServerKey) {
     return {
       ok: false,
-      message: "Powiadomienia nie są poprawnie skonfigurowane (klucz VAPID).",
+      message:
+        "Klucz VAPID w aplikacji jest niepoprawny (oczekiwany publiczny P-256). Zredeployuj Next po zmianie NEXT_PUBLIC_VAPID_PUBLIC_KEY.",
     };
   }
 
