@@ -828,7 +828,7 @@ export function LessonPlanForm({
                 title="Nazwa planu"
                 description="Opcjonalna nazwa (np. imię dziecka) — widać ją w przełączniku i na rozkładzie."
               />
-              <div className="mt-auto flex w-full min-w-0 flex-col gap-1.5 pt-5">
+              <div className="mt-auto flex w-full min-w-0 flex-col gap-1.5 pt-2 md:pt-3">
                 <Label htmlFor="lesson-plan-name" className="sr-only">
                   Nazwa planu
                 </Label>
@@ -857,7 +857,7 @@ export function LessonPlanForm({
                 <MapPin className="size-4 shrink-0 text-bus-deep" aria-hidden />
               }
             />
-            <div className="mt-auto flex w-full min-w-0 flex-col gap-1.5 pt-5">
+            <div className="mt-auto flex w-full min-w-0 flex-col gap-1.5 pt-2 md:pt-3">
               <Label
                 id="lesson-place-label"
                 htmlFor="lesson-place"
