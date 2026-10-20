@@ -1,3 +1,5 @@
+"use client";
+
 import type { LucideIcon } from "lucide-react";
 import {
   Check,
@@ -12,6 +14,12 @@ import {
 import type { ReactNode } from "react";
 import { AboutProjectFeedbackCta } from "@/components/about-project-feedback-cta";
 import { PageEyebrow } from "@/components/page-eyebrow";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { cn } from "cn";
 
 type Pillar = {
@@ -87,6 +95,12 @@ const roadmapColumns: readonly RoadmapColumn[] = [
       { label: "Kompaktowy wydruk do kieszeni" },
       { label: "Wersja PWA / korzystanie na telefonie" },
       { label: "Przenoszenie ustawień kodem QR" },
+      { label: "Dalsze usprawnienia powiadomień" },
+      { label: "Ulepszenia istniejących funkcji" },
+      { label: "Poprawki UX na podstawie opinii użytkowników" },
+      { label: "Dalsze rozwijanie obsługi rozkładów" },
+      { label: "Kolejne usprawnienia aplikacji mobilnej" },
+      { label: "Wygodniejsza synchronizacja ustawień między urządzeniami" },
     ],
   },
   {
@@ -98,11 +112,9 @@ const roadmapColumns: readonly RoadmapColumn[] = [
     iconWrapClassName: "bg-sky-500 text-white shadow-sm shadow-sky-500/25",
     bulletClassName: "text-sky-500 dark:text-sky-400",
     items: [
-      { label: "Dalsze usprawnienia powiadomień" },
-      { label: "Ulepszenia istniejących funkcji" },
-      { label: "Poprawki UX na podstawie opinii użytkowników" },
-      { label: "Dalsze rozwijanie obsługi rozkładów" },
-      { label: "Kolejne usprawnienia aplikacji mobilnej" },
+      { label: "Dalsza personalizacja rozkładów" },
+      { label: "Zapisywanie ulubionych kursów" },
+      { label: "Dodatkowe funkcje przydatne rodzicom" },
     ],
   },
   {
@@ -113,13 +125,7 @@ const roadmapColumns: readonly RoadmapColumn[] = [
       "border-orange-200/80 bg-orange-50/90 dark:border-orange-500/25 dark:bg-orange-500/10",
     iconWrapClassName: "bg-orange-500 text-white shadow-sm shadow-orange-500/25",
     bulletClassName: "text-orange-500 dark:text-orange-400",
-    items: [
-      { label: "Wygodniejsza synchronizacja ustawień między urządzeniami" },
-      { label: "Zapisywanie ulubionych kursów" },
-      { label: "Dalsza personalizacja rozkładów" },
-      { label: "Kolejne szkoły i miejscowości" },
-      { label: "Dodatkowe funkcje przydatne rodzicom" },
-    ],
+    items: [{ label: "Kolejne szkoły i miejscowości" }],
   },
 ];
 
@@ -205,74 +211,82 @@ export function AboutProject({
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Accordion
+          multiple
+          defaultValue={["in-progress"]}
+          className="gap-3"
+        >
           {roadmapColumns.map((column) => {
             const ColumnIcon = column.icon;
             return (
-              <article
+              <AccordionItem
                 key={column.id}
+                value={column.id}
                 className={cn(
-                  "flex min-w-0 flex-col rounded-2xl border p-5 sm:p-6",
-                  column.id === "ideas" && "md:col-span-2 lg:col-span-1",
+                  "overflow-hidden rounded-2xl border last:border-b",
                   column.className,
                 )}
               >
-                <header className="mb-5 flex items-center gap-2.5">
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "flex size-8 shrink-0 items-center justify-center rounded-full",
-                      column.iconWrapClassName,
-                    )}
-                  >
-                    <ColumnIcon className="size-4" strokeWidth={2.5} />
-                  </span>
-                  <h3 className="font-display text-lg font-semibold tracking-tight text-asphalt">
-                    {column.title}
-                  </h3>
-                </header>
-                <ul className="flex flex-1 flex-col gap-3">
-                  {column.items.map((item) => (
-                    <li
-                      key={item.label}
-                      className="grid grid-cols-[auto_1fr] items-start gap-2.5"
-                    >
-                      {column.bulletSolid ? (
-                        <span
-                          aria-hidden
-                          className={cn(
-                            "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full",
-                            column.bulletClassName,
-                          )}
-                        >
-                          <Check className="size-2.5" strokeWidth={3} />
-                        </span>
-                      ) : (
-                        <Circle
-                          aria-hidden
-                          className={cn(
-                            "mt-0.5 size-4 shrink-0",
-                            column.bulletClassName,
-                          )}
-                          strokeWidth={2}
-                        />
+                <AccordionTrigger className="px-5 py-4 hover:bg-transparent sm:px-6 sm:text-lg">
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "flex size-8 shrink-0 items-center justify-center rounded-full",
+                        column.iconWrapClassName,
                       )}
-                      <span className="text-sm leading-snug text-foreground/90">
-                        {item.label}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                {column.id === "ideas" ? (
-                  <p className="mt-5 text-xs leading-relaxed text-muted-foreground">
-                    To kierunki rozważane na przyszłość — nie obietnica, że
-                    wszystkie trafią do aplikacji.
-                  </p>
-                ) : null}
-              </article>
+                    >
+                      <ColumnIcon className="size-4" strokeWidth={2.5} />
+                    </span>
+                    <span className="font-display text-lg font-semibold tracking-tight text-asphalt">
+                      {column.title}
+                    </span>
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="space-y-4 px-5 pt-0 pb-5 sm:px-6 sm:pb-6">
+                  <ul className="flex flex-col gap-3">
+                    {column.items.map((item) => (
+                      <li
+                        key={item.label}
+                        className="grid grid-cols-[auto_1fr] items-start gap-2.5"
+                      >
+                        {column.bulletSolid ? (
+                          <span
+                            aria-hidden
+                            className={cn(
+                              "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full",
+                              column.bulletClassName,
+                            )}
+                          >
+                            <Check className="size-2.5" strokeWidth={3} />
+                          </span>
+                        ) : (
+                          <Circle
+                            aria-hidden
+                            className={cn(
+                              "mt-0.5 size-4 shrink-0",
+                              column.bulletClassName,
+                            )}
+                            strokeWidth={2}
+                          />
+                        )}
+                        <span className="text-sm leading-snug text-foreground/90">
+                          {item.label}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  {column.id === "ideas" ? (
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      To kierunki rozważane na przyszłość — nie obietnica, że
+                      wszystkie trafią do aplikacji.
+                    </p>
+                  ) : null}
+                </AccordionContent>
+              </AccordionItem>
             );
           })}
-        </div>
+        </Accordion>
       </section>
 
       <AboutProjectFeedbackCta />
