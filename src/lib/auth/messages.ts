@@ -4,3 +4,5 @@ export const AUTH_SENT_FAILURE = "Nie udało się wysłać wiadomości. Spróbuj
 export const AUTH_TOO_MANY = "Zbyt wiele prób. Spróbuj ponownie za chwilę.";
 export const AUTH_BAD_EMAIL = "Podaj prawidłowy adres e-mail.";
 export const AUTH_BAD_CODE = "Nieprawidłowy lub wygasły kod.";
+/** Generic 422 when backend detail is missing / unparsable (not email-specific). */
+export const AUTH_BAD_DATA = "Niepoprawne dane.";

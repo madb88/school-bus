@@ -10,6 +10,7 @@ type PlaceComboboxProps = {
   onChange: (place: string | null) => void;
   placeholder?: string;
   id?: string;
+  invalid?: boolean;
   "aria-labelledby"?: string;
 };
 
@@ -19,6 +20,7 @@ export function PlaceCombobox({
   onChange,
   placeholder = "Szukaj miejsca…",
   id: idProp,
+  invalid = false,
   "aria-labelledby": ariaLabelledBy,
 }: PlaceComboboxProps) {
   const autoId = useId();
@@ -43,14 +45,17 @@ export function PlaceCombobox({
     >
       <Combobox.InputGroup
         className={cn(
-          "relative flex h-11 w-full items-center rounded-lg border border-border bg-card",
-          "focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50",
+          "relative flex h-11 w-full items-center rounded-lg border bg-card",
+          invalid
+            ? "border-destructive ring-3 ring-destructive/20 dark:ring-destructive/40"
+            : "border-border focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50",
           "[&>input]:pr-16 has-[.combobox-clear]:[&>input]:pr-16",
         )}
       >
         <Combobox.Input
           id={inputId}
           aria-labelledby={ariaLabelledBy}
+          aria-invalid={invalid || undefined}
           placeholder={placeholder}
           className="h-full w-full min-w-0 rounded-lg border-0 bg-transparent px-3 text-base text-foreground outline-hidden placeholder:text-muted-foreground"
         />

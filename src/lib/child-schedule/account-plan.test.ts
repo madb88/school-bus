@@ -42,6 +42,31 @@ describe("toAccountPlan", () => {
     });
   });
 
+  it("skips days where end is equal to or before start", () => {
+    expect(
+      toAccountPlan({
+        place: "Zatonie",
+        days: {
+          1: { start: "08:00", end: "08:00" },
+          2: { start: "14:00", end: "08:00" },
+          3: { start: "08:00", end: "14:00" },
+        },
+      }),
+    ).toEqual({
+      plan: {
+        place: "Zatonie",
+        days: { "3": { start: "08:00", end: "14:00" } },
+      },
+      droppedDaysWithoutEnd: [],
+    });
+    expect(
+      toAccountPlan({
+        place: "Zatonie",
+        days: { 1: { start: "08:00", end: "08:00" } },
+      }),
+    ).toEqual({ plan: null, droppedDaysWithoutEnd: [] });
+  });
+
   it("merges optional name", () => {
     const { plan } = toAccountPlan(
       { place: "Złote Piaski", days: { 1: { start: "08:00", end: "14:00" } } },

@@ -39,7 +39,11 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import type { BackendRole } from "@/lib/auth/backend";
-import { setProfileMenuSection } from "@/lib/auth/profile-menu-section";
+import {
+  getProfileMenuSection,
+  setProfileMenuSection,
+  subscribeProfileMenuSection,
+} from "@/lib/auth/profile-menu-section";
 import {
   hasPlusAccessFromPanel,
   hasPushPlusAccessFromPanel,
@@ -135,6 +139,17 @@ export function ProfilePanel({
     setProfileMenuSection(section === "logout" ? "profil" : section);
     return () => setProfileMenuSection(null);
   }, [section]);
+
+  // Menu can request "profil" while URL is already /profil (query cleared after
+  // deep-link) — soft nav is a no-op, so apply the store request here.
+  useEffect(() => {
+    return subscribeProfileMenuSection(() => {
+      const requested = getProfileMenuSection();
+      if (requested == null) return;
+      setSection((prev) => (prev === requested ? prev : requested));
+      setError(null);
+    });
+  }, []);
 
   useEffect(() => {
     if (plus.state !== "pending") return;

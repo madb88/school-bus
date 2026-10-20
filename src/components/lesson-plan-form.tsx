@@ -83,7 +83,10 @@ import {
   loadLessonPlan,
   saveLessonPlan,
 } from "@/lib/child-schedule/storage";
-import { formatTimeInput, timeToMinutes } from "@/lib/child-schedule/match";
+import {
+  dayHasInvalidTimeRange,
+  formatTimeInput,
+} from "@/lib/child-schedule/match";
 import { savePreferredPlace } from "@/lib/child-schedule/preferred-place";
 import {
   EMPTY_LESSON_PLAN,
@@ -209,23 +212,64 @@ function normalizeLocalPlan(source: ChildLessonPlan): ChildLessonPlan {
   return normalized;
 }
 
-function dayHasEndBeforeStart(
-  start: string | undefined,
-  end: string | undefined,
-): boolean {
-  if (!start || !end) return false;
-  const startMin = timeToMinutes(start);
-  const endMin = timeToMinutes(end);
-  if (startMin === null || endMin === null) return false;
-  return endMin < startMin;
-}
-
 function dayTimeSummary(
   day: { start?: string; end?: string } | undefined,
 ): string {
   if (!day?.start) return "Brak";
   if (!day.end) return `${day.start} – …`;
   return `${day.start} – ${day.end}`;
+}
+
+type LessonPlanFormIssues = {
+  place: boolean;
+  invalidDayKeys: WeekdayKey[];
+  noCompleteDay: boolean;
+  messages: string[];
+};
+
+function collectLessonPlanFormIssues(
+  source: ChildLessonPlan,
+  mode: "local" | "account",
+): LessonPlanFormIssues {
+  const messages: string[] = [];
+  const place = !source.place?.trim();
+  if (place) messages.push("Wybierz przystanek.");
+
+  const invalidDayKeys: WeekdayKey[] = [];
+  const invalidLabels: string[] = [];
+  for (const { key, label } of WEEKDAY_OPTIONS) {
+    const day = source.days[key];
+    if (!day?.start || !day.end) continue;
+    if (dayHasInvalidTimeRange(day.start, day.end)) {
+      invalidDayKeys.push(key);
+      invalidLabels.push(label);
+    }
+  }
+  if (invalidLabels.length > 0) {
+    messages.push(
+      `Koniec lekcji musi być późniejszy niż start (${invalidLabels.join(", ")}).`,
+    );
+  }
+
+  let noCompleteDay = false;
+  if (mode === "account" && !place) {
+    const hasCompleteDay = WEEKDAY_OPTIONS.some(({ key }) => {
+      const day = source.days[key];
+      return Boolean(
+        day?.start &&
+          day.end &&
+          !dayHasInvalidTimeRange(day.start, day.end),
+      );
+    });
+    if (!hasCompleteDay) {
+      noCompleteDay = true;
+      messages.push(
+        "Uzupełnij przynajmniej jeden dzień z godziną początku i końca.",
+      );
+    }
+  }
+
+  return { place, invalidDayKeys, noCompleteDay, messages };
 }
 
 function LessonTimeInput({
@@ -282,6 +326,8 @@ export function LessonPlanForm({
   const [draft, setDraft] = useState<ChildLessonPlan | null>(null);
   const [pending, startTransition] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [placeInvalid, setPlaceInvalid] = useState(false);
+  const [hoursSectionInvalid, setHoursSectionInvalid] = useState(false);
   const [printMode, setPrintMode] = useState<LessonPlanPrintMode>("school");
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const accountBootstrapped = useRef(false);
@@ -308,7 +354,7 @@ export function LessonPlanForm({
   });
   const daysInvalidEnd = WEEKDAY_OPTIONS.filter(({ key }) => {
     const day = plan.days[key];
-    return dayHasEndBeforeStart(day?.start, day?.end);
+    return dayHasInvalidTimeRange(day?.start, day?.end);
   });
 
   useEffect(() => {
@@ -369,6 +415,7 @@ export function LessonPlanForm({
 
   function updateDay(key: WeekdayKey, field: "start" | "end", value: string) {
     setSaveError(null);
+    setHoursSectionInvalid(false);
     setDraft((prev) => {
       const base = prev ?? accountBase ?? stored;
       const nextDays = { ...base.days };
@@ -538,18 +585,21 @@ export function LessonPlanForm({
     startTransition(() => {
       void (async () => {
         const source = basePlan();
+        const issues = collectLessonPlanFormIssues(source, mode);
 
-        for (const { key, label } of WEEKDAY_OPTIONS) {
-          const day = source.days[key];
-          if (!day?.start || !day.end) continue;
-          if (dayHasEndBeforeStart(day.start, day.end)) {
-            const message = `${label}: koniec lekcji nie może być wcześniejszy niż start.`;
-            setSaveError(message);
-            toast.error(message);
-            return;
-          }
+        if (issues.messages.length > 0) {
+          setPlaceInvalid(issues.place);
+          setHoursSectionInvalid(
+            issues.invalidDayKeys.length > 0 || issues.noCompleteDay,
+          );
+          const detail = issues.messages.join(" ");
+          setSaveError(detail);
+          toast.error("Błędne dane formularza", { description: detail });
+          return;
         }
 
+        setPlaceInvalid(false);
+        setHoursSectionInvalid(false);
         const normalized = normalizeLocalPlan(source);
 
         if (mode === "local") {
@@ -583,10 +633,11 @@ export function LessonPlanForm({
           { name: planName, existing },
         );
         if (!asAccount) {
+          setHoursSectionInvalid(true);
           const message =
-            "Wybierz przystanek i uzupełnij przynajmniej jeden dzień z godziną początku i końca.";
+            "Uzupełnij przynajmniej jeden dzień z godziną początku i końca.";
           setSaveError(message);
-          toast.error(message);
+          toast.error("Błędne dane formularza", { description: message });
           return;
         }
 
@@ -659,6 +710,8 @@ export function LessonPlanForm({
     clearLessonPlan();
     setDraft(cleared);
     setSaveError(null);
+    setPlaceInvalid(false);
+    setHoursSectionInvalid(false);
   }
 
   const deleteTargetLabel =
@@ -668,6 +721,7 @@ export function LessonPlanForm({
 
   function setPlace(next: string | null) {
     setSaveError(null);
+    setPlaceInvalid(false);
     setDraft((prev) => ({
       ...(prev ?? accountBase ?? stored),
       place: next,
@@ -694,7 +748,7 @@ export function LessonPlanForm({
     window.print();
   }
 
-  const saveDisabled = pending || daysInvalidEnd.length > 0;
+  const saveDisabled = pending;
   const saveLabel = isDraftingNewPlan ? "Zapisz nowy plan" : "Zapisz plan";
 
   return (
@@ -855,7 +909,13 @@ export function LessonPlanForm({
             </section>
           ) : null}
 
-          <section className={cn(cardClass, "flex h-full flex-col space-y-0")}>
+          <section
+            className={cn(
+              cardClass,
+              "flex h-full flex-col space-y-0",
+              placeInvalid && "border-destructive/60",
+            )}
+          >
             <FieldHelpHint
               title="Przystanek"
               description="Wybierz przystanek, z którego dziecko jedzie do szkoły."
@@ -875,6 +935,7 @@ export function LessonPlanForm({
                 id="lesson-place"
                 className="w-full max-w-full md:hidden [&_select]:h-11 [&_select]:text-base"
                 aria-labelledby="lesson-place-label"
+                aria-invalid={placeInvalid || undefined}
                 value={plan.place ?? ""}
                 onChange={(event) => {
                   setPlace(
@@ -897,15 +958,26 @@ export function LessonPlanForm({
                   places={places}
                   value={plan.place}
                   onChange={setPlace}
+                  invalid={placeInvalid}
                   aria-labelledby="lesson-place-label"
                   placeholder="Wybierz lub szukaj miejsca…"
                 />
               </div>
+              {placeInvalid ? (
+                <p className="text-sm text-destructive" role="alert">
+                  Wybierz przystanek.
+                </p>
+              ) : null}
             </div>
           </section>
         </div>
 
-        <section className={cardClass}>
+        <section
+          className={cn(
+            cardClass,
+            hoursSectionInvalid && "border-destructive/60",
+          )}
+        >
           <div className="space-y-1">
             <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
               <Clock className="size-4 text-bus-deep" aria-hidden />
@@ -918,11 +990,16 @@ export function LessonPlanForm({
 
           <Accordion
             multiple
-            className="min-w-0 overflow-hidden rounded-xl border border-border/60 md:hidden"
+            className={cn(
+              "min-w-0 overflow-hidden rounded-xl border md:hidden",
+              hoursSectionInvalid
+                ? "border-destructive/50"
+                : "border-border/60",
+            )}
           >
             {WEEKDAY_OPTIONS.map(({ key, label }) => {
               const day = plan.days[key];
-              const invalidEnd = dayHasEndBeforeStart(day?.start, day?.end);
+              const invalidEnd = dayHasInvalidTimeRange(day?.start, day?.end);
               return (
                 <AccordionItem key={key} value={String(key)}>
                   <AccordionTrigger className="px-3 py-3.5 font-sans text-base font-medium tracking-normal sm:text-base">
@@ -945,6 +1022,7 @@ export function LessonPlanForm({
                       id={`lesson-start-mobile-${key}`}
                       label="Start lekcji"
                       value={day?.start ?? ""}
+                      invalid={invalidEnd}
                       onChange={(next) => updateDay(key, "start", next)}
                     />
                     <LessonTimeInput
@@ -961,7 +1039,14 @@ export function LessonPlanForm({
             })}
           </Accordion>
 
-          <div className="hidden min-w-0 overflow-hidden rounded-xl border border-border/60 md:block">
+          <div
+            className={cn(
+              "hidden min-w-0 overflow-hidden rounded-xl border md:block",
+              hoursSectionInvalid
+                ? "border-destructive/50"
+                : "border-border/60",
+            )}
+          >
             <div className="border-b border-border/60 px-4 py-3 text-xs font-medium tracking-wide text-muted-foreground uppercase md:grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)] md:gap-4">
               <span>Dzień</span>
               <span>Start lekcji</span>
@@ -970,17 +1055,25 @@ export function LessonPlanForm({
             <div className="divide-y divide-border/40">
               {WEEKDAY_OPTIONS.map(({ key, label }) => {
                 const day = plan.days[key];
-                const invalidEnd = dayHasEndBeforeStart(day?.start, day?.end);
+                const invalidEnd = dayHasInvalidTimeRange(day?.start, day?.end);
                 return (
                   <div
                     key={key}
                     className="grid min-w-0 grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-4 px-4 py-3"
                   >
-                    <div className="font-medium text-asphalt">{label}</div>
+                    <div
+                      className={cn(
+                        "font-medium",
+                        invalidEnd ? "text-destructive" : "text-asphalt",
+                      )}
+                    >
+                      {label}
+                    </div>
                     <LessonTimeInput
                       id={`lesson-start-${key}`}
                       label="Start lekcji"
                       value={day?.start ?? ""}
+                      invalid={invalidEnd}
                       onChange={(next) => updateDay(key, "start", next)}
                     />
                     <LessonTimeInput
@@ -1045,7 +1138,8 @@ export function LessonPlanForm({
 
           {daysMissingEnd.length > 0 ||
           daysInvalidEnd.length > 0 ||
-          saveError ? (
+          saveError ||
+          hoursSectionInvalid ? (
             <div className="space-y-2 text-sm leading-relaxed">
               {daysMissingEnd.length > 0 ? (
                 <p className="text-asphalt/80">
@@ -1061,7 +1155,7 @@ export function LessonPlanForm({
               {daysInvalidEnd.length > 0 || saveError ? (
                 <p className="text-destructive" role="alert">
                   {saveError ??
-                    `Koniec lekcji nie może być wcześniejszy niż start (${daysInvalidEnd.map((d) => d.label).join(", ")}).`}
+                    `Koniec lekcji musi być późniejszy niż start (${daysInvalidEnd.map((d) => d.label).join(", ")}).`}
                 </p>
               ) : null}
             </div>

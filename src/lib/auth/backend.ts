@@ -2,6 +2,7 @@ import type { AccountPlan } from "@/lib/child-schedule/account-plan";
 import { parseAccountPlans } from "@/lib/child-schedule/account-plan";
 import {
   AUTH_BAD_CODE,
+  AUTH_BAD_DATA,
   AUTH_BAD_EMAIL,
   AUTH_TOO_MANY,
   AUTH_UNAVAILABLE,
@@ -47,6 +48,15 @@ function detailFromBody(body: unknown): string | null {
   const record = asRecord(body);
   if (typeof record?.detail === "string" && record.detail.trim()) {
     return record.detail.trim();
+  }
+  // FastAPI validation errors: { detail: [{ msg: "..." }, ...] }
+  if (Array.isArray(record?.detail)) {
+    for (const item of record.detail) {
+      const entry = asRecord(item);
+      if (typeof entry?.msg === "string" && entry.msg.trim()) {
+        return entry.msg.trim();
+      }
+    }
   }
   return null;
 }
@@ -168,7 +178,7 @@ export async function backendFetch(
       return {
         ok: false,
         status: 422,
-        error: detail ?? AUTH_BAD_EMAIL,
+        error: detail ?? AUTH_BAD_DATA,
         ...(retryAfterSec != null ? { retryAfterSec } : {}),
       };
     }
@@ -202,7 +212,13 @@ export async function requestMagicLink(
     body: { email },
     clientIp,
   });
-  if (!result.ok) return result;
+  if (!result.ok) {
+    // Magic-link 422 without a useful detail should stay email-specific.
+    if (result.status === 422 && result.error === AUTH_BAD_DATA) {
+      return { ...result, error: AUTH_BAD_EMAIL };
+    }
+    return result;
+  }
   return { ok: true };
 }
 

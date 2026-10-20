@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  dayHasInvalidTimeRange,
   dropoffFitsLessonEnd,
   formatTimeInput,
   getDayTimes,
@@ -7,6 +8,23 @@ import {
   timeToMinutes,
 } from "./match";
 import type { ChildLessonPlan } from "./types";
+
+describe("dayHasInvalidTimeRange", () => {
+  it("is true when end equals or precedes start", () => {
+    expect(dayHasInvalidTimeRange("08:00", "08:00")).toBe(true);
+    expect(dayHasInvalidTimeRange("14:00", "08:00")).toBe(true);
+  });
+
+  it("is false when end is after start", () => {
+    expect(dayHasInvalidTimeRange("08:00", "14:00")).toBe(false);
+  });
+
+  it("is false when a side is missing or unparsable", () => {
+    expect(dayHasInvalidTimeRange("08:00", undefined)).toBe(false);
+    expect(dayHasInvalidTimeRange(undefined, "14:00")).toBe(false);
+    expect(dayHasInvalidTimeRange("08:00", "bad")).toBe(false);
+  });
+});
 
 describe("timeToMinutes", () => {
   it("parses H:MM and HH:MM", () => {

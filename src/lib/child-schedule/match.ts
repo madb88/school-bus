@@ -24,6 +24,18 @@ export function formatTimeInput(time: string): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+/** True when both times parse and end is equal to or before start. */
+export function dayHasInvalidTimeRange(
+  start: string | undefined,
+  end: string | undefined,
+): boolean {
+  if (!start || !end) return false;
+  const startMin = timeToMinutes(start);
+  const endMin = timeToMinutes(end);
+  if (startMin === null || endMin === null) return false;
+  return endMin <= startMin;
+}
+
 export function getDayTimes(
   plan: ChildLessonPlan,
   weekday: number,

@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { cn } from "cn";
 import {
   getProfileMenuSection,
+  setProfileMenuSection,
   subscribeProfileMenuSection,
   type ProfileMenuSection,
 } from "@/lib/auth/profile-menu-section";
@@ -167,7 +168,10 @@ export function AccountButton({ email }: { email: string | null }) {
                       <Link
                         key={item.href}
                         href={item.href}
-                        onClick={() => setSheetOpen(false)}
+                        onClick={() => {
+                          setProfileMenuSection(item.id);
+                          setSheetOpen(false);
+                        }}
                         className={cn(
                           "inline-flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium transition-colors",
                           itemActive
@@ -265,6 +269,7 @@ export function AccountButton({ email }: { email: string | null }) {
                   className="px-2 py-1.5"
                   onClick={(event) => {
                     event.preventDefault();
+                    setProfileMenuSection(item.id);
                     router.push(item.href);
                   }}
                 >

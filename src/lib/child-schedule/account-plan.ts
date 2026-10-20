@@ -1,4 +1,4 @@
-import { formatTimeInput } from "./match";
+import { dayHasInvalidTimeRange, formatTimeInput } from "./match";
 import type { ChildLessonPlan, WeekdayKey } from "./types";
 
 export type AccountWeekdayKey = "1" | "2" | "3" | "4" | "5";
@@ -169,6 +169,7 @@ export function toAccountPlan(
     const start = formatTimeInput(day.start);
     const end = formatTimeInput(day.end);
     if (!TIME_RE.test(start) || !TIME_RE.test(end)) continue;
+    if (dayHasInvalidTimeRange(start, end)) continue;
     days[String(key) as AccountWeekdayKey] = { start, end };
   }
 

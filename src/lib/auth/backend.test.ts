@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  AUTH_BAD_DATA,
   AUTH_BAD_EMAIL,
   AUTH_TOO_MANY,
   AUTH_UNAVAILABLE,
@@ -78,7 +79,7 @@ describe("auth backend client", () => {
     expect(headers.get("Authorization")).toBe(`Bearer ${TOKEN}`);
   });
 
-  it("maps detail string, 422 to BAD_EMAIL, 429 Retry-After, and network to UNAVAILABLE", async () => {
+  it("maps detail string, 422 to BAD_DATA, FastAPI msg, 429 Retry-After, and network to UNAVAILABLE", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => new Response(JSON.stringify({ detail: "custom" }), { status: 503 })),
@@ -99,7 +100,25 @@ describe("auth backend client", () => {
     expect(await backendFetch("/x", { method: "POST", body: {} })).toEqual({
       ok: false,
       status: 422,
-      error: AUTH_BAD_EMAIL,
+      error: AUTH_BAD_DATA,
+    });
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              detail: [{ type: "value_error", msg: "end must be after start" }],
+            }),
+            { status: 422 },
+          ),
+      ),
+    );
+    expect(await backendFetch("/x", { method: "POST", body: {} })).toEqual({
+      ok: false,
+      status: 422,
+      error: "end must be after start",
     });
 
     vi.stubGlobal(
@@ -142,6 +161,18 @@ describe("auth backend client", () => {
       error: AUTH_UNAVAILABLE,
     });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("requestMagicLink remaps generic 422 to BAD_EMAIL", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({}), { status: 422 })),
+    );
+    expect(await requestMagicLink("bad", "1.1.1.1")).toEqual({
+      ok: false,
+      status: 422,
+      error: AUTH_BAD_EMAIL,
+    });
   });
 
   it("fetchMe maps 401 to null and network to unavailable", async () => {
