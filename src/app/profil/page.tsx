@@ -47,6 +47,11 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
   const focusNotifications = params.powiadomienia === "1";
   const focusPlus =
     params.plus === "1" || plus.state === "pending" || plus.state === "unknown";
+  const sectionHint = focusNotifications
+    ? ("powiadomienia" as const)
+    : params.plus === "1"
+      ? ("plus" as const)
+      : null;
 
   return (
     <PageShell wide header={<SiteHeader />}>
@@ -64,6 +69,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
           plans={user.plans}
           focusPlus={focusPlus}
           focusNotifications={focusNotifications}
+          sectionHint={sectionHint}
           pushUiEnabled={isPushNotificationsUiEnabled()}
         />
       </div>

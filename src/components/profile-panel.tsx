@@ -39,6 +39,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import type { BackendRole } from "@/lib/auth/backend";
+import { setProfileMenuSection } from "@/lib/auth/profile-menu-section";
 import {
   hasPlusAccessFromPanel,
   hasPushPlusAccessFromPanel,
@@ -100,6 +101,7 @@ export function ProfilePanel({
   plans,
   focusPlus,
   focusNotifications,
+  sectionHint,
   pushUiEnabled,
 }: {
   userId: string;
@@ -110,6 +112,8 @@ export function ProfilePanel({
   plans: AccountPlan[];
   focusPlus: boolean;
   focusNotifications: boolean;
+  /** Deep-link from `?plus=1` / `?powiadomienia=1` — updates on same-route soft nav. */
+  sectionHint: Exclude<Section, "logout"> | null;
   pushUiEnabled: boolean;
 }) {
   const router = useRouter();
@@ -121,14 +125,16 @@ export function ProfilePanel({
   const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
-    const url = new URL(window.location.href);
-    if (!url.searchParams.has("plus") && !url.searchParams.has("powiadomienia"))
-      return;
-    url.searchParams.delete("plus");
-    url.searchParams.delete("powiadomienia");
-    const next = url.search ? `${url.pathname}${url.search}` : url.pathname;
-    window.history.replaceState(null, "", next);
-  }, []);
+    if (!sectionHint) return;
+    setSection(sectionHint);
+    setError(null);
+    router.replace("/profil", { scroll: false });
+  }, [sectionHint, router]);
+
+  useEffect(() => {
+    setProfileMenuSection(section === "logout" ? "profil" : section);
+    return () => setProfileMenuSection(null);
+  }, [section]);
 
   useEffect(() => {
     if (plus.state !== "pending") return;
