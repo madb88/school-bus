@@ -180,6 +180,32 @@ const filterToggleActiveClass =
  */
 const MOBILE_FILTERS_MIN_SCROLL_ROOM_PX = 160;
 
+/** Matches MobileHeightCollapse transition; keep observer locked for the same window. */
+const MOBILE_FILTERS_COLLAPSE_MS = 300;
+
+function MobileHeightCollapse({
+  open,
+  children,
+  className,
+}: {
+  open: boolean;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none",
+        className,
+      )}
+      // Inline style: Tailwind grid-rows-[0fr] was not collapsing height in practice.
+      style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
+    >
+      <div className="min-h-0 overflow-hidden">{children}</div>
+    </div>
+  );
+}
+
 function FilterFieldLabel({
   id,
   icon: Icon,
@@ -298,9 +324,22 @@ export function ScheduleBoard({
   const [filtersPinnedOpen, setFiltersPinnedOpen] = useState(false);
   const filtersSentinelRef = useRef<HTMLDivElement>(null);
   const filtersWasStuckRef = useRef(false);
+  const filtersCollapseLockRef = useRef(false);
+  const filtersCollapseLockTimerRef = useRef<number | null>(null);
   const planHintDismissed = useHintDismissed("plan");
   const mzkHintDismissed = useHintDismissed("mzk");
   const skipUrlWrite = useRef(false);
+
+  function lockFiltersCollapseAnimation() {
+    filtersCollapseLockRef.current = true;
+    if (filtersCollapseLockTimerRef.current != null) {
+      window.clearTimeout(filtersCollapseLockTimerRef.current);
+    }
+    filtersCollapseLockTimerRef.current = window.setTimeout(() => {
+      filtersCollapseLockRef.current = false;
+      filtersCollapseLockTimerRef.current = null;
+    }, MOBILE_FILTERS_COLLAPSE_MS);
+  }
 
   if (prefsReady && !urlApplied) {
     const parsed = parseFilterParams(
@@ -382,12 +421,17 @@ export function ScheduleBoard({
     const observer = new IntersectionObserver(
       ([entry]) => {
         const stuck = !entry.isIntersecting;
-        const wasStuck = filtersWasStuckRef.current;
+        setFiltersStuck(stuck);
 
+        // Height animation moves the sentinel; ignore stuck flips until it settles.
+        if (filtersCollapseLockRef.current) return;
+
+        const wasStuck = filtersWasStuckRef.current;
         if (stuck && !wasStuck) {
           // Short pages: sticky height changes flip the sentinel and loop
           // collapse↔expand. Only enter compact mode with enough scroll room.
           if (scrollRoomPx() >= MOBILE_FILTERS_MIN_SCROLL_ROOM_PX) {
+            lockFiltersCollapseAnimation();
             setFiltersCompact(true);
             setFiltersPinnedOpen(false);
             setFiltersOpen(false);
@@ -398,18 +442,25 @@ export function ScheduleBoard({
           // still long enough — after compacting a short list, room drops and
           // the sentinel pops back into view; expanding then restarts the loop.
           if (scrollRoomPx() >= MOBILE_FILTERS_MIN_SCROLL_ROOM_PX) {
+            lockFiltersCollapseAnimation();
             setFiltersCompact(false);
             setFiltersPinnedOpen(false);
           }
         }
 
         filtersWasStuckRef.current = stuck;
-        setFiltersStuck(stuck);
       },
       { threshold: 0 },
     );
     observer.observe(sentinel);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (filtersCollapseLockTimerRef.current != null) {
+        window.clearTimeout(filtersCollapseLockTimerRef.current);
+        filtersCollapseLockTimerRef.current = null;
+      }
+      filtersCollapseLockRef.current = false;
+    };
   }, []);
 
   // Keep address bar in sync so filters are shareable.
@@ -1457,55 +1508,57 @@ export function ScheduleBoard({
     </div>
   );
 
-  const additionalOptions = (
-    <div className="flex flex-wrap items-center gap-1.5 border-t border-border/60 bg-muted/35 px-3 py-2.5 sm:px-4 lg:justify-between">
-      <span className="hidden shrink-0 items-center gap-1.5 text-xs font-semibold text-foreground md:inline-flex">
-        <Settings2 className="size-3.5 text-bus-deep" aria-hidden />
-        Dodatkowe opcje:
-      </span>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <Button
-          type="button"
-          variant="outline"
-          className="bg-card"
-          aria-label="Drukuj"
-          onClick={() => {
-            trackEvent(AnalyticsEvent.schedulePrintClicked, {
-              mode: sourceMode,
-            });
-            window.print();
-          }}
-        >
-          <Printer aria-hidden />
-          <span>Drukuj</span>
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="bg-card"
-          aria-label={copiedFlash ? "Skopiowano" : "Kopiuj link"}
-          onClick={() => {
-            void copyShareLink();
-          }}
-        >
-          {copiedFlash ? <Check aria-hidden /> : <Link2 aria-hidden />}
-          <span>{copiedFlash ? "Skopiowano" : "Kopiuj link"}</span>
-        </Button>
-        {hasActiveFilters ? (
+  function renderAdditionalOptions() {
+    return (
+      <div className="flex flex-wrap items-center gap-1.5 border-t border-border/60 bg-muted/35 px-3 py-2.5 sm:px-4 lg:justify-between">
+        <span className="hidden shrink-0 items-center gap-1.5 text-xs font-semibold text-foreground md:inline-flex">
+          <Settings2 className="size-3.5 text-bus-deep" aria-hidden />
+          Dodatkowe opcje:
+        </span>
+        <div className="flex flex-wrap items-center gap-1.5">
           <Button
             type="button"
-            variant="ghost"
-            className="hidden text-bus-deep hover:bg-bus/10 hover:text-bus-deep md:inline-flex"
-            aria-label="Wyczyść filtry"
-            onClick={clearFilters}
+            variant="outline"
+            className="bg-card"
+            aria-label="Drukuj"
+            onClick={() => {
+              trackEvent(AnalyticsEvent.schedulePrintClicked, {
+                mode: sourceMode,
+              });
+              window.print();
+            }}
           >
-            <FilterX aria-hidden />
-            <span>Wyczyść filtry</span>
+            <Printer aria-hidden />
+            <span>Drukuj</span>
           </Button>
-        ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            className="bg-card"
+            aria-label={copiedFlash ? "Skopiowano" : "Kopiuj link"}
+            onClick={() => {
+              void copyShareLink();
+            }}
+          >
+            {copiedFlash ? <Check aria-hidden /> : <Link2 aria-hidden />}
+            <span>{copiedFlash ? "Skopiowano" : "Kopiuj link"}</span>
+          </Button>
+          {hasActiveFilters ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="hidden text-bus-deep hover:bg-bus/10 hover:text-bus-deep md:inline-flex"
+              aria-label="Wyczyść filtry"
+              onClick={clearFilters}
+            >
+              <FilterX aria-hidden />
+              <span>Wyczyść filtry</span>
+            </Button>
+          ) : null}
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   const filterSummaryPrimary = (
     <>
@@ -1532,6 +1585,53 @@ export function ScheduleBoard({
 
   const tripCountLabel = formatTripCount(tripCount);
   const mobileFiltersCollapsed = filtersCompact && !filtersPinnedOpen;
+
+  function renderFilterSummaryFooter() {
+    return (
+      <div className="flex flex-col gap-1.5 border-t border-border/60 px-3 py-2.5 sm:px-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-sm text-foreground">
+              {filterSummaryPrimary}
+            </p>
+            {filterSummarySecondaryParts.length > 0 ? (
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                {filterSummarySecondaryParts.join(" · ")}
+              </p>
+            ) : null}
+          </div>
+          {isWeekendView ? null : (
+            <span className="inline-flex shrink-0 items-center rounded-full bg-bus/15 px-2.5 py-0.5 text-[0.7rem] font-semibold text-bus-deep tabular-nums">
+              {tripCountLabel}
+            </span>
+          )}
+        </div>
+        {nextMerged ? (
+          <p className="text-xs text-foreground sm:text-sm">
+            <span className="font-semibold text-bus-deep">Najbliższy kurs</span>
+            {": "}
+            <a
+              href={`#${nextMerged.id}`}
+              className="font-display font-bold tabular-nums underline-offset-2 hover:underline"
+              onClick={(event) => {
+                event.preventDefault();
+                document.getElementById(nextMerged.id)?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "center",
+                });
+              }}
+            >
+              {nextMerged.time}
+            </a>
+            {" · "}
+            {nextMerged.label}
+            {" · "}
+            {nextMerged.kind === "pickup" ? "dowóz" : "odwóz"}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-10">
@@ -1569,103 +1669,109 @@ export function ScheduleBoard({
       <p className="mb-1.5 text-xs font-medium tracking-tight text-foreground/70 print:hidden">
         {schoolScopeLabel}
       </p>
-      <div className="sticky top-0 z-10 -mx-6 [overflow-anchor:none] pb-2 print:hidden sm:-mx-10 md:py-2.5">
+      <div className="sticky top-0 z-30 -mx-6 isolate [overflow-anchor:none] pb-2 print:hidden sm:-mx-10 md:py-2.5">
         <div
           className={cn(
-            "overflow-hidden rounded-b-xl border border-border/70 bg-card shadow-[0_10px_28px_-18px_color-mix(in_srgb,var(--foreground)_45%,transparent)] transition-[border-top-left-radius,border-top-right-radius] duration-300 ease-out motion-reduce:transition-none dark:shadow-[0_8px_22px_-16px_rgba(0,0,0,0.55)] md:rounded-t-xl",
+            "relative overflow-hidden rounded-b-xl border border-border/70 bg-card shadow-[0_10px_28px_-18px_color-mix(in_srgb,var(--foreground)_45%,transparent)] transition-[border-top-left-radius,border-top-right-radius] duration-300 ease-out motion-reduce:transition-none dark:shadow-[0_8px_22px_-16px_rgba(0,0,0,0.55)] md:rounded-t-xl",
             filtersStuck ? "rounded-t-none" : "rounded-t-xl",
           )}
         >
           {/* Mobile sticky: thin bar while scrolled */}
-          <div
-            className={cn(
-              "items-center gap-2 px-3 py-2",
-              mobileFiltersCollapsed ? "flex md:hidden" : "hidden",
-            )}
+          <MobileHeightCollapse
+            open={mobileFiltersCollapsed}
+            className="md:hidden"
           >
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm text-foreground">
-                {filterSummaryPrimary}
-              </p>
-              {filterSummarySecondaryParts.length > 0 ? (
-                <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                  {filterSummarySecondaryParts.join(" · ")}
+            <div className="flex items-center gap-2 px-3 py-2">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm text-foreground">
+                  {filterSummaryPrimary}
                 </p>
-              ) : null}
-            </div>
-            {isWeekendView ? null : (
-              <span className="inline-flex shrink-0 items-center rounded-full bg-bus/15 px-2 py-0.5 text-[0.7rem] font-semibold text-bus-deep tabular-nums">
-                {tripCountLabel}
-              </span>
-            )}
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              aria-expanded={false}
-              aria-controls="schedule-filters-panel"
-              onClick={() => setFiltersPinnedOpen(true)}
-            >
-              Rozwiń
-              <ChevronDown aria-hidden className="size-3.5" />
-            </Button>
-          </div>
-
-          {/* Mobile: compact bar + place / day / direction */}
-          <div
-            className={cn(
-              "flex-col gap-2 border-b border-border/60 p-3 md:hidden",
-              mobileFiltersCollapsed ? "hidden" : "flex",
-            )}
-          >
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant={filtersOpen ? "secondary" : "outline"}
-                aria-expanded={filtersOpen}
-                aria-controls="schedule-filters-panel"
-                onClick={() => setFiltersOpen((open) => !open)}
-              >
-                Filtry
-                {activeFilterCount > 0 ? (
-                  <span className="inline-flex min-w-5 items-center justify-center rounded-md bg-bus/15 px-1 text-[0.7rem] font-semibold text-bus-deep tabular-nums">
-                    {activeFilterCount}
-                  </span>
+                {filterSummarySecondaryParts.length > 0 ? (
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {filterSummarySecondaryParts.join(" · ")}
+                  </p>
                 ) : null}
-                <span aria-hidden className="text-muted-foreground">
-                  {filtersOpen ? "▴" : "▾"}
+              </div>
+              {isWeekendView ? null : (
+                <span className="inline-flex shrink-0 items-center rounded-full bg-bus/15 px-2 py-0.5 text-[0.7rem] font-semibold text-bus-deep tabular-nums">
+                  {tripCountLabel}
                 </span>
-              </Button>
+              )}
               <Button
                 type="button"
                 size="sm"
-                variant={extraOptionsOpen ? "secondary" : "outline"}
-                aria-expanded={extraOptionsOpen}
-                aria-controls="schedule-extra-options-panel"
-                onClick={() => setExtraOptionsOpen((open) => !open)}
+                variant="outline"
+                aria-expanded={false}
+                aria-controls="schedule-mobile-filters"
+                onClick={() => {
+                  lockFiltersCollapseAnimation();
+                  setFiltersPinnedOpen(true);
+                }}
               >
-                <Settings2 aria-hidden />
-                Dodatkowe opcje
-                <span aria-hidden className="text-muted-foreground">
-                  {extraOptionsOpen ? "▴" : "▾"}
-                </span>
+                Rozwiń
+                <ChevronDown aria-hidden className="size-3.5" />
               </Button>
-              {clearFiltersButton}
-              {filtersCompact ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  className="ml-auto"
-                  aria-expanded
-                  onClick={() => setFiltersPinnedOpen(false)}
-                >
-                  Zwiń
-                  <ChevronUp aria-hidden className="size-3.5" />
-                </Button>
-              ) : null}
             </div>
+          </MobileHeightCollapse>
+
+          {/* Mobile: full filter chrome — one height animation for scroll-compact */}
+          <MobileHeightCollapse
+            open={!mobileFiltersCollapsed}
+            className="md:hidden"
+          >
+            <div id="schedule-mobile-filters">
+              <div className="flex flex-col gap-2 border-b border-border/60 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={filtersOpen ? "secondary" : "outline"}
+                    aria-expanded={filtersOpen}
+                    aria-controls="schedule-filters-panel"
+                    onClick={() => setFiltersOpen((open) => !open)}
+                  >
+                    Filtry
+                    {activeFilterCount > 0 ? (
+                      <span className="inline-flex min-w-5 items-center justify-center rounded-md bg-bus/15 px-1 text-[0.7rem] font-semibold text-bus-deep tabular-nums">
+                        {activeFilterCount}
+                      </span>
+                    ) : null}
+                    <span aria-hidden className="text-muted-foreground">
+                      {filtersOpen ? "▴" : "▾"}
+                    </span>
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={extraOptionsOpen ? "secondary" : "outline"}
+                    aria-expanded={extraOptionsOpen}
+                    aria-controls="schedule-extra-options-panel"
+                    onClick={() => setExtraOptionsOpen((open) => !open)}
+                  >
+                    <Settings2 aria-hidden />
+                    Dodatkowe opcje
+                    <span aria-hidden className="text-muted-foreground">
+                      {extraOptionsOpen ? "▴" : "▾"}
+                    </span>
+                  </Button>
+                  {clearFiltersButton}
+                  {filtersCompact ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      className="ml-auto"
+                      aria-expanded
+                      onClick={() => {
+                        lockFiltersCollapseAnimation();
+                        setFiltersPinnedOpen(false);
+                      }}
+                    >
+                      Zwiń
+                      <ChevronUp aria-hidden className="size-3.5" />
+                    </Button>
+                  ) : null}
+                </div>
                 <div className="flex min-w-0 flex-col gap-1">
                   <Label
                     id="schedule-mobile-place-label"
@@ -1736,87 +1842,45 @@ export function ScheduleBoard({
                     </NativeSelect>
                   </div>
                 </div>
-          </div>
-
-          <div
-            id="schedule-filters-panel"
-            className={cn(
-              filtersOpen && !mobileFiltersCollapsed ? "block" : "hidden",
-              "md:block",
-            )}
-          >
-            <div className="hidden md:block">{primaryFilters}</div>
-            <div className="space-y-3 border-b border-border/60 p-3 md:hidden">
-              <div className="flex flex-col gap-1.5">
-                <FilterFieldLabel id="schedule-mobile-hours-label" icon={Clock}>
-                  Godziny lekcyjne
-                </FilterFieldLabel>
-                <div aria-labelledby="schedule-mobile-hours-label">
-                  {hoursFilterBody}
-                </div>
               </div>
-              {renderSourceAndPlanFilters("schedule-mobile", { stacked: true })}
-            </div>
-          </div>
 
-          <div
-            id="schedule-extra-options-panel"
-            className={cn(
-              extraOptionsOpen && !mobileFiltersCollapsed ? "block" : "hidden",
-              "md:block",
-            )}
-          >
-            {additionalOptions}
-          </div>
-
-          <div
-            className={cn(
-              "flex flex-col gap-1.5 border-t border-border/60 px-3 py-2.5 sm:px-4",
-              mobileFiltersCollapsed && "max-md:hidden",
-            )}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm text-foreground">
-                  {filterSummaryPrimary}
-                </p>
-                {filterSummarySecondaryParts.length > 0 ? (
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {filterSummarySecondaryParts.join(" · ")}
-                  </p>
-                ) : null}
-              </div>
-              {isWeekendView ? null : (
-                <span className="inline-flex shrink-0 items-center rounded-full bg-bus/15 px-2.5 py-0.5 text-[0.7rem] font-semibold text-bus-deep tabular-nums">
-                  {tripCountLabel}
-                </span>
-              )}
-            </div>
-            {nextMerged ? (
-              <p className="text-xs text-foreground sm:text-sm">
-                <span className="font-semibold text-bus-deep">
-                  Najbliższy kurs
-                </span>
-                {": "}
-                <a
-                  href={`#${nextMerged.id}`}
-                  className="font-display font-bold tabular-nums underline-offset-2 hover:underline"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    document.getElementById(nextMerged.id)?.scrollIntoView({
-                      behavior: "smooth",
-                      block: "center",
-                    });
-                  }}
+              <MobileHeightCollapse open={filtersOpen}>
+                <div
+                  id="schedule-filters-panel"
+                  className="space-y-3 border-b border-border/60 p-3"
                 >
-                  {nextMerged.time}
-                </a>
-                {" · "}
-                {nextMerged.label}
-                {" · "}
-                {nextMerged.kind === "pickup" ? "dowóz" : "odwóz"}
-              </p>
-            ) : null}
+                  <div className="flex flex-col gap-1.5">
+                    <FilterFieldLabel
+                      id="schedule-mobile-hours-label"
+                      icon={Clock}
+                    >
+                      Godziny lekcyjne
+                    </FilterFieldLabel>
+                    <div aria-labelledby="schedule-mobile-hours-label">
+                      {hoursFilterBody}
+                    </div>
+                  </div>
+                  {renderSourceAndPlanFilters("schedule-mobile", {
+                    stacked: true,
+                  })}
+                </div>
+              </MobileHeightCollapse>
+
+              <MobileHeightCollapse open={extraOptionsOpen}>
+                <div id="schedule-extra-options-panel">
+                  {renderAdditionalOptions()}
+                </div>
+              </MobileHeightCollapse>
+
+              {renderFilterSummaryFooter()}
+            </div>
+          </MobileHeightCollapse>
+
+          {/* Desktop filters — always expanded */}
+          <div className="hidden md:block">
+            <div id="schedule-filters-panel-desktop">{primaryFilters}</div>
+            {renderAdditionalOptions()}
+            {renderFilterSummaryFooter()}
           </div>
         </div>
       </div>

@@ -123,7 +123,7 @@ function TripRowShell({
       <div className={tripRailColClass} aria-hidden>
         <span
           className={cn(
-            "absolute top-1 left-1/2 z-10 flex size-[11px] -translate-x-1/2 items-center justify-center rounded-full bg-card",
+            "absolute top-1 left-1/2 z-[1] flex size-[11px] -translate-x-1/2 items-center justify-center rounded-full bg-card",
             isNext &&
               (accent === "bus" ? "ring-2 ring-bus/30" : "ring-2 ring-mzk/30"),
           )}
@@ -150,7 +150,7 @@ export function LessonsEndedRow() {
     >
       <div className={tripTimeColClass} aria-hidden />
       <div className={tripRailColClass} aria-hidden>
-        <span className="absolute top-0.5 left-1/2 z-10 flex size-4 -translate-x-1/2 items-center justify-center rounded-full bg-card ring-[3px] ring-card">
+        <span className="absolute top-0.5 left-1/2 z-[1] flex size-4 -translate-x-1/2 items-center justify-center rounded-full bg-card ring-[3px] ring-card">
           <Flag className="size-2.5 text-muted-foreground" />
         </span>
       </div>
