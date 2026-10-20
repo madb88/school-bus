@@ -157,4 +157,58 @@ describe("filterSchedule", () => {
     expect(labels).toContain("Ania");
     expect(labels).toContain("Bartek");
   });
+
+  it("does not annotate plan labels when only one plan matches", () => {
+    const filtered = filterSchedule(schedule, {
+      places: null,
+      direction: "pickups",
+      dateFilter: "today",
+      matchLessonPlan: true,
+      matchPlans: [
+        {
+          label: "Ania",
+          place: "Zatonie",
+          days: { 1: { start: "08:00", end: "13:30" } },
+        },
+      ],
+      lessonMatchWindowMin: 90,
+      now: new Date("2026-09-07T06:00:00+02:00"),
+    });
+
+    const stops = filtered.pickups.flatMap((block) =>
+      block.courses.flatMap((course) => course.stops),
+    );
+    expect(stops.length).toBeGreaterThan(0);
+    for (const stop of stops) {
+      expect((stop as { planLabels?: string[] }).planLabels).toBeUndefined();
+    }
+  });
+
+  it("annotates a single active plan when includePlanLabels is forced on", () => {
+    const filtered = filterSchedule(schedule, {
+      places: null,
+      direction: "pickups",
+      dateFilter: "today",
+      matchLessonPlan: true,
+      includePlanLabels: true,
+      matchPlans: [
+        {
+          label: "Ania",
+          place: "Zatonie",
+          days: { 1: { start: "08:00", end: "13:30" } },
+        },
+      ],
+      lessonMatchWindowMin: 90,
+      now: new Date("2026-09-07T06:00:00+02:00"),
+    });
+
+    const labels = filtered.pickups.flatMap((block) =>
+      block.courses.flatMap((course) =>
+        course.stops.flatMap(
+          (stop) => (stop as { planLabels?: string[] }).planLabels ?? [],
+        ),
+      ),
+    );
+    expect(labels).toContain("Ania");
+  });
 });

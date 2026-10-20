@@ -534,6 +534,8 @@ export function ScheduleBoard({
   const deferredSourceMode = useDeferredValue(sourceMode);
   const deferredWindowMin = useDeferredValue(effectiveWindowMin);
 
+  const includePlanLabels = accountPlans.length > 1;
+
   const filtered = filterSchedule(schedule, {
     places: deferredPlaces,
     direction: deferredDirection,
@@ -542,6 +544,7 @@ export function ScheduleBoard({
     matchPlans: deferredMatchPlans,
     matchLessonPlan: deferredMatch,
     lessonMatchWindowMin: deferredWindowMin,
+    includePlanLabels,
     now,
   });
 
@@ -557,6 +560,7 @@ export function ScheduleBoard({
           matchPlans: deferredMatchPlans,
           matchLessonPlan: true,
           lessonMatchWindowMin: Number.POSITIVE_INFINITY,
+          includePlanLabels,
           now,
         })
       : null;

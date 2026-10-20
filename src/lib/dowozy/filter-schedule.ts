@@ -197,6 +197,7 @@ function annotatePickupStop(
   matchPlans: LessonMatchPlan[] | null,
   weekday: number | null,
   windowMin: number,
+  includePlanLabels: boolean,
 ): AnnotatedStop | null {
   if (!stopMatchesPlaces(stop, places)) return null;
 
@@ -222,7 +223,7 @@ function annotatePickupStop(
   const annotated: AnnotatedStop = {
     ...stop,
     places: nextPlaces.length > 0 ? nextPlaces : [...matchedPlaces],
-    planLabels: labels,
+    ...(includePlanLabels ? { planLabels: labels } : {}),
   };
   return annotated;
 }
@@ -233,6 +234,7 @@ function annotateDropoffStop(
   matchPlans: LessonMatchPlan[] | null,
   weekday: number | null,
   windowMin: number,
+  includePlanLabels: boolean,
 ): AnnotatedStop | null {
   if (!stopMatchesPlaces(stop, places)) return null;
 
@@ -258,7 +260,7 @@ function annotateDropoffStop(
   const annotated: AnnotatedStop = {
     ...stop,
     places: nextPlaces.length > 0 ? nextPlaces : [...matchedPlaces],
-    planLabels: labels,
+    ...(includePlanLabels ? { planLabels: labels } : {}),
   };
   return annotated;
 }
@@ -276,6 +278,7 @@ function filterPickupBlock(
   weekday: number | null,
   matchPlans: LessonMatchPlan[] | null,
   windowMin: number,
+  includePlanLabels: boolean,
 ): DriverBlock | null {
   let courses = block.courses;
 
@@ -290,7 +293,14 @@ function filterPickupBlock(
       .map((course) => {
         const stops = course.stops
           .map((stop) =>
-            annotatePickupStop(stop, places, matchPlans, weekday, windowMin),
+            annotatePickupStop(
+              stop,
+              places,
+              matchPlans,
+              weekday,
+              windowMin,
+              includePlanLabels,
+            ),
           )
           .filter((stop): stop is AnnotatedStop => stop !== null);
         if (!stops.length) return null;
@@ -309,10 +319,18 @@ function filterRuns(
   matchPlans: LessonMatchPlan[] | null,
   weekday: number | null,
   windowMin: number,
+  includePlanLabels: boolean,
 ): AnnotatedStop[] {
   return runs
     .map((run) =>
-      annotateDropoffStop(run, places, matchPlans, weekday, windowMin),
+      annotateDropoffStop(
+        run,
+        places,
+        matchPlans,
+        weekday,
+        windowMin,
+        includePlanLabels,
+      ),
     )
     .filter((run): run is AnnotatedStop => run !== null);
 }
@@ -323,8 +341,16 @@ function filterDayDropoff(
   matchPlans: LessonMatchPlan[] | null,
   weekday: number | null,
   windowMin: number,
+  includePlanLabels: boolean,
 ): DayDropoff | null {
-  const runs = filterRuns(day.runs, places, matchPlans, weekday, windowMin);
+  const runs = filterRuns(
+    day.runs,
+    places,
+    matchPlans,
+    weekday,
+    windowMin,
+    includePlanLabels,
+  );
   if (!runs.length) return null;
   return { ...day, runs };
 }
@@ -335,8 +361,16 @@ function filterWeekdayDropoff(
   matchPlans: LessonMatchPlan[] | null,
   weekday: number | null,
   windowMin: number,
+  includePlanLabels: boolean,
 ): WeekdayDropoff | null {
-  const runs = filterRuns(block.runs, places, matchPlans, weekday, windowMin);
+  const runs = filterRuns(
+    block.runs,
+    places,
+    matchPlans,
+    weekday,
+    windowMin,
+    includePlanLabels,
+  );
   if (!runs.length) return null;
   return { ...block, runs };
 }
@@ -356,6 +390,12 @@ export type FilterScheduleOptions = {
   matchPlans?: LessonMatchPlan[] | null;
   matchLessonPlan?: boolean;
   lessonMatchWindowMin?: number;
+  /**
+   * Show plan-name badges on matching stops. Defaults to true when more than
+   * one plan is in `matchPlans`. Pass explicitly from the board based on total
+   * account plans — active filter may be a single plan among several.
+   */
+  includePlanLabels?: boolean;
 };
 
 export function filterSchedule(
@@ -370,6 +410,9 @@ export function filterSchedule(
   } = options;
   const places = resolvePlaces(options);
   const matchPlans = resolveMatchPlans(options);
+  const includePlanLabels =
+    options.includePlanLabels ??
+    (matchPlans != null && matchPlans.length > 1);
   const showPickups = direction === "all" || direction === "pickups";
   const showDropoffs = direction === "all" || direction === "dropoffs";
   const target = resolveTargetDay(dateFilter, now);
@@ -395,6 +438,7 @@ export function filterSchedule(
               weekday,
               matchPlans,
               lessonMatchWindowMin,
+              includePlanLabels,
             ),
           )
           .filter((block): block is DriverBlock => block !== null)
@@ -419,6 +463,7 @@ export function filterSchedule(
         matchPlans,
         weekday,
         lessonMatchWindowMin,
+        includePlanLabels,
       ),
     )
     .filter((day): day is DayDropoff => day !== null)
@@ -440,6 +485,7 @@ export function filterSchedule(
         matchPlans,
         weekday,
         lessonMatchWindowMin,
+        includePlanLabels,
       ),
     )
     .filter((block): block is WeekdayDropoff => block !== null)
