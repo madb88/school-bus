@@ -1,10 +1,19 @@
 "use client";
 
 import { cn } from "cn";
+import {
+  Bus,
+  CalendarClock,
+  Check,
+  School,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import {
   accountPlanLabel,
   isAccountPlanId,
@@ -41,29 +50,34 @@ import {
   type PushKinds,
 } from "@/lib/push/kinds";
 
-const KINDS = [
+const KINDS: {
+  id: keyof PushKinds;
+  title: string;
+  description: string;
+  icon: LucideIcon;
+}[] = [
   {
     id: "departure",
     title: "Odjazd do szkoły",
     description: "Około 20 minut przed kursem do szkoły.",
+    icon: School,
   },
   {
     id: "return",
     title: "Autobus powrotny",
     description: "Około 20 minut przed odjazdem ze szkoły.",
+    icon: Bus,
   },
   {
     id: "schedule",
     title: "Zmiana rozkładu",
     description: "Gdy zaktualizują się godziny dowozów i odwozów.",
+    icon: CalendarClock,
   },
-] as const;
-
-const KIND_SHORT: { id: keyof PushKinds; title: string }[] = [
-  { id: "departure", title: "Odjazd" },
-  { id: "return", title: "Powrót" },
-  { id: "schedule", title: "Zmiana rozkładu" },
 ];
+
+const CARD_CLASS =
+  "space-y-3 rounded-xl border border-border/60 bg-background p-3.5 sm:p-4";
 
 function planIdsFromAccount(plans: AccountPlan[]): string[] {
   return plans
@@ -125,17 +139,17 @@ export function NotificationsPanel({
   const pushPlanIds = (() => {
     if (chosenPlanIds === null) return savedPlanIds;
     const kept = chosenPlanIds.filter((id) => available.has(id));
-    return kept.length > 0 ? kept : savedPlanIds;
+    // Explicit empty selection must stay empty so toggle on/off works on
+    // the same plan. Fall back only when all chosen IDs vanished (deleted).
+    if (kept.length > 0) return kept;
+    if (chosenPlanIds.length === 0) return [];
+    return savedPlanIds;
   })();
 
   const notificationsInBrowser = ios !== "1" || standalone === "1";
   const planReady = planReadyForPush(pushPlanIds);
   const isSubscribed = notificationsInBrowser && subscribed === "1";
   const showDenied = notificationsInBrowser && permission === "denied";
-  const canToggle =
-    notificationsInBrowser &&
-    permission !== "denied" &&
-    (isSubscribed || planReady);
   const showNeedPlan =
     notificationsInBrowser &&
     !isSubscribed &&
@@ -344,8 +358,8 @@ export function NotificationsPanel({
   }
 
   return (
-    <div className="space-y-6">
-      <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
+    <div className="space-y-5">
+      <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
         Włącz przypomnienia na tym telefonie lub komputerze i wybierz, dla
         których planów mają przychodzić. Na razie obejmują tylko autobus
         szkolny, nie autobus miejski.
@@ -362,17 +376,17 @@ export function NotificationsPanel({
         />
       ) : null}
 
-      <section className="space-y-3">
-        <div className="space-y-1">
+      <section className="space-y-2.5">
+        <div className="space-y-0.5">
           <h3 className="text-sm font-semibold text-foreground">
             {thisDeviceLabel()}
           </h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground sm:text-sm">
             Ustawienia powiadomień w tej przeglądarce.
           </p>
         </div>
 
-        <div className="space-y-4 rounded-xl border border-border/50 bg-muted/20 p-4 dark:bg-muted/10 sm:p-5">
+        <div className={CARD_CLASS}>
           {notificationsInBrowser ? null : (
             <p className="text-sm leading-relaxed text-foreground/80">
               Na iPhonie powiadomienia włączysz po dodaniu aplikacji do ekranu
@@ -385,23 +399,33 @@ export function NotificationsPanel({
             </p>
           ) : null}
 
-          <div className="flex flex-wrap items-center gap-2">
-            {canToggle ? (
-              <Button
-                type="button"
-                size="sm"
-                variant={isSubscribed ? "outline" : "secondary"}
-                disabled={pending}
-                onClick={() => void togglePush()}
+          <div className="space-y-2.5">
+            <div className="flex min-h-6 items-center">
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                  isSubscribed
+                    ? "bg-bus/15 text-bus-deep dark:text-bus"
+                    : "bg-muted text-muted-foreground",
+                )}
               >
-                {isSubscribed ? "Wyłącz powiadomienia" : "Włącz powiadomienia"}
-              </Button>
-            ) : null}
-            {isSubscribed ? (
-              <span className="inline-flex items-center rounded-full bg-bus/15 px-2.5 py-0.5 text-xs font-medium text-bus-deep dark:text-bus">
-                Włączone
+                {isSubscribed ? "Włączone" : "Wyłączone"}
               </span>
-            ) : null}
+            </div>
+            <Button
+              type="button"
+              variant={isSubscribed ? "outline" : "default"}
+              className="w-full"
+              disabled={
+                pending ||
+                showDenied ||
+                !notificationsInBrowser ||
+                (!isSubscribed && !planReady)
+              }
+              onClick={() => void togglePush()}
+            >
+              {isSubscribed ? "Wyłącz powiadomienia" : "Włącz powiadomienia"}
+            </Button>
           </div>
 
           {showNeedPlan ? (
@@ -421,119 +445,104 @@ export function NotificationsPanel({
           ) : null}
 
           {showPlanPicker ? (
-            <div className="space-y-3 border-t border-border/40 pt-4">
-              <div className="space-y-1">
-                <h4 className="text-sm font-semibold text-foreground">
-                  Plany lekcji
-                </h4>
-                <p className="text-sm text-muted-foreground">
-                  Dla których planów przypominać na tym urządzeniu?
-                </p>
-              </div>
-              {isSubscribed && pushPlanIds.length > 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Powiadomienia dla:{" "}
-                  {planNamesForIds(accountPlans, pushPlanIds).join(", ")}
-                </p>
-              ) : null}
-              <ul className="space-y-2">
-                {accountPlans.map((plan, index) => {
-                  if (!isAccountPlanId(plan.id)) return null;
-                  const id = plan.id;
-                  return (
-                    <li key={id}>
-                      <label className="flex cursor-pointer items-start gap-3">
-                        <input
-                          type="checkbox"
-                          className="mt-1 size-4 shrink-0 accent-bus"
-                          checked={pushPlanIds.includes(id)}
+            <>
+              <Separator className="bg-border/40" />
+              <div className="space-y-2.5">
+                <div className="space-y-0.5">
+                  <h4 className="text-sm font-semibold text-foreground">
+                    Plany lekcji
+                  </h4>
+                  <p className="text-xs text-muted-foreground sm:text-sm">
+                    Dla których planów przypominać na tym urządzeniu?
+                  </p>
+                </div>
+                <ul className="space-y-1.5">
+                  {accountPlans.map((plan, index) => {
+                    if (!isAccountPlanId(plan.id)) return null;
+                    const id = plan.id;
+                    const checked = pushPlanIds.includes(id);
+                    return (
+                      <li key={id}>
+                        <PlanRow
+                          label={accountPlanLabel(plan, index)}
+                          checked={checked}
                           disabled={pending}
-                          onChange={(event) => {
-                            togglePlan(id, event.target.checked);
-                          }}
+                          onToggle={() => togglePlan(id, !checked)}
                         />
-                        <span className="text-sm text-foreground">
-                          {accountPlanLabel(plan, index)}
-                        </span>
-                      </label>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </>
           ) : null}
 
-          <div className="space-y-3 border-t border-border/40 pt-4">
-            <div className="space-y-1">
+          <Separator className="bg-border/40" />
+
+          <div className="space-y-2.5">
+            <div className="space-y-0.5">
               <h4 className="text-sm font-semibold text-foreground">
                 Rodzaje powiadomień
               </h4>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground sm:text-sm">
                 Jakie wiadomości chcesz dostawać na tym urządzeniu?
               </p>
             </div>
-            <ul className="space-y-3">
+            <ul className="space-y-1">
               {KINDS.map((kind) => (
                 <li key={kind.id}>
-                  <label className="flex cursor-pointer items-start gap-3">
-                    <input
-                      type="checkbox"
-                      className="mt-1 size-4 shrink-0 accent-bus"
-                      checked={kinds[kind.id]}
-                      disabled={pending}
-                      onChange={(event) => {
-                        void toggleKind(kind.id, event.target.checked);
-                      }}
-                    />
-                    <span>
-                      <span className="block text-sm font-medium text-foreground">
-                        {kind.title}
-                      </span>
-                      <span className="block text-sm leading-relaxed text-muted-foreground">
-                        {kind.description}
-                      </span>
-                    </span>
-                  </label>
+                  <KindRow
+                    title={kind.title}
+                    description={kind.description}
+                    icon={kind.icon}
+                    checked={kinds[kind.id]}
+                    disabled={pending}
+                    onCheckedChange={(checked) => {
+                      void toggleKind(kind.id, checked);
+                    }}
+                  />
                 </li>
               ))}
             </ul>
           </div>
 
           {canTest ? (
-            <div className="flex flex-wrap items-center gap-3 border-t border-border/40 pt-4">
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                disabled={pending}
-                onClick={() => void sendTest()}
-              >
-                Wyślij powiadomienie testowe
-              </Button>
-              <p className="text-sm text-foreground/80">
-                Na komputerze działa w przeglądarce. Na telefonie dopiero w
-                zainstalowanej aplikacji.
-              </p>
-            </div>
+            <>
+              <Separator className="bg-border/40" />
+              <div className="space-y-2.5">
+                <Button
+                  type="button"
+                  variant="default"
+                  className="w-full"
+                  disabled={pending}
+                  onClick={() => void sendTest()}
+                >
+                  Wyślij powiadomienie testowe
+                </Button>
+                <p className="rounded-lg border border-border/50 bg-muted/30 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+                  Na komputerze działa w przeglądarce. Na telefonie dopiero w
+                  zainstalowanej aplikacji.
+                </p>
+              </div>
+            </>
           ) : null}
-
         </div>
       </section>
 
       {devicesLoading ? (
         <p className="text-sm text-muted-foreground">Ładowanie urządzeń…</p>
       ) : otherRows.length > 0 ? (
-        <section className="space-y-3">
-          <div className="space-y-1">
+        <section className="space-y-2.5">
+          <div className="space-y-0.5">
             <h3 className="text-sm font-semibold text-foreground">
               Inne urządzenia
             </h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground sm:text-sm">
               Możesz zmienić plany i rodzaje powiadomień na innych urządzeniach
               z tego konta.
             </p>
           </div>
-          <ul className="space-y-4">
+          <ul className="space-y-3">
             {otherRows.map((device) => {
               const busy = pendingDeviceId === device.id;
               const linkedNames = planNamesForIds(
@@ -543,47 +552,48 @@ export function NotificationsPanel({
               return (
                 <li
                   key={device.id}
-                  className="space-y-3 rounded-xl border border-border/50 bg-muted/20 p-4 dark:bg-muted/10 sm:p-5"
+                  className={CARD_CLASS}
                   title={device.endpoint}
                 >
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     <p className="text-sm font-semibold text-foreground">
                       {device.title}
                     </p>
                     {linkedNames.length > 0 ? (
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs text-muted-foreground sm:text-sm">
                         Powiadomienia dla: {linkedNames.join(", ")}
                       </p>
                     ) : (
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs text-muted-foreground sm:text-sm">
                         Brak powiązanych planów
                       </p>
                     )}
                   </div>
 
                   {savedPlanIds.length > 0 ? (
-                    <div className="space-y-2 border-t border-border/40 pt-3">
-                      <h4 className="text-sm font-semibold text-foreground">
-                        Plany lekcji
-                      </h4>
-                      <ul className="space-y-2">
-                        {accountPlans.map((plan, index) => {
-                          if (!isAccountPlanId(plan.id)) return null;
-                          const id = plan.id;
-                          return (
-                            <li key={id}>
-                              <label className="flex cursor-pointer items-start gap-3">
-                                <input
-                                  type="checkbox"
-                                  className="mt-1 size-4 shrink-0 accent-bus"
-                                  checked={device.planIds.includes(id)}
+                    <>
+                      <Separator className="bg-border/40" />
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-semibold text-foreground">
+                          Plany lekcji
+                        </h4>
+                        <ul className="space-y-1.5">
+                          {accountPlans.map((plan, index) => {
+                            if (!isAccountPlanId(plan.id)) return null;
+                            const id = plan.id;
+                            const checked = device.planIds.includes(id);
+                            return (
+                              <li key={id}>
+                                <PlanRow
+                                  label={accountPlanLabel(plan, index)}
+                                  checked={checked}
                                   disabled={busy}
-                                  onChange={(event) => {
-                                    const next = event.target.checked
-                                      ? device.planIds.includes(id)
+                                  onToggle={() => {
+                                    const next = checked
+                                      ? device.planIds.filter((x) => x !== id)
+                                      : device.planIds.includes(id)
                                         ? device.planIds
-                                        : [...device.planIds, id]
-                                      : device.planIds.filter((x) => x !== id);
+                                        : [...device.planIds, id];
                                     if (next.length === 0) {
                                       toast.error(
                                         "Wybierz przynajmniej jeden plan.",
@@ -595,43 +605,38 @@ export function NotificationsPanel({
                                     });
                                   }}
                                 />
-                                <span className="text-sm text-foreground">
-                                  {accountPlanLabel(plan, index)}
-                                </span>
-                              </label>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    </>
                   ) : null}
 
-                  <div className="space-y-2 border-t border-border/40 pt-3">
+                  <Separator className="bg-border/40" />
+
+                  <div className="space-y-2">
                     <h4 className="text-sm font-semibold text-foreground">
                       Rodzaje powiadomień
                     </h4>
-                    <ul className="flex flex-wrap gap-x-4 gap-y-2">
-                      {KIND_SHORT.map((kind) => (
+                    <ul className="space-y-1">
+                      {KINDS.map((kind) => (
                         <li key={kind.id}>
-                          <label className="flex cursor-pointer items-center gap-2">
-                            <input
-                              type="checkbox"
-                              className="size-4 shrink-0 accent-bus"
-                              checked={device.kinds[kind.id]}
-                              disabled={busy}
-                              onChange={(event) => {
-                                void saveOtherDevice(device, {
-                                  kinds: {
-                                    ...device.kinds,
-                                    [kind.id]: event.target.checked,
-                                  },
-                                });
-                              }}
-                            />
-                            <span className="text-sm text-foreground">
-                              {kind.title}
-                            </span>
-                          </label>
+                          <KindRow
+                            title={kind.title}
+                            description={kind.description}
+                            icon={kind.icon}
+                            checked={device.kinds[kind.id]}
+                            disabled={busy}
+                            onCheckedChange={(checked) => {
+                              void saveOtherDevice(device, {
+                                kinds: {
+                                  ...device.kinds,
+                                  [kind.id]: checked,
+                                },
+                              });
+                            }}
+                          />
                         </li>
                       ))}
                     </ul>
@@ -652,6 +657,87 @@ export function NotificationsPanel({
   );
 }
 
+function PlanRow({
+  label,
+  checked,
+  disabled,
+  onToggle,
+}: {
+  label: string;
+  checked: boolean;
+  disabled: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={onToggle}
+      className={cn(
+        "flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50",
+        checked
+          ? "border-bus/40 bg-bus/5 text-foreground"
+          : "border-border/50 bg-background text-foreground hover:bg-muted/40",
+      )}
+    >
+      <span className="min-w-0 text-sm font-medium">{label}</span>
+      <span
+        aria-hidden
+        className={cn(
+          "grid size-5 shrink-0 place-items-center rounded-full transition-colors",
+          checked
+            ? "bg-bus text-bus-foreground"
+            : "border border-border/70 bg-transparent",
+        )}
+      >
+        {checked ? <Check className="size-3 stroke-[3]" /> : null}
+      </span>
+    </button>
+  );
+}
+
+function KindRow({
+  title,
+  description,
+  icon: Icon,
+  checked,
+  disabled,
+  onCheckedChange,
+}: {
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  checked: boolean;
+  disabled: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-1 py-2 has-disabled:cursor-not-allowed has-disabled:opacity-50">
+      <span
+        aria-hidden
+        className="grid size-8 shrink-0 place-items-center rounded-md bg-bus/10 text-bus"
+      >
+        <Icon className="size-4" strokeWidth={2} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium text-foreground">
+          {title}
+        </span>
+        <span className="block text-xs leading-relaxed text-muted-foreground sm:text-sm">
+          {description}
+        </span>
+      </span>
+      <Switch
+        checked={checked}
+        disabled={disabled}
+        onCheckedChange={onCheckedChange}
+      />
+    </label>
+  );
+}
+
 function PlansOverview({
   accountPlans,
   deviceRows,
@@ -668,19 +754,21 @@ function PlansOverview({
   loading: boolean;
 }) {
   return (
-    <section className="space-y-4 rounded-xl border border-border/50 bg-muted/20 p-4 dark:bg-muted/10 sm:space-y-5 sm:p-5">
-      <div className="space-y-2">
+    <section
+      className={cn(CARD_CLASS, "sm:space-y-4")}
+    >
+      <div className="space-y-1">
         <h3 className="text-sm font-semibold text-foreground">
           Gdzie włączone powiadomienia
         </h3>
-        <p className="text-sm leading-relaxed text-muted-foreground">
+        <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
           Podsumowanie: na których urządzeniach dany plan dostaje przypomnienia.
         </p>
       </div>
       {loading ? (
         <p className="text-sm text-muted-foreground">Ładowanie…</p>
       ) : (
-        <ul className="space-y-4 sm:space-y-5">
+        <ul className="space-y-3 sm:space-y-4">
           {accountPlans.map((plan, index) => {
             if (!isAccountPlanId(plan.id)) return null;
             const id = plan.id;
@@ -698,7 +786,7 @@ function PlansOverview({
             return (
               <li
                 key={id}
-                className="flex flex-col gap-2.5 border-b border-border/30 pb-4 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:gap-5 sm:pb-5"
+                className="flex flex-col gap-2 border-b border-border/30 pb-3 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:gap-5 sm:pb-4"
               >
                 <span className="shrink-0 text-sm font-medium leading-relaxed text-foreground sm:min-w-[8rem]">
                   {accountPlanLabel(plan, index)}

@@ -34,6 +34,7 @@ import { SettingsTransferSheet } from "@/components/settings-transfer-sheet";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
 import {
   NativeSelect,
   NativeSelectOption,
@@ -1168,9 +1169,20 @@ export function LessonPlanForm({
                 size="lg"
                 className={cn(actionButtonClass, "hidden md:inline-flex")}
                 disabled={saveDisabled}
+                aria-busy={pending}
                 onClick={handleSave}
               >
-                {saveLabel}
+                <span className="relative inline-flex items-center justify-center">
+                  {pending ? (
+                    <span
+                      className="absolute right-full mr-2 inline-flex size-4 items-center justify-center"
+                      aria-hidden
+                    >
+                      <Spinner />
+                    </span>
+                  ) : null}
+                  <span>{saveLabel}</span>
+                </span>
               </Button>
               {mode === "local" ? (
                 <Button
@@ -1447,9 +1459,20 @@ export function LessonPlanForm({
                 size="lg"
                 className="h-11 w-full max-w-none px-4"
                 disabled={saveDisabled}
+                aria-busy={pending}
                 onClick={handleSave}
               >
-                {saveLabel}
+                <span className="relative flex w-full items-center justify-center">
+                  {pending ? (
+                    <span
+                      className="absolute left-0 inline-flex size-4 items-center justify-center"
+                      aria-hidden
+                    >
+                      <Spinner />
+                    </span>
+                  ) : null}
+                  <span>{saveLabel}</span>
+                </span>
               </Button>
             </div>,
             document.body,
