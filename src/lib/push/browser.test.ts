@@ -232,7 +232,7 @@ describe("enablePush / setPushPlans / getPushStatus bodies", () => {
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.message).toContain("Brak poprawnego publicznego klucza VAPID");
+      expect(result.message).toContain("VAPID_PUBLIC_KEY");
     }
   });
 

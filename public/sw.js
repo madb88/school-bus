@@ -16,17 +16,24 @@ self.addEventListener("push", (event) => {
     title: "autobusszkolny.pl",
     body: "",
     url: "/",
+    tag: "school-bus-fallback",
   };
 
   let payload = fallback;
   try {
     if (event.data) {
       const parsed = event.data.json();
-      payload = {
-        title: typeof parsed.title === "string" ? parsed.title : fallback.title,
-        body: typeof parsed.body === "string" ? parsed.body : "",
-        url: typeof parsed.url === "string" ? parsed.url : "/",
-      };
+      const title =
+        typeof parsed.title === "string" ? parsed.title : fallback.title;
+      const body = typeof parsed.body === "string" ? parsed.body : "";
+      const url = typeof parsed.url === "string" ? parsed.url : "/";
+      // Backend sends a stable `tag` (trip id). Without it, fall back so successive
+      // reminders with different title/body still do not collapse into one.
+      const tag =
+        typeof parsed.tag === "string" && parsed.tag
+          ? parsed.tag
+          : `${title}|${body}|${url}`;
+      payload = { title, body, url, tag };
     }
   } catch {
     payload = fallback;
@@ -36,6 +43,8 @@ self.addEventListener("push", (event) => {
     self.registration.showNotification(payload.title, {
       body: payload.body,
       icon: "/icons/icon-192.png",
+      tag: payload.tag,
+      renotify: true,
       data: { url: payload.url },
     }),
   );

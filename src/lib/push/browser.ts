@@ -351,7 +351,7 @@ export async function enablePush(
     return {
       ok: false,
       message:
-        "Brak poprawnego publicznego klucza VAPID na serwerze (P-256). Ustaw NEXT_PUBLIC_VAPID_PUBLIC_KEY w Variables serwisu Next na Railway.",
+        "Brak poprawnego publicznego klucza VAPID na serwerze (P-256). Ustaw VAPID_PUBLIC_KEY w Variables serwisu Next na Railway.",
     };
   }
   const applicationServerKey = parseApplicationServerKey(publicKey);
@@ -359,7 +359,7 @@ export async function enablePush(
     return {
       ok: false,
       message:
-        "Brak poprawnego publicznego klucza VAPID na serwerze (P-256). Ustaw NEXT_PUBLIC_VAPID_PUBLIC_KEY w Variables serwisu Next na Railway.",
+        "Brak poprawnego publicznego klucza VAPID na serwerze (P-256). Ustaw VAPID_PUBLIC_KEY w Variables serwisu Next na Railway.",
     };
   }
 
@@ -580,7 +580,7 @@ export async function sendTestPush(): Promise<
     return {
       ok: false,
       message:
-        "Brak poprawnego publicznego klucza VAPID na serwerze (P-256). Ustaw NEXT_PUBLIC_VAPID_PUBLIC_KEY w Variables serwisu Next na Railway.",
+        "Brak poprawnego publicznego klucza VAPID na serwerze (P-256). Ustaw VAPID_PUBLIC_KEY w Variables serwisu Next na Railway.",
     };
   }
   const applicationServerKey = parseApplicationServerKey(publicKey);
@@ -588,7 +588,7 @@ export async function sendTestPush(): Promise<
     return {
       ok: false,
       message:
-        "Brak poprawnego publicznego klucza VAPID na serwerze (P-256). Ustaw NEXT_PUBLIC_VAPID_PUBLIC_KEY w Variables serwisu Next na Railway.",
+        "Brak poprawnego publicznego klucza VAPID na serwerze (P-256). Ustaw VAPID_PUBLIC_KEY w Variables serwisu Next na Railway.",
     };
   }
 
