@@ -45,42 +45,46 @@ export function MobileNav({ current }: MobileNavProps) {
           <SheetHeader>
             <SheetTitle>Nawigacja</SheetTitle>
           </SheetHeader>
-          <nav className="flex flex-col gap-1 px-4 pb-4" aria-label="Główne">
-            {NAV_ITEMS.map((item) => {
-              const active = current === item.id;
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className={cn(
-                    "inline-flex items-center gap-2 rounded-lg px-3 py-3 text-base font-medium transition-colors",
-                    active
-                      ? "bg-bus text-bus-foreground"
-                      : "text-muted-foreground hover:bg-bus/10 hover:text-bus-deep",
-                  )}
-                  aria-current={active ? "page" : undefined}
-                >
-                  <Icon aria-hidden className="size-4 shrink-0" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-          <div className="border-t border-border/60 px-4 py-4">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full justify-start gap-2"
-              onClick={() => {
-                setOpen(false);
-                setFeedbackOpen(true);
-              }}
-            >
-              <MessageSquare aria-hidden className="size-4 shrink-0" />
-              Wyślij opinię
-            </Button>
+
+          <div className="flex flex-col px-4 pb-4">
+            <nav className="flex flex-col gap-0.5" aria-label="Główne">
+              {NAV_ITEMS.map((item) => {
+                const active = current === item.id;
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className={cn(
+                      "inline-flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium transition-colors",
+                      active
+                        ? "bg-bus/10 font-semibold text-bus dark:bg-bus/15 dark:text-bus"
+                        : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                    )}
+                    aria-current={active ? "page" : undefined}
+                  >
+                    <Icon aria-hidden className="size-5 shrink-0" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="mt-4 border-t border-border/60 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 w-full justify-center gap-2 rounded-xl"
+                onClick={() => {
+                  setOpen(false);
+                  setFeedbackOpen(true);
+                }}
+              >
+                <MessageSquare aria-hidden className="size-4 shrink-0" />
+                Wyślij opinię
+              </Button>
+            </div>
           </div>
         </SheetContent>
       </Sheet>
