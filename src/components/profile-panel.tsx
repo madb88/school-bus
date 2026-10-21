@@ -136,7 +136,9 @@ export function ProfilePanel({
   }, [sectionHint, router]);
 
   useEffect(() => {
-    setProfileMenuSection(section === "logout" ? "profil" : section);
+    // Logout is not a menu section — write null so the store sync effect
+    // below does not snap the UI back to "profil".
+    setProfileMenuSection(section === "logout" ? null : section);
     return () => setProfileMenuSection(null);
   }, [section]);
 
