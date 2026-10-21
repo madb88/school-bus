@@ -4,6 +4,7 @@ import { PageEyebrow } from "@/components/page-eyebrow";
 import { PageShell } from "@/components/page-shell";
 import { SiteHeader } from "@/components/site-header";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasPushPlusAccessFromPanel } from "@/lib/billing/access";
 import { loadPlusPanel } from "@/lib/billing/status";
 import { isPushNotificationsUiEnabled } from "@/lib/push/feature";
 import { buildPageMetadata } from "@/lib/site-metadata";
@@ -24,7 +25,9 @@ export default async function InstalacjaPage() {
       pushEntry = "login";
     } else {
       const plus = await loadPlusPanel(user.sessionToken);
-      pushEntry = plus.state === "active" ? "manage" : "profil";
+      pushEntry = hasPushPlusAccessFromPanel(user.role, plus)
+        ? "manage"
+        : "profil";
     }
   }
 

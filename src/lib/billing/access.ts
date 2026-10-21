@@ -18,7 +18,7 @@ export function hasPlusAccess(
 }
 
 /**
- * Push UI gate (active + admin; trial excluded) — mirrors backend push access.
+ * Push UI gate — mirrors backend `has_push_access`: admin, active, or trial.
  */
 export function hasPushPlusAccess(
   role: UserRole,
@@ -26,7 +26,7 @@ export function hasPushPlusAccess(
 ): boolean {
   if (role === "admin") return true;
   if (plus === "unavailable") return false;
-  return plus.state === "active";
+  return plus.state === "active" || plus.state === "trial";
 }
 
 /** Panel-state variant for client components that only have PlusPanelState. */
@@ -43,7 +43,7 @@ export function hasPushPlusAccessFromPanel(
   plus: PlusPanelState,
 ): boolean {
   if (role === "admin") return true;
-  return plus.state === "active";
+  return plus.state === "active" || plus.state === "trial";
 }
 
 /** True when the account is older than the default trial window. */

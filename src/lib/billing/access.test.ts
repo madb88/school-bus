@@ -34,7 +34,7 @@ describe("hasPlusAccess", () => {
 });
 
 describe("hasPushPlusAccess", () => {
-  it("allows admin and active only", () => {
+  it("allows admin, active and trial", () => {
     expect(hasPushPlusAccess("admin", { state: "inactive" })).toBe(true);
     expect(
       hasPushPlusAccess("individual", {
@@ -47,7 +47,7 @@ describe("hasPushPlusAccess", () => {
         state: "trial",
         validUntil: "2026-10-30",
       }),
-    ).toBe(false);
+    ).toBe(true);
     expect(hasPushPlusAccess("individual", { state: "pending" })).toBe(false);
     expect(hasPushPlusAccess("individual", "unavailable")).toBe(false);
   });
