@@ -1,8 +1,8 @@
 {
-  "active": false,
+  "active": true,
   "reason": "Korekta czasów w związku z prośbami rodziców",
   "createdAt": "2026-09-27T09:00:00.000Z",
-  "expiresAt": "2026-10-11T09:00:00.000Z",
+  "expiresAt": "2026-10-20T09:00:00.000Z",
   "schedule": {
     "sourceUrl": "https://www.szkolaolimpijczykow.pl/dowozy/",
     "fetchedAt": "2026-09-27T08:59:30.958Z",
@@ -85,12 +85,8 @@
             "note": "od poniedziałku do czwartku",
             "stops": [
               {
-                "time": "11:10",
-                "places": ["Sucha", "Złote Piaski"]
-              },
-              {
                 "time": "11:15",
-                "places": ["Ługowo"]
+                "places": ["Sucha", "Złote Piaski"]
               }
             ]
           }
