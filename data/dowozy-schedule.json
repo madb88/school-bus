@@ -94,12 +94,8 @@
           "note": "od poniedziałku do czwartku",
           "stops": [
             {
-              "time": "11:10",
-              "places": ["Sucha", "Złote Piaski"]
-            },
-            {
               "time": "11:15",
-              "places": ["Ługowo"]
+              "places": ["Sucha", "Złote Piaski"]
             }
           ]
         }
