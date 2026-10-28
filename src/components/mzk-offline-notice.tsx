@@ -5,7 +5,7 @@ import { useOnlineStatus } from "@/lib/offline/use-online-status";
 import type { FreshnessInfo } from "@/lib/schedule-freshness";
 
 const OFFLINE_ROUTE_EDIT: FreshnessInfo = {
-  level: "stale",
+  level: "offline",
   message:
     "Brak połączenia z internetem — zmiana trasy MZK wymaga sieci. Zapisana trasa działa na rozkładzie offline (Plan Plus).",
   messageCompact: "Offline — zmiana trasy MZK wymaga internetu",

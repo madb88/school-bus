@@ -1,13 +1,19 @@
 import Link from "next/link";
 import { cn } from "cn";
-import { AlertTriangle, Info } from "lucide-react";
+import { AlertTriangle, Info, WifiOff } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import type { FreshnessInfo } from "@/lib/schedule-freshness";
+import type { FreshnessInfo, FreshnessLevel } from "@/lib/schedule-freshness";
 
 type ScheduleStatusBannerProps = {
   items: FreshnessInfo[];
   className?: string;
 };
+
+function rowIcon(level: FreshnessLevel) {
+  if (level === "offline") return WifiOff;
+  if (level === "expired") return AlertTriangle;
+  return Info;
+}
 
 export function ScheduleStatusBanner({
   items,
@@ -19,7 +25,9 @@ export function ScheduleStatusBanner({
   const notices = visible.filter((item) => item.level === "ok" && item.message);
   if (warnings.length === 0 && notices.length === 0) return null;
 
-  const isExpired = warnings.some((item) => item.level === "expired");
+  const isAlert = warnings.some(
+    (item) => item.level === "expired" || item.level === "offline",
+  );
   const rows = [...warnings, ...notices];
 
   return (
@@ -27,20 +35,24 @@ export function ScheduleStatusBanner({
       role="status"
       className={cn(
         "space-y-2 border-l-2 px-3 py-2 text-sm leading-snug md:px-4 md:py-3 md:leading-relaxed",
-        isExpired
-          ? "border-destructive/50 bg-destructive/5 text-destructive"
+        isAlert
+          ? "border-destructive/60 bg-destructive/10 text-destructive dark:bg-destructive/15"
           : "border-bus/40 bg-muted/40 text-muted-foreground",
         className,
       )}
     >
       {rows.map((item) => {
-        const Icon = item.level === "expired" ? AlertTriangle : Info;
-        const titleClass =
-          item.level === "expired"
-            ? "text-destructive"
-            : item.level === "ok"
-              ? "text-muted-foreground"
-              : "text-foreground/80";
+        const Icon = rowIcon(item.level);
+        const isRowAlert =
+          item.level === "expired" || item.level === "offline";
+        const titleClass = isRowAlert
+          ? "font-medium text-destructive"
+          : item.level === "ok"
+            ? "text-muted-foreground"
+            : "text-foreground/80";
+        const detailClass = isRowAlert
+          ? "text-destructive/80"
+          : "text-muted-foreground/90";
         const compactTitle = item.messageCompact ?? item.message;
         const compactDetail = item.detailCompact ?? item.detail;
 
@@ -50,7 +62,7 @@ export function ScheduleStatusBanner({
               aria-hidden
               className={cn(
                 "mt-0.5 size-3.5 shrink-0 md:mt-0 md:size-4",
-                item.level === "expired" ? "text-destructive" : "text-bus",
+                isRowAlert ? "text-destructive" : "text-bus",
               )}
             />
             <div className="min-w-0 space-y-1.5">
@@ -65,12 +77,12 @@ export function ScheduleStatusBanner({
                   {item.message}
                 </p>
                 {compactDetail ? (
-                  <p className="text-xs leading-snug text-muted-foreground/90 md:hidden">
+                  <p className={cn("text-xs leading-snug md:hidden", detailClass)}>
                     {compactDetail}
                   </p>
                 ) : null}
                 {item.detail ? (
-                  <p className="hidden text-xs text-muted-foreground/90 md:block">
+                  <p className={cn("hidden text-xs md:block", detailClass)}>
                     {item.detail}
                   </p>
                 ) : null}

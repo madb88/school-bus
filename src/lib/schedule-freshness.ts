@@ -1,6 +1,6 @@
 import { getWarsawParts } from "@/lib/dowozy/schedule-dates";
 
-export type FreshnessLevel = "ok" | "stale" | "expired";
+export type FreshnessLevel = "ok" | "stale" | "expired" | "offline";
 
 export type FreshnessInfo = {
   level: FreshnessLevel;

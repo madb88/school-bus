@@ -20,7 +20,7 @@ export function offlineConnectivityFreshness(
 ): FreshnessInfo {
   const when = cachedAt ? formatCachedAtLabel(cachedAt) : null;
   return {
-    level: "stale",
+    level: "offline",
     message: when
       ? `Brak połączenia z internetem — rozkład może być nieaktualny (dane z ${when}).`
       : "Brak połączenia z internetem — rozkład może być nieaktualny.",
