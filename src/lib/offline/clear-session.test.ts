@@ -6,8 +6,8 @@ const saveSchool = vi.fn(async () => undefined);
 const clearSchool = vi.fn(async () => undefined);
 
 vi.mock("./school-cache", () => ({
-  saveSchoolOfflineSnapshot: (...args: unknown[]) => saveSchool(...args),
-  clearSchoolOfflineSnapshot: (...args: unknown[]) => clearSchool(...args),
+  saveSchoolOfflineSnapshot: (input: unknown) => saveSchool(input),
+  clearSchoolOfflineSnapshot: () => clearSchool(),
 }));
 
 vi.mock("./warm-shell", () => ({
