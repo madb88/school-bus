@@ -25,44 +25,41 @@ export function ScheduleStatusBanner({
   const notices = visible.filter((item) => item.level === "ok" && item.message);
   if (warnings.length === 0 && notices.length === 0) return null;
 
-  const isAlert = warnings.some(
-    (item) => item.level === "expired" || item.level === "offline",
-  );
   const rows = [...warnings, ...notices];
 
   return (
-    <div
-      role="status"
-      className={cn(
-        "space-y-2 border-l-2 px-3 py-2 text-sm leading-snug md:px-4 md:py-3 md:leading-relaxed",
-        isAlert
-          ? "border-destructive/60 bg-destructive/10 text-destructive dark:bg-destructive/15"
-          : "border-bus/40 bg-muted/40 text-muted-foreground",
-        className,
-      )}
-    >
+    <div role="status" className={cn("space-y-2", className)}>
       {rows.map((item) => {
         const Icon = rowIcon(item.level);
-        const isRowAlert =
+        // Only expired/offline use alert chrome. Schedule corrections stay "stale" (bus).
+        const isAlert =
           item.level === "expired" || item.level === "offline";
-        const titleClass = isRowAlert
+        const titleClass = isAlert
           ? "font-medium text-destructive"
           : item.level === "ok"
             ? "text-muted-foreground"
             : "text-foreground/80";
-        const detailClass = isRowAlert
+        const detailClass = isAlert
           ? "text-destructive/80"
           : "text-muted-foreground/90";
         const compactTitle = item.messageCompact ?? item.message;
         const compactDetail = item.detailCompact ?? item.detail;
 
         return (
-          <div key={item.message} className="flex items-start gap-2 md:gap-2.5">
+          <div
+            key={item.message}
+            className={cn(
+              "flex items-start gap-2 border-l-2 px-3 py-2 text-sm leading-snug md:gap-2.5 md:px-4 md:py-3 md:leading-relaxed",
+              isAlert
+                ? "border-destructive/50 bg-destructive/5 text-destructive"
+                : "border-bus/40 bg-muted/40 text-muted-foreground",
+            )}
+          >
             <Icon
               aria-hidden
               className={cn(
                 "mt-0.5 size-3.5 shrink-0 md:mt-0 md:size-4",
-                isRowAlert ? "text-destructive" : "text-bus",
+                isAlert ? "text-destructive" : "text-bus",
               )}
             />
             <div className="min-w-0 space-y-1.5">
