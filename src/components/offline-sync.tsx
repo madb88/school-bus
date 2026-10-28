@@ -3,16 +3,11 @@
 import { useEffect } from "react";
 import type { AccountPlan } from "@/lib/child-schedule/account-plan";
 import type { Schedule } from "@/lib/dowozy/types";
-import { clearOfflinePlusSession } from "@/lib/offline/clear-session";
-import { syncOfflineEntitlement } from "@/lib/offline/entitlement";
-import { saveSchoolOfflineSnapshot } from "@/lib/offline/school-cache";
-import { prefetchMzkOdForRoute } from "@/lib/offline/prefetch-mzk-od";
 import {
-  hasConfiguredMzkRoute,
-  loadMzkRoutePreference,
-} from "@/lib/mzk/route-storage";
+  clearOfflinePlusSession,
+  persistOfflinePlusSession,
+} from "@/lib/offline/clear-session";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
-import { warmOfflineShell } from "@/lib/offline/warm-shell";
 
 type OfflineSyncProps = {
   plusAccess: boolean;
@@ -24,7 +19,7 @@ type OfflineSyncProps = {
 
 /**
  * When Plan Plus is active online, persist entitlement + school snapshot (+ MZK OD prefetch).
- * When access is revoked, clear local offline data.
+ * When access is revoked, clear local offline data (race-safe vs a later re-login).
  */
 export function OfflineSync({
   plusAccess,
@@ -41,44 +36,14 @@ export function OfflineSync({
       return;
     }
 
-    syncOfflineEntitlement({
-      plusAccess: true,
+    void persistOfflinePlusSession({
       validUntil: plusValidUntil,
-    });
-
-    if (!online || !schedule) return;
-
-    warmOfflineShell();
-
-    void saveSchoolOfflineSnapshot({
       schedule,
       accountPlans,
       mzkAvailable,
-    }).catch(() => {
-      // ignore quota / private mode
+      online,
     });
-
-    const route = loadMzkRoutePreference();
-    if (
-      mzkAvailable &&
-      hasConfiguredMzkRoute(route) &&
-      route.boardStopId &&
-      route.alightStopId
-    ) {
-      void prefetchMzkOdForRoute({
-        boardStopId: route.boardStopId,
-        alightStopId: route.alightStopId,
-        route: route.route,
-      });
-    }
-  }, [
-    plusAccess,
-    plusValidUntil,
-    schedule,
-    accountPlans,
-    mzkAvailable,
-    online,
-  ]);
+  }, [plusAccess, plusValidUntil, schedule, accountPlans, mzkAvailable, online]);
 
   return null;
 }
