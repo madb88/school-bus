@@ -1,7 +1,17 @@
 /** Keep in sync with `SHELL_CACHE` in `public/sw.js`. */
-export const OFFLINE_SHELL_CACHE = "school-bus-shell-v2" as const;
+export const OFFLINE_SHELL_CACHE = "school-bus-shell-v3" as const;
 
 const WARM_PATHS = ["/", "/offline", "/offline.html", "/lekcje"] as const;
+
+const STATIC_MEDIA = [
+  "/icons/logo-bus-sm.png",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
+  "/icons/icon-maskable-512.png",
+  "/icons/apple-touch-icon.png",
+  "/images/weekend-bus.webp",
+  "/images/schedule-unavailable.webp",
+] as const;
 
 function collectDocumentAssetUrls(): string[] {
   if (typeof document === "undefined") return [];
@@ -18,6 +28,9 @@ function collectDocumentAssetUrls(): string[] {
     .forEach((el) => {
       if (el.href) urls.add(el.href);
     });
+  document.querySelectorAll<HTMLImageElement>("img[src]").forEach((el) => {
+    if (el.src) urls.add(el.src);
+  });
   return [...urls];
 }
 
@@ -59,6 +72,7 @@ export function warmOfflineShell(): void {
 
   const urls = [
     ...WARM_PATHS.map((path) => new URL(path, window.location.origin).href),
+    ...STATIC_MEDIA.map((path) => new URL(path, window.location.origin).href),
     window.location.href,
     ...collectDocumentAssetUrls(),
   ];

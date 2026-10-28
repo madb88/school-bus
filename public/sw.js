@@ -2,14 +2,17 @@
    Cold-start fallback is static /offline.html (no Next chunks).
    Cache API: navigations + /_next/static + icons — not /api/*. */
 
-const SHELL_CACHE = "school-bus-shell-v2";
+const SHELL_CACHE = "school-bus-shell-v3";
 const OFFLINE_FALLBACK = "/offline.html";
 const PRECACHE_URLS = [
   OFFLINE_FALLBACK,
+  "/icons/logo-bus-sm.png",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
   "/icons/apple-touch-icon.png",
   "/icons/icon-maskable-512.png",
+  "/images/weekend-bus.webp",
+  "/images/schedule-unavailable.webp",
 ];
 
 function sameOriginUrl(rawUrl, origin) {
@@ -25,7 +28,9 @@ function sameOriginUrl(rawUrl, origin) {
 function isStaticAsset(pathname) {
   return (
     pathname.startsWith("/_next/static/") ||
+    pathname.startsWith("/_next/image") ||
     pathname.startsWith("/icons/") ||
+    pathname.startsWith("/images/") ||
     pathname === "/manifest.webmanifest" ||
     pathname.endsWith(".webmanifest") ||
     pathname === OFFLINE_FALLBACK

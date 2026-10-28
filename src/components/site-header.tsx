@@ -26,6 +26,7 @@ export async function SiteHeader({ current }: SiteHeaderProps) {
           width={144}
           height={96}
           priority
+          unoptimized
           className="h-8 w-auto shrink-0 sm:h-9"
         />
         <span className="flex min-w-0 flex-col gap-0.5">
