@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { cn } from "cn";
 import { AlertTriangle, Info, WifiOff } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
@@ -59,9 +60,9 @@ function BannerCta({ href, label }: { href: string; label: string }) {
   }
 
   return (
-    <a href={href} className={className}>
+    <Link href={href} className={className}>
       {label}
-    </a>
+    </Link>
   );
 }
 
