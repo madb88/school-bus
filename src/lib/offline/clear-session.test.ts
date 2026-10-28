@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OFFLINE_ENTITLEMENT_KEY } from "./constants";
 import { hasOfflineEntitlement, loadOfflineEntitlement } from "./entitlement";
 
-const saveSchool = vi.fn(async () => undefined);
+const saveSchool = vi.fn(async (_input?: unknown) => undefined);
 const clearSchool = vi.fn(async () => undefined);
 
 vi.mock("./school-cache", () => ({
