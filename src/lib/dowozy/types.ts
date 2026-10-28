@@ -89,3 +89,13 @@ export type ScheduleSnapshotResult = {
   overrideStatus: OverrideStatus;
   overrideReason?: string;
 };
+
+/** Original + active correction for the changes page (diff UI). */
+export type ScheduleCorrectionSnapshot = {
+  original: Schedule;
+  /** Present only while an override is currently in effect. */
+  modified: Schedule | null;
+  /** Inclusive Warsaw calendar day YYYY-MM-DD from the API. */
+  activeUntil?: string;
+  resolved: ScheduleSnapshotResult;
+};

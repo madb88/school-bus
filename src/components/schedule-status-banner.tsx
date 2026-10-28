@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { cn } from "cn";
 import { AlertTriangle, Info } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import type { FreshnessInfo } from "@/lib/schedule-freshness";
 
 type ScheduleStatusBannerProps = {
@@ -51,25 +53,38 @@ export function ScheduleStatusBanner({
                 item.level === "expired" ? "text-destructive" : "text-bus",
               )}
             />
-            <div className="min-w-0 space-y-0.5">
-              <p title={item.detail} className={cn("md:hidden", titleClass)}>
-                {compactTitle}
-              </p>
-              <p
-                title={item.detail}
-                className={cn("hidden md:block", titleClass)}
-              >
-                {item.message}
-              </p>
-              {compactDetail ? (
-                <p className="text-xs leading-snug text-muted-foreground/90 md:hidden">
-                  {compactDetail}
+            <div className="min-w-0 space-y-1.5">
+              <div className="space-y-0.5">
+                <p title={item.detail} className={cn("md:hidden", titleClass)}>
+                  {compactTitle}
                 </p>
-              ) : null}
-              {item.detail ? (
-                <p className="hidden text-xs text-muted-foreground/90 md:block">
-                  {item.detail}
+                <p
+                  title={item.detail}
+                  className={cn("hidden md:block", titleClass)}
+                >
+                  {item.message}
                 </p>
+                {compactDetail ? (
+                  <p className="text-xs leading-snug text-muted-foreground/90 md:hidden">
+                    {compactDetail}
+                  </p>
+                ) : null}
+                {item.detail ? (
+                  <p className="hidden text-xs text-muted-foreground/90 md:block">
+                    {item.detail}
+                  </p>
+                ) : null}
+              </div>
+              {item.cta ? (
+                <Link
+                  href={item.cta.href}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "sm" }),
+                    "w-fit",
+                  )}
+                >
+                  {item.cta.label}
+                </Link>
               ) : null}
             </div>
           </div>

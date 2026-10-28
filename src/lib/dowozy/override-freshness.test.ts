@@ -28,6 +28,10 @@ describe("overrideFreshnessInfo", () => {
     expect(info?.detailCompact).toMatch(/rodzicom/i);
     expect(info?.detailCompact).toMatch(/strona dowozów/i);
     expect(info?.level).toBe("stale");
+    expect(info?.cta).toEqual({
+      href: "/zmiany-w-rozkladzie",
+      label: "Zobacz zmiany",
+    });
   });
 
   it("describes a match with the official schedule", () => {

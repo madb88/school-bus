@@ -31,6 +31,10 @@ export function overrideFreshnessInfo(
       detail: CONFLICT_DETAIL,
       messageCompact: "Tymczasowa korekta rozkładu",
       detailCompact: CONFLICT_DETAIL_COMPACT,
+      cta: {
+        href: "/zmiany-w-rozkladzie",
+        label: "Zobacz zmiany",
+      },
     };
   }
 

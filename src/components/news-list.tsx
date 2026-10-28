@@ -19,6 +19,21 @@ export type NewsItem = {
 /** Newest first — prepend new entries here. */
 export const NEWS_ITEMS: readonly NewsItem[] = [
   {
+    id: "schedule-changes-page",
+    dateLabel: "28 października 2026",
+    title: "Podgląd korekt rozkładu",
+    lead: "Gdy rozkład ma tymczasową korektę, możesz teraz zobaczyć dokładnie, co się zmieniło względem oficjalnego rozkładu ze strony szkoły.",
+    body: "Na stronie głównej, przy komunikacie o korekcie, pojawił się przycisk „Zobacz zmiany”. Prowadzi do listy różnic: zmienione godziny oraz dodane lub usunięte przystanki w dowozach i odwozach.",
+    pointsTitle: "Co nowego?",
+    points: [
+      "📋 Lista zmian — stara i nowa godzina w jednym miejscu, bez porównywania całego rozkładu.",
+      "🚌 Dowozy i odwozy — widać, których kursów i przystanków dotyczy korekta.",
+      "🔗 Szybki dostęp z bannera — przy aktywnej korekcie wystarczy jedno kliknięcie na stronie rozkładu.",
+    ],
+    href: "/zmiany-w-rozkladzie",
+    cta: "Zobacz zmiany w rozkładzie",
+  },
+  {
     id: "trial-and-account-plans",
     dateLabel: "17 października 2026",
     title: "Plan Plus, synchronizacja i wygodniejsze korzystanie z planu lekcji",

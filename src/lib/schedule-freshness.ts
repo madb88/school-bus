@@ -12,6 +12,11 @@ export type FreshnessInfo = {
   messageCompact?: string;
   /** Shorter detail on small screens (falls back to `detail`). */
   detailCompact?: string;
+  /** Optional link shown under the banner row (e.g. schedule correction diff). */
+  cta?: {
+    href: string;
+    label: string;
+  };
 };
 
 /** Warn when the published GTFS feed ends within this many days. */

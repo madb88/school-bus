@@ -44,6 +44,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.6,
     },
     {
+      url: `${base}/zmiany-w-rozkladzie`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.4,
+    },
+    {
       url: `${base}/przywroc`,
       lastModified,
       changeFrequency: "monthly",
