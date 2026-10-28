@@ -10,6 +10,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "cn";
+import { NewsUnreadBadge } from "@/components/news-unread-badge";
+import { NowosciNavLink } from "@/components/nowosci-nav-link";
 
 export type NavId =
   | "rozklad"
@@ -56,6 +58,22 @@ export function SiteNav({ current }: SiteNavProps) {
       {NAV_ITEMS.map((item) => {
         const Icon = item.icon;
         const active = current === item.id;
+
+        if (item.id === "nowosci") {
+          return (
+            <NowosciNavLink
+              key={item.id}
+              href={item.href}
+              className={linkClass(active)}
+              aria-current={active ? "page" : undefined}
+            >
+              <Icon aria-hidden className="size-4 shrink-0" />
+              {item.label}
+              <NewsUnreadBadge />
+            </NowosciNavLink>
+          );
+        }
+
         return (
           <Link
             key={item.id}

@@ -5,6 +5,10 @@ import { Menu, MessageSquare } from "lucide-react";
 import { useState } from "react";
 import { cn } from "cn";
 import { FeedbackForm } from "@/components/feedback-form";
+import {
+  NewsUnreadBadge,
+  useUnreadNewsAriaLabel,
+} from "@/components/news-unread-badge";
 import { NAV_ITEMS, type NavId } from "@/components/site-nav";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +19,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useUnreadNewsCount } from "@/lib/use-unread-news-count";
 
 type MobileNavProps = {
   current?: NavId;
@@ -24,6 +29,10 @@ export function MobileNav({ current }: MobileNavProps) {
   const [open, setOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [formInstance, setFormInstance] = useState(0);
+  const unread = useUnreadNewsCount();
+  const nowosciAriaLabel = useUnreadNewsAriaLabel("Nowości");
+  const menuAriaLabel =
+    unread > 0 ? "Otwórz menu (są nowe nowości)" : "Otwórz menu";
 
   return (
     <>
@@ -34,12 +43,13 @@ export function MobileNav({ current }: MobileNavProps) {
               type="button"
               variant="outline"
               size="icon"
-              className="size-9 shrink-0 border-border/80 bg-card/70 backdrop-blur-sm md:hidden"
-              aria-label="Otwórz menu"
+              className="relative size-9 shrink-0 border-border/80 bg-card/70 backdrop-blur-sm md:hidden"
+              aria-label={menuAriaLabel}
             />
           }
         >
           <Menu aria-hidden className="size-4" />
+          <NewsUnreadBadge variant="dot" />
         </SheetTrigger>
         <SheetContent side="right" className="gap-0 sm:max-w-sm">
           <SheetHeader>
@@ -51,6 +61,7 @@ export function MobileNav({ current }: MobileNavProps) {
               {NAV_ITEMS.map((item) => {
                 const active = current === item.id;
                 const Icon = item.icon;
+                const isNowosci = item.id === "nowosci";
                 return (
                   <Link
                     key={item.id}
@@ -63,9 +74,13 @@ export function MobileNav({ current }: MobileNavProps) {
                         : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                     )}
                     aria-current={active ? "page" : undefined}
+                    aria-label={isNowosci ? nowosciAriaLabel : undefined}
                   >
                     <Icon aria-hidden className="size-5 shrink-0" />
-                    {item.label}
+                    <span className="min-w-0 flex-1">{item.label}</span>
+                    {isNowosci ? (
+                      <NewsUnreadBadge position="inline" />
+                    ) : null}
                   </Link>
                 );
               })}

@@ -1,3 +1,4 @@
+import { MarkNewsSeen } from "@/components/mark-news-seen";
 import { NewsList } from "@/components/news-list";
 import { PageEyebrow } from "@/components/page-eyebrow";
 import { PageShell } from "@/components/page-shell";
@@ -15,6 +16,7 @@ export default function NowosciPage() {
   return (
     <PageShell header={<SiteHeader current="nowosci" />}>
       <div className="page-enter">
+        <MarkNewsSeen />
         <header className="mb-10 space-y-3">
           <PageEyebrow>Nowości</PageEyebrow>
           <h1 className="font-display text-3xl font-bold tracking-tight text-asphalt sm:text-5xl">
