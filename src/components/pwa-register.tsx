@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { hasOfflineEntitlement } from "@/lib/offline/entitlement";
 import { warmOfflineShell } from "@/lib/offline/warm-shell";
 
 export function PwaRegister() {
@@ -9,9 +10,11 @@ export function PwaRegister() {
     void navigator.serviceWorker
       .register("/sw.js", { scope: "/" })
       .then(() => {
-        // After SW is ready, cache shell HTML/assets for cold offline opens.
+        // Full document warm only for Plan Plus; SW install already caches /offline.html + icons.
         void navigator.serviceWorker.ready.then(() => {
-          warmOfflineShell();
+          if (hasOfflineEntitlement()) {
+            warmOfflineShell();
+          }
         });
       })
       .catch(() => {

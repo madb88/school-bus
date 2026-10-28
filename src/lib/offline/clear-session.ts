@@ -1,5 +1,8 @@
 import type { AccountPlan } from "@/lib/child-schedule/account-plan";
+import { SELECTED_PLAN_STORAGE_KEY } from "@/lib/child-schedule/selected-plan";
+import { LESSON_PLAN_STORAGE_KEY } from "@/lib/child-schedule/types";
 import type { Schedule } from "@/lib/dowozy/types";
+import { MZK_ROUTE_STORAGE_KEY } from "@/lib/mzk/route-preference";
 import {
   hasConfiguredMzkRoute,
   loadMzkRoutePreference,
@@ -21,6 +24,25 @@ import {
 } from "./warm-shell";
 
 const SHELL_PATHS_TO_DROP = new Set<string>(OFFLINE_WARM_DOCUMENT_PATHS);
+
+/** Account-bound prefs cleared on logout (keep theme / onboarding hints). */
+const USER_LOCAL_STORAGE_KEYS = [
+  LESSON_PLAN_STORAGE_KEY,
+  SELECTED_PLAN_STORAGE_KEY,
+  MZK_ROUTE_STORAGE_KEY,
+] as const;
+
+/** Drop plan lekcji, selected plan, and MZK route from localStorage. */
+export function clearUserLocalSettings(): void {
+  if (typeof window === "undefined") return;
+  for (const key of USER_LOCAL_STORAGE_KEYS) {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      // private mode / quota
+    }
+  }
+}
 
 /** Serialize clear/persist so logout cleanup cannot wipe a later login. */
 let sessionQueue: Promise<void> = Promise.resolve();
@@ -71,6 +93,7 @@ export function clearOfflinePlusSession(): Promise<void> {
 /**
  * Persist Plus offline entitlement + schedule after login / while Plus is active.
  * Queued after any in-flight clear from logout.
+ * Entitlement is only refreshed while online (never extends grace offline).
  */
 export function persistOfflinePlusSession(opts: {
   validUntil?: string | null;
@@ -81,12 +104,14 @@ export function persistOfflinePlusSession(opts: {
   online: boolean;
 }): Promise<void> {
   return enqueueSessionOp(async () => {
+    if (!opts.online) return;
+
     syncOfflineEntitlement({
       plusAccess: true,
       validUntil: opts.validUntil,
     });
 
-    if (!opts.online || !opts.schedule) return;
+    if (!opts.schedule) return;
 
     warmOfflineShell();
 

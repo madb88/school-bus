@@ -84,4 +84,24 @@ describe("offline entitlement storage", () => {
     syncOfflineEntitlement({ plusAccess: false });
     expect(loadOfflineEntitlement()).toBeNull();
   });
+
+  it("does not grant grace when plusAccess is false even if validUntil is null", () => {
+    syncOfflineEntitlement({ plusAccess: false, validUntil: null });
+    expect(loadOfflineEntitlement()).toBeNull();
+  });
+
+  it("uses server validUntil when plusAccess is true", () => {
+    syncOfflineEntitlement({
+      plusAccess: true,
+      validUntil: "2027-08-31",
+    });
+    expect(loadOfflineEntitlement()?.validUntil).toBe("2027-08-31");
+  });
+
+  it("applies grace only when plusAccess is true and validUntil is missing", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-28T10:00:00+02:00"));
+    syncOfflineEntitlement({ plusAccess: true, validUntil: null });
+    expect(loadOfflineEntitlement()?.validUntil).toBe("2026-11-11");
+  });
 });

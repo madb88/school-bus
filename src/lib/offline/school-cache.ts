@@ -104,10 +104,17 @@ export async function loadSchoolOfflineSnapshot(): Promise<SchoolOfflineSnapshot
 }
 
 export async function clearSchoolOfflineSnapshot(): Promise<void> {
-  try {
+  async function clearOnce(): Promise<void> {
     await idbClearStore(OFFLINE_STORE_SCHOOL);
     await idbClearStore(OFFLINE_STORE_MZK_OD);
+  }
+  try {
+    await clearOnce();
   } catch {
-    // Best-effort cleanup when entitlement is revoked.
+    try {
+      await clearOnce();
+    } catch {
+      // Best-effort cleanup when entitlement is revoked (retry once).
+    }
   }
 }

@@ -91,7 +91,8 @@ export function OfflineFallbackApp() {
       freshness={[]}
       mzkAvailable={phase.cached.mzkAvailable}
       accountPlans={phase.cached.accountPlans}
-      plusAccess
+      // Do not renew entitlement offline — IDB is already gated by hasOfflineEntitlement.
+      offlinePlusAccess={false}
       plusValidUntil={null}
       correction={phase.cached.correction ?? null}
     />

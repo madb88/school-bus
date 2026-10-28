@@ -27,9 +27,9 @@ export default async function LekcjePage() {
   const places = schedule ? collectPlaces(schedule) : [];
 
   const plus = user ? await fetchPlus(user.sessionToken) : "unavailable";
+  const offlinePlusAccess = user != null && hasPlusAccess(user.role, plus);
   const plusAccess =
-    user != null &&
-    (hasPlusAccess(user.role, plus) || user.plans.length > 0);
+    offlinePlusAccess || (user != null && user.plans.length > 0);
   const mode = plusAccess ? "account" : "local";
   const trialEnded =
     user != null && !plusAccess && isPastTrialWindow(user.createdAt);
@@ -62,6 +62,7 @@ export default async function LekcjePage() {
           loggedIn={user != null}
           trialEnded={trialEnded}
           plusAccess={plusAccess}
+          offlinePlusAccess={offlinePlusAccess}
           plusValidUntil={plusValidUntil}
         />
       </div>

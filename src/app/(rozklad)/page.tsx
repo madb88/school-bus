@@ -39,9 +39,9 @@ export default async function Home() {
   ].filter((item): item is NonNullable<typeof item> => item !== null);
 
   const plus = user ? await fetchPlus(user.sessionToken) : "unavailable";
+  const offlinePlusAccess = user != null && hasPlusAccess(user.role, plus);
   const plusAccess =
-    user != null &&
-    (hasPlusAccess(user.role, plus) || user.plans.length > 0);
+    offlinePlusAccess || (user != null && user.plans.length > 0);
   const accountPlans = plusAccess && user ? user.plans : [];
   const plusValidUntil =
     plus !== "unavailable" &&
@@ -66,7 +66,7 @@ export default async function Home() {
           freshness={freshness}
           mzkAvailable={Boolean(mzkMeta)}
           accountPlans={accountPlans}
-          plusAccess={plusAccess}
+          offlinePlusAccess={offlinePlusAccess}
           plusValidUntil={plusValidUntil}
           correction={offlineCorrection}
         />

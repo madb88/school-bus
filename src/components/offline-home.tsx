@@ -24,7 +24,8 @@ type OfflineHomeProps = {
   freshness: FreshnessInfo[];
   mzkAvailable: boolean;
   accountPlans: AccountPlan[];
-  plusAccess: boolean;
+  /** True Plus (admin/active/trial) — drives offline entitlement sync. */
+  offlinePlusAccess: boolean;
   plusValidUntil?: string | null;
   correction?: SchoolOfflineCorrection | null;
 };
@@ -53,7 +54,7 @@ export function OfflineHome({
   freshness,
   mzkAvailable,
   accountPlans,
-  plusAccess,
+  offlinePlusAccess,
   plusValidUntil = null,
   correction = undefined,
 }: OfflineHomeProps) {
@@ -99,7 +100,7 @@ export function OfflineHome({
   return (
     <>
       <OfflineSync
-        plusAccess={plusAccess}
+        plusAccess={offlinePlusAccess}
         plusValidUntil={plusValidUntil}
         schedule={schedule}
         accountPlans={accountPlans}

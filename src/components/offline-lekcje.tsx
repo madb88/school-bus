@@ -18,7 +18,10 @@ type OfflineLekcjeProps = {
   initialPlans: AccountPlan[];
   loggedIn: boolean;
   trialEnded: boolean;
+  /** Account UI / lesson mode (may include expired Plus with leftover plans). */
   plusAccess: boolean;
+  /** True Plus (admin/active/trial) — drives offline entitlement sync. */
+  offlinePlusAccess: boolean;
   plusValidUntil?: string | null;
 };
 
@@ -31,6 +34,7 @@ export function OfflineLekcje({
   loggedIn,
   trialEnded,
   plusAccess,
+  offlinePlusAccess,
   plusValidUntil = null,
 }: OfflineLekcjeProps) {
   const online = useOnlineStatus();
@@ -53,7 +57,7 @@ export function OfflineLekcje({
   return (
     <>
       <OfflineSync
-        plusAccess={plusAccess}
+        plusAccess={offlinePlusAccess}
         plusValidUntil={plusValidUntil}
         schedule={schedule}
         accountPlans={initialPlans}

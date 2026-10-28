@@ -53,7 +53,10 @@ import { isAllowedCheckoutUrl } from "@/lib/billing/checkout-url";
 import { PLUS_PRICE_LABEL } from "@/lib/billing/constants";
 import { formatRemainingMonthsLabel } from "@/lib/billing/format";
 import type { PlusPanelState } from "@/lib/billing/status";
-import { clearOfflinePlusSession } from "@/lib/offline/clear-session";
+import {
+  clearOfflinePlusSession,
+  clearUserLocalSettings,
+} from "@/lib/offline/clear-session";
 import type { AccountPlan } from "@/lib/child-schedule/account-plan";
 import { cn } from "cn";
 
@@ -220,6 +223,7 @@ export function ProfilePanel({
         return;
       }
       await clearOfflinePlusSession();
+      clearUserLocalSettings();
       toast.success("Wylogowano");
       router.push("/login");
       router.refresh();

@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { LESSON_PLAN_STORAGE_KEY } from "@/lib/child-schedule/types";
+import { SELECTED_PLAN_STORAGE_KEY } from "@/lib/child-schedule/selected-plan";
+import { MZK_ROUTE_STORAGE_KEY } from "@/lib/mzk/route-preference";
 import { OFFLINE_ENTITLEMENT_KEY } from "./constants";
 import { hasOfflineEntitlement, loadOfflineEntitlement } from "./entitlement";
 
@@ -95,5 +98,40 @@ describe("offline session queue", () => {
     );
     expect(store.get(OFFLINE_ENTITLEMENT_KEY)).toBeTruthy();
     expect(saveSchool).toHaveBeenCalled();
+  });
+
+  it("does not renew entitlement when persist runs offline", async () => {
+    store.set(
+      OFFLINE_ENTITLEMENT_KEY,
+      JSON.stringify({
+        validUntil: "2026-11-01",
+        cachedAt: "2026-10-20T10:00:00.000Z",
+      }),
+    );
+
+    const { persistOfflinePlusSession } = await import("./clear-session");
+    await persistOfflinePlusSession({
+      validUntil: null,
+      schedule,
+      online: false,
+    });
+
+    expect(loadOfflineEntitlement()?.validUntil).toBe("2026-11-01");
+    expect(saveSchool).not.toHaveBeenCalled();
+  });
+
+  it("clears user local settings without touching theme", async () => {
+    store.set(LESSON_PLAN_STORAGE_KEY, "{}");
+    store.set(SELECTED_PLAN_STORAGE_KEY, "plan-id");
+    store.set(MZK_ROUTE_STORAGE_KEY, "{}");
+    store.set("school-bus-theme", "dark");
+
+    const { clearUserLocalSettings } = await import("./clear-session");
+    clearUserLocalSettings();
+
+    expect(store.has(LESSON_PLAN_STORAGE_KEY)).toBe(false);
+    expect(store.has(SELECTED_PLAN_STORAGE_KEY)).toBe(false);
+    expect(store.has(MZK_ROUTE_STORAGE_KEY)).toBe(false);
+    expect(store.get("school-bus-theme")).toBe("dark");
   });
 });
