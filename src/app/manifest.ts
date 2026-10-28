@@ -10,7 +10,8 @@ export default function manifest(): MetadataRoute.Manifest {
     name: siteName,
     short_name: siteShortName,
     description: siteTagline,
-    start_url: "/",
+    // Static shell first: redirects to `/` when online; works cold-start offline.
+    start_url: "/offline.html",
     scope: "/",
     display: "standalone",
     lang: "pl",

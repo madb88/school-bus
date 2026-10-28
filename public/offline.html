@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#111821" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Rozkład offline · autobusszkolny</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #111821;
+        --card: #19222d;
+        --fg: #e8eef5;
+        --muted: #9aa8b8;
+        --bus: #3d7eff;
+        --line: rgba(255, 255, 255, 0.08);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        line-height: 1.45;
+      }
+      main {
+        max-width: 40rem;
+        margin: 0 auto;
+        padding: 1.25rem 1rem 2.5rem;
+        padding-top: max(1.25rem, env(safe-area-inset-top));
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin: 0 0 0.5rem;
+        letter-spacing: -0.02em;
+      }
+      .banner {
+        border-left: 3px solid var(--bus);
+        background: rgba(61, 126, 255, 0.08);
+        color: var(--muted);
+        padding: 0.75rem 0.9rem;
+        margin: 1rem 0 1.25rem;
+        font-size: 0.9rem;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      section {
+        margin-top: 1.25rem;
+      }
+      h2 {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        margin: 0 0 0.6rem;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 0.75rem;
+        padding: 0.85rem 1rem;
+        margin-bottom: 0.6rem;
+      }
+      .time {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        font-size: 1.15rem;
+      }
+      .places {
+        color: var(--muted);
+        font-size: 0.85rem;
+        margin-top: 0.2rem;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1.5rem;
+      }
+      a.btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.55rem 0.9rem;
+        border-radius: 0.6rem;
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 600;
+        background: var(--bus);
+        color: #fff;
+      }
+      a.btn.secondary {
+        background: transparent;
+        border: 1px solid var(--line);
+        color: var(--fg);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Rozkład offline</h1>
+      <p id="status" class="muted">Wczytywanie lokalnej kopii…</p>
+      <div id="banner" class="banner" hidden></div>
+      <div id="content"></div>
+      <div class="actions">
+        <a class="btn" href="/">Odśwież aplikację</a>
+        <a class="btn secondary" href="/lekcje">Plan lekcji</a>
+      </div>
+    </main>
+    <script>
+      (function () {
+        var IDB_NAME = "school-bus-offline";
+        var IDB_VERSION = 1;
+        var STORE = "school";
+        var KEY = "snapshot";
+        var ENTITLEMENT_KEY = "school-bus.offline-entitlement.v1";
+
+        var statusEl = document.getElementById("status");
+        var bannerEl = document.getElementById("banner");
+        var contentEl = document.getElementById("content");
+
+        function esc(s) {
+          return String(s)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+        }
+
+        function formatCachedAt(iso) {
+          try {
+            return new Intl.DateTimeFormat("pl-PL", {
+              dateStyle: "medium",
+              timeStyle: "short",
+              timeZone: "Europe/Warsaw",
+            }).format(new Date(iso));
+          } catch (e) {
+            return iso;
+          }
+        }
+
+        function warsawYmd() {
+          try {
+            var parts = new Intl.DateTimeFormat("en-GB", {
+              timeZone: "Europe/Warsaw",
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+            }).formatToParts(new Date());
+            var y = parts.find(function (p) {
+              return p.type === "year";
+            }).value;
+            var m = parts.find(function (p) {
+              return p.type === "month";
+            }).value;
+            var d = parts.find(function (p) {
+              return p.type === "day";
+            }).value;
+            return y + "-" + m + "-" + d;
+          } catch (e) {
+            return new Date().toISOString().slice(0, 10);
+          }
+        }
+
+        function hasEntitlement() {
+          try {
+            var raw = localStorage.getItem(ENTITLEMENT_KEY);
+            if (!raw) return false;
+            var parsed = JSON.parse(raw);
+            return (
+              typeof parsed.validUntil === "string" &&
+              parsed.validUntil >= warsawYmd()
+            );
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function openDb() {
+          return new Promise(function (resolve, reject) {
+            var req = indexedDB.open(IDB_NAME, IDB_VERSION);
+            req.onerror = function () {
+              reject(req.error || new Error("IDB"));
+            };
+            req.onsuccess = function () {
+              resolve(req.result);
+            };
+            req.onupgradeneeded = function () {
+              var db = req.result;
+              if (!db.objectStoreNames.contains(STORE)) {
+                db.createObjectStore(STORE);
+              }
+            };
+          });
+        }
+
+        function loadSnapshot() {
+          return openDb().then(function (db) {
+            return new Promise(function (resolve, reject) {
+              var tx = db.transaction(STORE, "readonly");
+              var store = tx.objectStore(STORE);
+              var req = store.get(KEY);
+              req.onerror = function () {
+                reject(req.error);
+              };
+              req.onsuccess = function () {
+                resolve(req.result || null);
+                db.close();
+              };
+            });
+          });
+        }
+
+        function renderPickupCards(schedule) {
+          var html = "";
+          var blocks = schedule.pickups || [];
+          var count = 0;
+          for (var b = 0; b < blocks.length; b++) {
+            var block = blocks[b];
+            var courses = block.courses || [];
+            for (var c = 0; c < courses.length; c++) {
+              var course = courses[c];
+              var stops = course.stops || [];
+              for (var s = 0; s < stops.length; s++) {
+                var stop = stops[s];
+                count += 1;
+                if (count > 40) break;
+                html +=
+                  '<div class="card"><div class="time">' +
+                  esc(stop.time || "—") +
+                  '</div><div class="places">' +
+                  esc((stop.places || []).join(" · ") || course.label || "") +
+                  (block.name ? " · " + esc(block.name) : "") +
+                  "</div></div>";
+              }
+              if (count > 40) break;
+            }
+            if (count > 40) break;
+          }
+          if (!html) {
+            return '<p class="muted">Brak kursów dowozu w zapisanej kopii.</p>';
+          }
+          return "<section><h2>Dowozy (kopia lokalna)</h2>" + html + "</section>";
+        }
+
+        function showMessage(title, detail) {
+          statusEl.textContent = title;
+          contentEl.innerHTML = detail
+            ? '<p class="muted">' + esc(detail) + "</p>"
+            : "";
+        }
+
+        // If we're online, prefer the full Next app.
+        if (navigator.onLine) {
+          location.replace("/");
+          return;
+        }
+
+        if (!hasEntitlement()) {
+          showMessage(
+            "Brak połączenia z internetem",
+            "Rozkład offline jest dostępny w Planie Plus — po wcześniejszym otwarciu aplikacji online.",
+          );
+          return;
+        }
+
+        loadSnapshot()
+          .then(function (snap) {
+            if (!snap || !snap.schedule) {
+              showMessage(
+                "Brak zapisanej kopii rozkładu",
+                "Otwórz aplikację mając internet (Plan Plus), żeby zapisać rozkład na tym urządzeniu.",
+              );
+              return;
+            }
+            var when = snap.cachedAt ? formatCachedAt(snap.cachedAt) : null;
+            statusEl.textContent = snap.schedule.title || "Rozkład szkolny";
+            bannerEl.hidden = false;
+            bannerEl.textContent = when
+              ? "Brak internetu — rozkład może być nieaktualny (dane z " +
+                when +
+                ")."
+              : "Brak internetu — rozkład może być nieaktualny.";
+            contentEl.innerHTML = renderPickupCards(snap.schedule);
+          })
+          .catch(function () {
+            showMessage(
+              "Nie udało się odczytać lokalnej kopii",
+              "Spróbuj ponownie po połączeniu z internetem.",
+            );
+          });
+      })();
+    </script>
+  </body>
+</html>

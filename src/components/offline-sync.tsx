@@ -17,6 +17,7 @@ import {
   loadMzkRoutePreference,
 } from "@/lib/mzk/route-storage";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
+import { warmOfflineShell } from "@/lib/offline/warm-shell";
 
 type OfflineSyncProps = {
   plusAccess: boolean;
@@ -52,6 +53,8 @@ export function OfflineSync({
     });
 
     if (!online || !schedule) return;
+
+    warmOfflineShell();
 
     void saveSchoolOfflineSnapshot({
       schedule,

@@ -30,8 +30,11 @@ alwaysApply: false
 ## Service worker — Cache API
 
 Dozwolony **wyłącznie** dla:
-- nawigacji dokumentowych (network-first → cache → `/offline`)
+- nawigacji dokumentowych (network-first → cache → **`/offline.html`**)
 - assetów `/_next/static/`, `/icons/`, manifest
+- `WARM_SHELL` z klienta (`warmOfflineShell`) — dogrzewa `/`, chunki i `/offline.html`
+
+**Cold start:** Next App Router HTML bez chunków pada offline → pewny fallback to **statyczny** [`public/offline.html`](public/offline.html) (inline JS + IndexedDB). Manifest `start_url` = `/offline.html` (online robi `location.replace("/")`).
 
 **Nie** cachuj w SW odpowiedzi `/api/*` ani `/sw.js`. Dane rozkładu offline żyją w **IndexedDB** (`school-bus-offline`), nie w Cache API SW.
 
