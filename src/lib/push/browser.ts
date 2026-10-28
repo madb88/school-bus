@@ -1,9 +1,6 @@
 import { isAccountPlanId } from "@/lib/child-schedule/account-plan";
 import { parsePushKinds, type PushKinds } from "./kinds";
-import {
-  parseApplicationServerKey,
-  urlBase64ToUint8Array,
-} from "./vapid-key";
+import { parseApplicationServerKey } from "./vapid-key";
 
 export {
   normalizeVapidPublicKey,

@@ -127,11 +127,20 @@ export function ProfilePanel({
   const [error, setError] = useState<string | null>(null);
   const [buying, setBuying] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [seenHint, setSeenHint] = useState(sectionHint);
+
+  // Soft-nav deep links (`?plus=1` / `?powiadomienia=1`) update props without remount —
+  // adjust section during render instead of setState-in-effect.
+  if (sectionHint !== seenHint) {
+    setSeenHint(sectionHint);
+    if (sectionHint) {
+      setSection(sectionHint);
+      setError(null);
+    }
+  }
 
   useEffect(() => {
     if (!sectionHint) return;
-    setSection(sectionHint);
-    setError(null);
     router.replace("/profil", { scroll: false });
   }, [sectionHint, router]);
 

@@ -145,6 +145,13 @@ export function buildNextMondayPreviewForPlans(
 ): NextSchoolDayPreview | null {
   const [first] = listNextMondayPreviews(schedule, plans, options);
   if (!first) return null;
-  const { planIndex: _planIndex, planLabel, ...rest } = first;
-  return planLabel ? { ...rest, planLabel } : rest;
+  const { ymd, weekdayName, dayLabel, lessonStart, busTime, planLabel } = first;
+  const preview: NextSchoolDayPreview = {
+    ymd,
+    weekdayName,
+    dayLabel,
+    lessonStart,
+    busTime,
+  };
+  return planLabel ? { ...preview, planLabel } : preview;
 }
