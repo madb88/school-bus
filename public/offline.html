@@ -129,7 +129,9 @@
       <div id="content"></div>
       <div class="actions">
         <a class="btn" href="/">Odśwież aplikację</a>
-        <a class="btn secondary" href="/lekcje">Plan lekcji</a>
+        <a id="lessons-btn" class="btn secondary" href="/lekcje" hidden
+          >Plan lekcji</a
+        >
       </div>
     </main>
     <script>
@@ -143,6 +145,7 @@
         var statusEl = document.getElementById("status");
         var bannerEl = document.getElementById("banner");
         var contentEl = document.getElementById("content");
+        var lessonsBtn = document.getElementById("lessons-btn");
 
         function esc(s) {
           return String(s)
@@ -310,6 +313,7 @@
                 : "Brak internetu — rozkład może być nieaktualny.") +
               "</span>";
             contentEl.innerHTML = renderPickupCards(snap.schedule);
+            if (lessonsBtn) lessonsBtn.hidden = false;
           })
           .catch(function () {
             showMessage(
