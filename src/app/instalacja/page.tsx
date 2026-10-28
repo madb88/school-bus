@@ -60,8 +60,9 @@ export default async function InstalacjaPage() {
               )}
               <p>Raz ustawiasz plan. Aplikacja pamięta za Ciebie.</p>
               <p>
-                Aplikacja wymaga połączenia z internetem — nie działa w trybie
-                offline.
+                Z Planem Plus rozkład szkolny, zapisana trasa MZK i plan lekcji
+                działają też offline — z informacją, że dane mogą być
+                nieaktualne. Bez Plus aplikacja potrzebuje internetu.
               </p>
             </div>
           </div>

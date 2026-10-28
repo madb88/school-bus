@@ -1,7 +1,5 @@
+import { OfflineHome } from "@/components/offline-home";
 import { PageShell } from "@/components/page-shell";
-import { ScheduleBoard } from "@/components/schedule-board";
-import { ScheduleStatusBanner } from "@/components/schedule-status-banner";
-import { ScheduleUnavailable } from "@/components/schedule-unavailable";
 import { SiteHeader } from "@/components/site-header";
 import { fetchPlus } from "@/lib/auth/backend";
 import { getCurrentUser } from "@/lib/auth/current-user";
@@ -44,26 +42,23 @@ export default async function Home() {
     user != null &&
     (hasPlusAccess(user.role, plus) || user.plans.length > 0);
   const accountPlans = plusAccess && user ? user.plans : [];
+  const plusValidUntil =
+    plus !== "unavailable" &&
+    (plus.state === "active" || plus.state === "trial")
+      ? (plus.validUntil ?? null)
+      : null;
 
   return (
     <PageShell wide roomy header={<SiteHeader current="rozklad" />}>
       <div className="page-enter">
-        {schedule ? (
-          <>
-            <h1 className="sr-only">Rozkład dowozów</h1>
-            <ScheduleStatusBanner
-              items={freshness}
-              className="mb-4 print:hidden md:mb-6"
-            />
-            <ScheduleBoard
-              schedule={schedule}
-              mzkAvailable={Boolean(mzkMeta)}
-              accountPlans={accountPlans}
-            />
-          </>
-        ) : (
-          <ScheduleUnavailable />
-        )}
+        <OfflineHome
+          schedule={schedule}
+          freshness={freshness}
+          mzkAvailable={Boolean(mzkMeta)}
+          accountPlans={accountPlans}
+          plusAccess={plusAccess}
+          plusValidUntil={plusValidUntil}
+        />
       </div>
     </PageShell>
   );

@@ -8,7 +8,9 @@ globs:
   - src/lib/auth/**/*
   - src/lib/billing/**/*
   - src/lib/onboarding-hints.ts
+  - src/lib/offline/**/*
   - src/components/theme-init.ts
+  - src/components/offline-*.tsx
   - src/app/api/settings-transfer/**/*
   - src/app/api/push/**/*
 alwaysApply: false
@@ -35,8 +37,20 @@ Nie loguj treści planów, tokenów transferu, kluczy push ani sekretów.
 | `school-bus.push-kinds.v1` | rodzaje powiadomień |
 | `school-bus.hint-*.dismissed.v1` | onboarding hints |
 | `school-bus-theme` | light/dark |
+| `school-bus.offline-entitlement.v1` | Plan Plus: `validUntil` + `cachedAt` dla bramki offline |
 
 Wzorce CRUD: `load*` / `save*` / `parse*` + custom `Event` + `storage` listener (patrz `storage.ts`, `route-storage.ts`). Nowe ustawienia lokalne: ten sam wzorzec i wersjonowany klucz `.v1`.
+
+## IndexedDB (Plan Plus offline)
+
+Baza `school-bus-offline` (`src/lib/offline/*`):
+
+| Store | Zawartość |
+| --- | --- |
+| `school` | ostatni snapshot rozkładu szkolnego + `accountPlans` + `mzkAvailable` |
+| `mzkOd` | odpowiedzi OD dla zapisanej trasy (`board|alight|date`) |
+
+Zapis **tylko** przy aktywnym Plus (entitlement). Nie trzymaj pełnego GTFS MZK — tylko slim OD. Shell HTML/assetów: Cache API w `public/sw.js` (nie IDB).
 
 ## Redis (Upstash) — kiedy
 
@@ -63,4 +77,4 @@ Payload: `lessonPlan` + `mzkRoute` + `matchWindowMin` (`SettingsTransferPayload`
 
 - sekrety, tokeny API, VAPID private, e-maile admina
 - dane wrażliwe „na zapas”
-- pełne snapshoty rozkładów (są w `data/` / serwerze)
+- pełne snapshoty rozkładów — użyj IndexedDB offline (`src/lib/offline/school-cache.ts`), nie `localStorage`

@@ -1,4 +1,4 @@
-import { LessonPlanForm } from "@/components/lesson-plan-form";
+import { OfflineLekcje } from "@/components/offline-lekcje";
 import { PageEyebrow } from "@/components/page-eyebrow";
 import { PageShell } from "@/components/page-shell";
 import { SiteHeader } from "@/components/site-header";
@@ -7,7 +7,6 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { hasPlusAccess, isPastTrialWindow } from "@/lib/billing/access";
 import { collectPlaces } from "@/lib/dowozy/filter-schedule";
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
-import { DOWOZY_SOURCE_URL } from "@/lib/dowozy/types";
 import { loadMzkScheduleSnapshot } from "@/lib/mzk/load-schedule";
 import { buildPageMetadata } from "@/lib/site-metadata";
 
@@ -34,6 +33,11 @@ export default async function LekcjePage() {
   const mode = plusAccess ? "account" : "local";
   const trialEnded =
     user != null && !plusAccess && isPastTrialWindow(user.createdAt);
+  const plusValidUntil =
+    plus !== "unavailable" &&
+    (plus.state === "active" || plus.state === "trial")
+      ? (plus.validUntil ?? null)
+      : null;
 
   return (
     <PageShell header={<SiteHeader current="lekcje" />}>
@@ -49,31 +53,17 @@ export default async function LekcjePage() {
           </p>
         </header>
 
-        {schedule && places.length > 0 ? (
-          <LessonPlanForm
-            places={places}
-            schedule={schedule}
-            mzkSchedule={mzkSchedule}
-            mode={mode}
-            initialPlans={plusAccess ? user!.plans : []}
-            loggedIn={user != null}
-            trialEnded={trialEnded}
-          />
-        ) : (
-          <p className="text-muted-foreground">
-            Lista miejsc jest chwilowo niedostępna — rozkład szkolny nie
-            załadował się. Spróbuj ponownie później albo zajrzyj na stronę{" "}
-            <a
-              href={DOWOZY_SOURCE_URL}
-              className="underline underline-offset-2 hover:text-foreground"
-              target="_blank"
-              rel="noreferrer"
-            >
-              szkoły
-            </a>
-            .
-          </p>
-        )}
+        <OfflineLekcje
+          schedule={schedule}
+          mzkSchedule={mzkSchedule}
+          places={places}
+          mode={mode}
+          initialPlans={plusAccess && user ? user.plans : []}
+          loggedIn={user != null}
+          trialEnded={trialEnded}
+          plusAccess={plusAccess}
+          plusValidUntil={plusValidUntil}
+        />
       </div>
     </PageShell>
   );

@@ -1,7 +1,7 @@
+import { MzkOfflineNotice } from "@/components/mzk-offline-notice";
 import { MzkRouteForm } from "@/components/mzk-route-form";
 import { PageEyebrow } from "@/components/page-eyebrow";
 import { PageShell } from "@/components/page-shell";
-import { ScheduleStatusBanner } from "@/components/schedule-status-banner";
 import { SiteHeader } from "@/components/site-header";
 import { loadMzkScheduleSnapshot } from "@/lib/mzk/load-schedule";
 import { MZK_DEVELOPER_PAGE_URL } from "@/lib/mzk/types";
@@ -46,7 +46,7 @@ export default async function MzkPage() {
         </header>
 
         <div className="space-y-6">
-          <ScheduleStatusBanner items={freshness} />
+          <MzkOfflineNotice items={freshness} />
           {mzkSchedule && mzkSchedule.stops.length > 0 ? (
             <MzkRouteForm schedule={mzkSchedule} />
           ) : (

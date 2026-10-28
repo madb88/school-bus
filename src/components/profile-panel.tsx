@@ -605,13 +605,10 @@ function ActivePlanHero({
 const PLUS_FEATURE_LABELS = [
   "Powiadomienia o zmianach w kursach",
   "Do 5 planów lekcji na koncie, na każdym urządzeniu",
+  "Rozkład offline (PWA) — kopia na urządzeniu bez internetu",
 ] as const;
 
 const PLUS_COMING_SOON = [
-  {
-    icon: WifiOff,
-    title: "PWA offline",
-  },
   {
     icon: Heart,
     title: "Ulubione przejazdy",
@@ -750,6 +747,13 @@ const PLUS_BENEFITS = [
       "Zapisz do pięciu planów na koncie i korzystaj z nich na każdym urządzeniu.",
     iconClassName:
       "bg-emerald-500/12 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400",
+  },
+  {
+    icon: WifiOff,
+    title: "Rozkład offline",
+    description:
+      "Otwórz aplikację bez internetu — lokalna kopia rozkładu szkolnego, trasy MZK i planu lekcji.",
+    iconClassName: "bg-sky-500/12 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400",
   },
   {
     icon: Star,
