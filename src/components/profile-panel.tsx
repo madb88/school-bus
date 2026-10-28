@@ -951,7 +951,7 @@ function PriceCard({
                 {PLUS_PRICE_LABEL}
               </p>
               <p className="pb-1.5 text-sm font-medium text-muted-foreground sm:text-base">
-                za 12 miesięcy
+                do 31 sierpnia
               </p>
             </div>
             <p className="mt-1.5 text-sm text-muted-foreground">
