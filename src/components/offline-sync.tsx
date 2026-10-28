@@ -3,14 +3,9 @@
 import { useEffect } from "react";
 import type { AccountPlan } from "@/lib/child-schedule/account-plan";
 import type { Schedule } from "@/lib/dowozy/types";
-import {
-  clearOfflineEntitlement,
-  syncOfflineEntitlement,
-} from "@/lib/offline/entitlement";
-import {
-  clearSchoolOfflineSnapshot,
-  saveSchoolOfflineSnapshot,
-} from "@/lib/offline/school-cache";
+import { clearOfflinePlusSession } from "@/lib/offline/clear-session";
+import { syncOfflineEntitlement } from "@/lib/offline/entitlement";
+import { saveSchoolOfflineSnapshot } from "@/lib/offline/school-cache";
 import { prefetchMzkOdForRoute } from "@/lib/offline/prefetch-mzk-od";
 import {
   hasConfiguredMzkRoute,
@@ -42,8 +37,7 @@ export function OfflineSync({
 
   useEffect(() => {
     if (!plusAccess) {
-      clearOfflineEntitlement();
-      void clearSchoolOfflineSnapshot();
+      void clearOfflinePlusSession();
       return;
     }
 

@@ -60,12 +60,18 @@ async function matchNavigation(cache, request) {
   const exact = await cache.match(request, { ignoreSearch: true });
   if (exact) return exact;
 
+  let pathname = "/";
   try {
-    const url = new URL(request.url);
-    const byPath = await matchCachedPath(cache, url.pathname);
+    pathname = new URL(request.url).pathname;
+    const byPath = await matchCachedPath(cache, pathname);
     if (byPath) return byPath;
   } catch {
     // ignore
+  }
+
+  // Never replace the static offline shell with a cached logged-in `/`.
+  if (pathname === OFFLINE_FALLBACK || pathname === "/offline") {
+    return matchCachedPath(cache, OFFLINE_FALLBACK);
   }
 
   // Prefer last cached home document, then static offline shell.

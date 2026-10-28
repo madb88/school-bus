@@ -24,6 +24,7 @@ import {
 import { OFFLINE_NAV_HINT } from "@/components/site-nav";
 import { useTheme, type ThemePreference } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
+import { clearOfflinePlusSession } from "@/lib/offline/clear-session";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
 import {
   DropdownMenu,
@@ -130,6 +131,7 @@ export function AccountButton({ email }: { email: string | null }) {
         toast.error("Nie udało się wylogować. Spróbuj ponownie.");
         return;
       }
+      await clearOfflinePlusSession();
       toast.success("Wylogowano");
       setSheetOpen(false);
       router.push("/login");
