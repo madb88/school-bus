@@ -30,7 +30,6 @@ Przed użyciem API, którego zachowanie może różnić się między wersjami, s
 
 - `searchParams` / `params` to **Promise** — `await` w page (jak w `src/app/page.tsx`)
 - Metadata: `buildPageMetadata` / `src/lib/site-metadata.ts`; viewport w `layout.tsx`
-- Snapshoty JSON muszą być w `outputFileTracingIncludes` (`next.config.ts`) — nie usuwaj bez powodu
 - Header dla `/sw.js` (no-cache + `Service-Worker-Allowed`) jest wymagany przez PWA
 
 ## Dopasowanie do istniejącego kodu

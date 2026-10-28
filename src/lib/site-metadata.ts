@@ -9,12 +9,6 @@ export function getSiteUrl(): string {
     return configured.replace(/\/$/, "");
   }
 
-  const vercel = process.env.VERCEL_URL?.trim();
-  if (vercel) {
-    const host = vercel.replace(/^https?:\/\//, "");
-    return `https://${host}`;
-  }
-
   return FALLBACK_SITE_URL;
 }
 

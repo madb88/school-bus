@@ -46,7 +46,7 @@ Nawigacja: `NAV_ITEMS` w `src/components/site-nav.tsx`. Layout stron: `PageShell
 - Resend + Turnstile — feedback (server action)
 - Upstash Redis — rate limit, transfer QR (TTL 15 min, AES-GCM)
 - Backend (`BACKEND_API_URL` + `BACKEND_SERVICE_KEY`) — users, magic-link, sesje, Plan Plus / Stripe, Web Push (Mongo + VAPID + cron); Next BFF: `/api/auth/*`, `/api/billing/checkout`, `/api/push/*`; schedule: `DOWOZY_API_BASE_URL`
-- Vercel Analytics / Speed Insights
+- PostHog — analityka produktowa (pageviewy i zdarzenia; bez ciasteczek)
 
 ## Ograniczenia
 

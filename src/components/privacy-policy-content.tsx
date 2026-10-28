@@ -1,8 +1,8 @@
 /**
  * Polityka prywatności — treść oparta na rzeczywistym kodzie aplikacji.
  *
- * TODO(przed publikacją): uzupełnij dane administratora poniżej
- * (obecnie placeholdery: Jakub Kamiński / kontakt@autobusszkolny.pl).
+ * TODO: dopisz adres i NIP usługodawcy, zgodne z kontem Stripe
+ * (imię, nazwisko i e-mail są już w treści).
  */
 
 const ADMIN_NAME = "Jakub Kamiński";
@@ -21,7 +21,6 @@ const SECTIONS: Section[] = [
     id: "administrator",
     title: "1. Administrator danych",
     paragraphs: [
-      // TODO(przed publikacją): potwierdź imię, nazwisko i e-mail administratora
       `Administratorem danych osobowych przetwarzanych w związku z korzystaniem z aplikacji autobusszkolny.pl (Dojazdy do szkoły) jest ${ADMIN_NAME}.`,
       `Kontakt w sprawach prywatności: ${ADMIN_EMAIL}.`,
     ],
@@ -81,8 +80,9 @@ const SECTIONS: Section[] = [
       "Możesz zalogować się adresem e-mail bez hasła (tzw. magic link: jednorazowy link i 6-cyfrowy kod w wiadomości). E-mail jest identyfikatorem konta.",
       "Przy pierwszym udanym logowaniu tworzymy w magazynie serwera (MongoDB w backendzie aplikacji) rekord konta powiązany z znormalizowanym adresem e-mail oraz sesję. Jedno konto może mieć wiele sesji na różnych urządzeniach; wylogowanie kończy tylko bieżącą sesję.",
       "Plan Plus to opcjonalna, płatna funkcja (jednorazowa opłata za rok szkolny). Po opłaceniu zapisujemy w backendzie (MongoDB) uprawnienie (entitlement) z datą ważności — aby wiedzieć, czy Plan Plus jest aktywny, oraz aby umożliwić funkcje zastrzeżone dla Plus (w tym powiadomienia).",
-      "Checkout prowadzi Stripe. Z naszej aplikacji do Stripe trafiają dane potrzebne do płatności (m.in. e-mail konta oraz wewnętrzny identyfikator użytkownika w metadanych zamówienia). Stripe przetwarza dane karty / metody płatności zgodnie ze swoją polityką — nie przechowujemy numeru karty w naszej aplikacji.",
-      "Po udanej płatności możemy wysłać na e-mail konta potwierdzenie zakupu (Resend, z backendu). Przy aktywnym Planie Plus możesz też zgłosić reklamację dotyczącą tej usługi z poziomu profilu.",
+      "Checkout prowadzi Stripe. Z naszej aplikacji do Stripe trafiają dane potrzebne do płatności (m.in. e-mail konta oraz wewnętrzny identyfikator użytkownika w metadanych zamówienia). Stripe przetwarza dane karty lub innej metody płatności oraz kwotę zgodnie ze swoją polityką. Numeru karty i kwoty nie zapisujemy w naszej aplikacji.",
+      "W backendzie (MongoDB) zapisujemy rekord zamówienia: identyfikator płatności Stripe, status (opłacone albo zwrot), powiązanie z kontem, datę ważności Planu Plus, identyfikator klienta Stripe (jeśli Stripe go nada) oraz informację, czy wysłano potwierdzenie zakupu.",
+      "Po udanej płatności wysyłamy na e-mail konta potwierdzenie zakupu (Resend, z backendu). Pełny zwrot płatności cofa Plan Plus i usuwa rekordy powiadomień tego konta. Zwrot częściowy nie kończy dostępu. Przy aktywnym Planie Plus możesz też zgłosić reklamację dotyczącą tej usługi z poziomu profilu.",
     ],
   },
   {
@@ -130,12 +130,9 @@ const SECTIONS: Section[] = [
   },
   {
     id: "analytics",
-    title: "9. Statystyki odwiedzin i wydajności",
+    title: "9. Statystyki odwiedzin",
     paragraphs: [
-      "Korzystamy z Vercel Web Analytics oraz Vercel Speed Insights, wbudowanych w aplikację, aby rozumieć, jak działa serwis i jak go ulepszać (np. popularność stron, podstawowe metryki wydajności).",
-      "Według aktualnej dokumentacji Vercel Web Analytics: dane są zbierane w sposób zagregowany, bez third-party cookies; odwiedzający są rozróżniani hashem żądania, a nie trwałym identyfikatorem osobowym. Do punktu danych mogą należeć m.in. znacznik czasu, adres URL / ścieżka, referrer, przybliżona lokalizacja (np. kraj / region / miasto), system i przeglądarka oraz typ urządzenia. Sesja odwiedzającego nie jest przechowywana trwale — według dokumentacji jest odrzucana po 24 godzinach.",
-      "Według dokumentacji Vercel Speed Insights: zbierane są anonimowe pomiary wydajności (m.in. trasa i URL, typ urządzenia, przeglądarka, kraj, wybrane Web Vitals), bez wiązania ich z konkretną osobą.",
-      "Dodatkowo korzystamy z PostHog (hosting w UE), aby zbierać pageviewy oraz zdarzenia produktowe (np. zmiana trybu rozkładu, zapis planu lekcji, kliknięcie „Drukuj”, otwarcie formularza opinii). Konfiguracja w aplikacji używa wyłącznie pamięci sesji przeglądarki (persistence „memory”) — nie ustawiamy ciasteczek PostHoga ani nie zapisujemy trwałego identyfikatora w localStorage. Po odświeżeniu strony lub nowej wizycie użytkownik może otrzymać nowy identyfikator sesji analitycznej.",
+      "Korzystamy z PostHog (hosting w UE), aby zbierać pageviewy oraz zdarzenia produktowe (np. zmiana trybu rozkładu, zapis planu lekcji, kliknięcie „Drukuj”, otwarcie formularza opinii). Konfiguracja w aplikacji używa wyłącznie pamięci sesji przeglądarki (persistence „memory”) — nie ustawiamy ciasteczek PostHoga ani nie zapisujemy trwałego identyfikatora w localStorage. Po odświeżeniu strony lub nowej wizycie użytkownik może otrzymać nowy identyfikator sesji analitycznej.",
       "Z PostHogiem mogą być powiązane m.in.: ścieżka URL, referrer, typ urządzenia / przeglądarka, przybliżona lokalizacja wynikająca z adresu IP po stronie dostawcy oraz nazwy zdarzeń i ich właściwości (bez treści planu lekcji, wiadomości z formularza opinii ani adresu e-mail).",
       "Nie włączamy w aplikacji nagrywania sesji (session replay) ani map ciepła opartych o nagrania. Nie stosujemy banera zgody wyłącznie pod te narzędzia analityczne w obecnym trybie (bez ciasteczek PostHoga). Ocena, czy w Twojej sytuacji wymagana jest dodatkowa zgoda, należy do administratora (ew. konsultacja prawna) — niniejszy dokument nie stanowi porady prawnej.",
     ],
@@ -147,7 +144,7 @@ const SECTIONS: Section[] = [
       "Dane mogą trafić wyłącznie do podmiotów, których usługi rzeczywiście wykorzystujemy:",
     ],
     bullets: [
-      "Vercel — hosting aplikacji oraz Analytics i Speed Insights,",
+      "Railway — hosting aplikacji,",
       "PostHog — analityka produktowa (pageviewy i zdarzenia; hosting w UE),",
       "hosting backendu / MongoDB — konto, sesja, Plan Plus (entitlement, zamówienia Stripe, potwierdzenia zakupu) oraz rekordy Web Push (subskrypcje i wysyłka przypomnień),",
       "Upstash — Redis (transfer ustawień, limity zapytań formularza / transferu),",
@@ -170,11 +167,11 @@ const SECTIONS: Section[] = [
     bullets: [
       "świadczenie usługi drogą elektroniczną (rozkłady, plan lekcji, transfer ustawień) — art. 6 ust. 1 lit. b RODO (wykonanie umowy / żądanie użytkownika przed zawarciem umowy) albo lit. f (prawnie uzasadniony interes: działanie aplikacji),",
       "konto i sesja logowania (e-mail, ciasteczko sesji) — art. 6 ust. 1 lit. b RODO,",
-      "zakup i utrzymanie Planu Plus (entitlement, potwierdzenie płatności) — art. 6 ust. 1 lit. b RODO,",
+      "zakup i utrzymanie Planu Plus (uprawnienie, potwierdzenie płatności, rekord zamówienia) — art. 6 ust. 1 lit. b RODO, a w zakresie obowiązków podatkowych i rachunkowych — lit. c,",
       "opcjonalne powiadomienia Push — art. 6 ust. 1 lit. a RODO (zgoda; możesz ją wycofać, wyłączając powiadomienia) oraz w powiązaniu z umową Planu Plus lit. b,",
       "formularz opinii i reklamacje — art. 6 ust. 1 lit. a lub f albo b RODO (zgoda / prawnie uzasadniony interes / wykonanie umowy),",
       "bezpieczeństwo i ograniczenie nadużyć (limity IP, Turnstile) — art. 6 ust. 1 lit. f RODO,",
-      "statystyki i wydajność (Vercel Analytics / Speed Insights oraz PostHog) — art. 6 ust. 1 lit. f RODO (prawnie uzasadniony interes: utrzymanie i rozwój serwisu), z zastrzeżeniem oceny administratora co do ewentualnej zgody.",
+      "statystyki (PostHog) — art. 6 ust. 1 lit. f RODO (prawnie uzasadniony interes: utrzymanie i rozwój serwisu), z zastrzeżeniem oceny administratora co do ewentualnej zgody.",
     ],
   },
   {
@@ -184,12 +181,12 @@ const SECTIONS: Section[] = [
       "Dane lokalne w przeglądarce: do czasu ich usunięcia przez Ciebie lub wyczyszczenia danych witryny.",
       "Konto (e-mail, identyfikator): do czasu usunięcia konta na żądanie albo do czasu, gdy przestaniemy świadczyć usługę konta — obecnie w aplikacji nie ma samoobsługowego usuwania konta; możesz napisać do administratora.",
       "Sesja logowania (MongoDB w backendzie + ciasteczko): około 30 dni od ostatniego odświeżenia sesji albo do wylogowania.",
-      "Uprawnienie Plan Plus (entitlement): do końca okresu ważności oraz w zakresie potrzebnym do rozliczeń / reklamacji; przy zwrocie płatności status jest aktualizowany.",
+      "Uprawnienie Plan Plus: do końca okresu ważności oraz w zakresie potrzebnym do rozliczeń i reklamacji. Przy pełnym zwrocie płatności status uprawnienia jest ustawiany na cofnięty.",
+      "Rekord zamówienia Stripe: bez automatycznego terminu usunięcia. Przechowujemy go przez czas rozliczenia płatności, reklamacji oraz obowiązków wynikających z przepisów podatkowych i o rachunkowości (co do zasady 5 lat) — także po zakończeniu Planu Plus.",
       "Transfer ustawień (zaszyfrowany kod): do 15 minut albo do jednorazowego wykorzystania — w zależności od tego, co nastąpi wcześniej.",
       "Liczniki limitów zapytań (IP): krótkotrwale, zgodnie z oknem limitu (rzędu kilkudziesięciu minut).",
       "Rekordy Web Push: do wyłączenia powiadomień, wygaśnięcia / cofnięcia Planu Plus lub unieważnienia subskrypcji przez dostawcę Push — bez automatycznego TTL w aplikacji.",
       "Wiadomości z formularza opinii i reklamacji: do rozpatrzenia i usunięcia przez administratora (brak sztywnego terminu w kodzie).",
-      "Dane Analytics / Speed Insights: zgodnie z polityką i konfiguracją Vercel.",
       "Dane PostHog: zgodnie z polityką i konfiguracją PostHog (projekt w UE); retencja w panelu PostHog zależy od ustawień projektu.",
     ],
   },
@@ -253,7 +250,7 @@ export function PrivacyPolicyContent() {
       ))}
 
       <p className="border-t border-border/50 pt-8 text-xs text-muted-foreground sm:pt-10">
-        Ostatnia aktualizacja: 14 października 2026
+        Ostatnia aktualizacja: 28 października 2026
       </p>
     </article>
   );

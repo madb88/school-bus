@@ -804,17 +804,13 @@ function TrialPlusView({
   validUntilLabel,
   remainingLabel,
   buying,
-  accepted,
   error,
-  onAcceptedChange,
   onBuy,
 }: {
   validUntilLabel: string;
   remainingLabel: string | null;
   buying: boolean;
-  accepted: boolean;
   error: string | null;
-  onAcceptedChange: (value: boolean) => void;
   onBuy: () => void;
 }) {
   return (
@@ -851,13 +847,7 @@ function TrialPlusView({
         zostają.
       </p>
 
-      <PriceCard
-        buying={buying}
-        accepted={accepted}
-        error={error}
-        onAcceptedChange={onAcceptedChange}
-        onBuy={onBuy}
-      />
+      <PriceCard buying={buying} error={error} onBuy={onBuy} />
 
       <PlusComingSoonCard />
       <HelpContactCard />
@@ -896,15 +886,11 @@ function PlusBenefitsGrid() {
 
 function PriceCard({
   buying,
-  accepted,
   error,
-  onAcceptedChange,
   onBuy,
 }: {
   buying: boolean;
-  accepted: boolean;
   error: string | null;
-  onAcceptedChange: (value: boolean) => void;
   onBuy: () => void;
 }) {
   return (
@@ -960,7 +946,7 @@ function PriceCard({
               </p>
             </div>
             <p className="mt-1.5 text-sm text-muted-foreground">
-              Płatność jednorazowa
+              Kwota ostateczna · płatność jednorazowa
             </p>
 
             <p className="mt-5 flex items-start gap-2 text-sm leading-relaxed text-muted-foreground">
@@ -969,21 +955,6 @@ function PriceCard({
                 Płatność obsługuje Stripe. Po opłaceniu wrócisz na tę stronę.
               </span>
             </p>
-
-            <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-border/50 bg-card/90 p-4">
-              <input
-                type="checkbox"
-                className="mt-1 size-4 shrink-0 accent-bus"
-                checked={accepted}
-                disabled={buying}
-                onChange={(event) => onAcceptedChange(event.target.checked)}
-              />
-              <span className="text-xs leading-relaxed text-foreground sm:text-sm">
-                Chcę, aby świadczenie usługi rozpoczęło się od razu po dokonaniu
-                płatności. Przyjmuję do wiadomości, że po rozpoczęciu
-                świadczenia utracę prawo odstąpienia od umowy.
-              </span>
-            </label>
 
             {error ? (
               <p className="mt-3 text-sm text-destructive" role="alert">
@@ -994,7 +965,7 @@ function PriceCard({
             <Button
               type="button"
               size="lg"
-              disabled={!accepted || buying}
+              disabled={buying}
               onClick={onBuy}
               className={cn(BLUE_CTA, "mt-5 w-full")}
             >
@@ -1093,8 +1064,6 @@ function PlusSection({
   onBuy: () => void;
   onRefresh: () => void;
 }) {
-  const [accepted, setAccepted] = useState(false);
-
   if (plus.state === "active") {
     return (
       <ActivePlusView
@@ -1111,9 +1080,7 @@ function PlusSection({
         validUntilLabel={plus.validUntilLabel}
         remainingLabel={plus.remainingLabel}
         buying={buying}
-        accepted={accepted}
         error={error}
-        onAcceptedChange={setAccepted}
         onBuy={onBuy}
       />
     );
@@ -1130,13 +1097,7 @@ function PlusSection({
             onCta={() => scrollToId("plan-plus-cena")}
           />
           <PlusBenefitsGrid />
-          <PriceCard
-            buying={buying}
-            accepted={accepted}
-            error={error}
-            onAcceptedChange={setAccepted}
-            onBuy={onBuy}
-          />
+          <PriceCard buying={buying} error={error} onBuy={onBuy} />
           <PlusComingSoonCard />
         </>
       ) : (

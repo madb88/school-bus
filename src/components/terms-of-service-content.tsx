@@ -90,10 +90,11 @@ const SECTIONS: Section[] = [
     paragraphs: [
       "Plan Plus jest opcjonalną, płatną funkcją Serwisu. Zakup wymaga uprzedniego zalogowania.",
       "Po utworzeniu konta Użytkownik może otrzymać bezpłatny okres próbny Planu Plus (domyślnie 2 tygodnie od utworzenia konta, zgodnie z konfiguracją Serwisu). Okres próbny zaczyna się automatycznie, nie wymaga podania danych płatniczych i kończy się samodzielnie. W trakcie okresu próbnego Użytkownik ma dostęp do funkcji Planu Plus opisanych w Serwisie.",
-      "Cena prezentowana w Serwisie (obecnie 30 zł) dotyczy jednorazowej opłaty za dostęp do Planu Plus na rok szkolny. Plan nie odnawia się automatycznie. Po wygaśnięciu Użytkownik może kupić kolejny plan na stronie profilu.",
+      "Cena prezentowana w Serwisie (obecnie 30 zł) jest kwotą ostateczną jednorazowej płatności za dostęp do Planu Plus na rok szkolny. Użytkownik płaci dokładnie tę kwotę — Serwis ani Stripe nie doliczają do niej podatku ani innych opłat. Plan nie odnawia się automatycznie. Po wygaśnięciu Użytkownik może kupić kolejny plan na stronie profilu.",
       "Rok szkolny Planu Plus kończy się 31 sierpnia (kalendarz Europe/Warsaw), zgodnie z regułami opisanymi w Serwisie przy zakupie. Data ważności jest widoczna w profilu po aktywacji.",
       "Płatność obsługuje Stripe Checkout. Po opłaceniu Użytkownik wraca do Serwisu; aktywacja Planu Plus następuje po potwierdzeniu płatności (webhook). Do czasu potwierdzenia Serwis może pokazywać stan „płatność w toku”.",
-      "Przed rozpoczęciem płatności Użytkownik potwierdza w Serwisie, że chce, aby świadczenie usługi rozpoczęło się od razu po dokonaniu płatności, oraz że przyjmuje do wiadomości utratę prawa odstąpienia od umowy po rozpoczęciu świadczenia — w zakresie przewidzianym przepisami o konsumentach.",
+      "Po zaksięgowaniu płatności Usługodawca wysyła na e-mail konta potwierdzenie zakupu (nazwa planu, kwota ostateczna, data rozpoczęcia świadczenia i data zakończenia dostępu).",
+      "Pełny zwrot płatności kończy Plan Plus i wyłącza powiadomienia powiązane z kontem. Zwrot częściowy nie kończy dostępu.",
       "Przy aktywnym Planie Plus (w tym w okresie próbnym) Użytkownik może zapisać na koncie do pięciu planów lekcji, synchronizowanych między urządzeniami. Po zakończeniu dostępu do Planu Plus plany zapisane na koncie są przechowywane, lecz niedostępne w Serwisie, dopóki Użytkownik ponownie nie uzyska Planu Plus. Usunięcie konta albo wyczyszczenie planów w Serwisie usuwa je trwale.",
       "Usługodawca nie gwarantuje nieprzerwanej dostępności funkcji Plus (w tym powiadomień) w razie awarii infrastruktury lub ograniczeń po stronie przeglądarki / dostawcy Push.",
       "W razie problemu z działaniem Planu Plus Użytkownik może zgłosić reklamację z poziomu profilu (przy aktywnym Planie Plus) albo na adres e-mail Usługodawcy.",
@@ -305,7 +306,7 @@ export function TermsOfServiceContent() {
       ))}
 
       <p className="border-t border-border/50 pt-8 text-xs text-muted-foreground sm:pt-10">
-        Ostatnia aktualizacja: 30 września 2026
+        Ostatnia aktualizacja: 28 października 2026
       </p>
     </article>
   );
