@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   BookOpen,
@@ -12,6 +14,7 @@ import {
 import { cn } from "cn";
 import { NewsUnreadBadge } from "@/components/news-unread-badge";
 import { NowosciNavLink } from "@/components/nowosci-nav-link";
+import { useOnlineStatus } from "@/lib/offline/use-online-status";
 
 export type NavId =
   | "rozklad"
@@ -27,27 +30,71 @@ export const NAV_ITEMS: ReadonlyArray<{
   href: string;
   label: string;
   icon: LucideIcon;
+  /** Safe to open from a cold offline PWA shell. */
+  offlineAvailable: boolean;
 }> = [
-  { id: "rozklad", href: "/", label: "Rozkład", icon: Bus },
-  { id: "lekcje", href: "/lekcje", label: "Plan lekcji", icon: CalendarDays },
-  { id: "mzk", href: "/mzk", label: "MZK", icon: Map },
-  { id: "nowosci", href: "/nowosci", label: "Nowości", icon: Newspaper },
-  { id: "instalacja", href: "/instalacja", label: "Aplikacja", icon: Smartphone },
-  { id: "o-aplikacji", href: "/o-aplikacji", label: "Jak zacząć", icon: Info },
-  { id: "o-projekcie", href: "/o-projekcie", label: "O projekcie", icon: BookOpen },
+  {
+    id: "rozklad",
+    href: "/",
+    label: "Rozkład",
+    icon: Bus,
+    offlineAvailable: true,
+  },
+  {
+    id: "lekcje",
+    href: "/lekcje",
+    label: "Plan lekcji",
+    icon: CalendarDays,
+    offlineAvailable: true,
+  },
+  { id: "mzk", href: "/mzk", label: "MZK", icon: Map, offlineAvailable: false },
+  {
+    id: "nowosci",
+    href: "/nowosci",
+    label: "Nowości",
+    icon: Newspaper,
+    offlineAvailable: false,
+  },
+  {
+    id: "instalacja",
+    href: "/instalacja",
+    label: "Aplikacja",
+    icon: Smartphone,
+    offlineAvailable: false,
+  },
+  {
+    id: "o-aplikacji",
+    href: "/o-aplikacji",
+    label: "Jak zacząć",
+    icon: Info,
+    offlineAvailable: false,
+  },
+  {
+    id: "o-projekcie",
+    href: "/o-projekcie",
+    label: "O projekcie",
+    icon: BookOpen,
+    offlineAvailable: false,
+  },
 ];
+
+export const OFFLINE_NAV_HINT = "Wymaga połączenia z internetem" as const;
 
 type SiteNavProps = {
   current?: NavId;
 };
 
 export function SiteNav({ current }: SiteNavProps) {
-  const linkClass = (active: boolean) =>
+  const online = useOnlineStatus();
+
+  const linkClass = (active: boolean, disabled: boolean) =>
     cn(
       "relative inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors",
-      active
-        ? "bg-bus text-bus-foreground shadow-none"
-        : "text-muted-foreground hover:bg-bus/10 hover:text-bus-deep",
+      disabled
+        ? "cursor-not-allowed text-muted-foreground/45"
+        : active
+          ? "bg-bus text-bus-foreground shadow-none"
+          : "text-muted-foreground hover:bg-bus/10 hover:text-bus-deep",
     );
 
   return (
@@ -58,13 +105,30 @@ export function SiteNav({ current }: SiteNavProps) {
       {NAV_ITEMS.map((item) => {
         const Icon = item.icon;
         const active = current === item.id;
+        const disabled = !online && !item.offlineAvailable;
+        const className = linkClass(active, disabled);
+
+        if (disabled) {
+          return (
+            <span
+              key={item.id}
+              role="link"
+              aria-disabled="true"
+              title={OFFLINE_NAV_HINT}
+              className={className}
+            >
+              <Icon aria-hidden className="size-4 shrink-0" />
+              {item.label}
+            </span>
+          );
+        }
 
         if (item.id === "nowosci") {
           return (
             <NowosciNavLink
               key={item.id}
               href={item.href}
-              className={linkClass(active)}
+              className={className}
               aria-current={active ? "page" : undefined}
             >
               <Icon aria-hidden className="size-4 shrink-0" />
@@ -78,7 +142,7 @@ export function SiteNav({ current }: SiteNavProps) {
           <Link
             key={item.id}
             href={item.href}
-            className={linkClass(active)}
+            className={className}
             aria-current={active ? "page" : undefined}
           >
             <Icon aria-hidden className="size-4 shrink-0" />

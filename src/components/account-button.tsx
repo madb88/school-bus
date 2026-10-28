@@ -21,8 +21,10 @@ import {
   subscribeProfileMenuSection,
   type ProfileMenuSection,
 } from "@/lib/auth/profile-menu-section";
+import { OFFLINE_NAV_HINT } from "@/components/site-nav";
 import { useTheme, type ThemePreference } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
+import { useOnlineStatus } from "@/lib/offline/use-online-status";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,6 +77,7 @@ function emailInitial(email: string): string {
 export function AccountButton({ email }: { email: string | null }) {
   const pathname = usePathname();
   const router = useRouter();
+  const online = useOnlineStatus();
   const signedIn = email !== null;
   const active = signedIn ? pathname === "/profil" : pathname === "/login";
   const menuSection = useSyncExternalStore(
@@ -86,11 +89,31 @@ export function AccountButton({ email }: { email: string | null }) {
   const [pending, setPending] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const triggerLabel = signedIn ? "Konto" : "Menu konta";
+  const triggerLabel = online
+    ? signedIn
+      ? "Konto"
+      : "Menu konta"
+    : OFFLINE_NAV_HINT;
   const triggerClassName = cn(
     "size-9 shrink-0 border-border/80 bg-card/70 backdrop-blur-sm",
     active && "border-transparent bg-bus text-bus-foreground hover:bg-bus/90",
   );
+
+  if (!online) {
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        disabled
+        aria-label={OFFLINE_NAV_HINT}
+        title={OFFLINE_NAV_HINT}
+        className={cn(triggerClassName, "cursor-not-allowed opacity-45")}
+      >
+        <UserRound aria-hidden className="size-4" />
+      </Button>
+    );
+  }
 
   function onThemeChange(value: string[]) {
     const next = value.at(-1);
