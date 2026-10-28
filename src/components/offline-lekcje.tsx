@@ -1,13 +1,12 @@
 "use client";
 
 import { LessonPlanForm } from "@/components/lesson-plan-form";
+import { OfflineConnectivityBanner } from "@/components/offline-connectivity-banner";
 import { OfflineSync } from "@/components/offline-sync";
-import { ScheduleStatusBanner } from "@/components/schedule-status-banner";
 import type { AccountPlan } from "@/lib/child-schedule/account-plan";
 import { collectPlaces } from "@/lib/dowozy/filter-schedule";
 import { DOWOZY_SOURCE_URL, type Schedule } from "@/lib/dowozy/types";
 import type { MzkSchedule } from "@/lib/mzk/types";
-import { offlineConnectivityFreshness } from "@/lib/offline/freshness";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
 import { useSchoolOfflineSnapshot } from "@/lib/offline/use-school-offline-snapshot";
 
@@ -61,12 +60,8 @@ export function OfflineLekcje({
         mzkAvailable={Boolean(mzkSchedule)}
       />
       {showOfflineBanner ? (
-        <ScheduleStatusBanner
-          items={[
-            offlineConnectivityFreshness(
-              cached?.cachedAt ?? schedule?.fetchedAt,
-            ),
-          ]}
+        <OfflineConnectivityBanner
+          cachedAt={cached?.cachedAt ?? schedule?.fetchedAt}
           className="mb-4 print:hidden md:mb-6"
         />
       ) : null}

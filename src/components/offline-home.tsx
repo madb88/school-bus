@@ -1,12 +1,12 @@
 "use client";
 
+import { OfflineConnectivityBanner } from "@/components/offline-connectivity-banner";
 import { OfflineSync } from "@/components/offline-sync";
 import { ScheduleBoard } from "@/components/schedule-board";
 import { ScheduleStatusBanner } from "@/components/schedule-status-banner";
 import { ScheduleUnavailable } from "@/components/schedule-unavailable";
 import type { AccountPlan } from "@/lib/child-schedule/account-plan";
 import type { Schedule } from "@/lib/dowozy/types";
-import { offlineConnectivityFreshness } from "@/lib/offline/freshness";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
 import { useSchoolOfflineSnapshot } from "@/lib/offline/use-school-offline-snapshot";
 import type { FreshnessInfo } from "@/lib/schedule-freshness";
@@ -39,12 +39,6 @@ export function OfflineHome({
     ? mzkAvailable
     : Boolean(cached?.mzkAvailable);
   const showOfflineBanner = !online || usingCache;
-  const bannerItems: FreshnessInfo[] = showOfflineBanner
-    ? [
-        offlineConnectivityFreshness(cached?.cachedAt ?? schedule?.fetchedAt),
-        ...freshness,
-      ]
-    : freshness;
 
   return (
     <>
@@ -60,8 +54,14 @@ export function OfflineHome({
       ) : effectiveSchedule ? (
         <>
           <h1 className="sr-only">Rozkład dowozów</h1>
+          {showOfflineBanner ? (
+            <OfflineConnectivityBanner
+              cachedAt={cached?.cachedAt ?? schedule?.fetchedAt}
+              className="mb-3 print:hidden md:mb-4"
+            />
+          ) : null}
           <ScheduleStatusBanner
-            items={bannerItems}
+            items={freshness}
             className="mb-4 print:hidden md:mb-6"
           />
           <ScheduleBoard
