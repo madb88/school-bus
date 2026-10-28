@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OFFLINE_ENTITLEMENT_KEY } from "./constants";
 import { hasOfflineEntitlement, loadOfflineEntitlement } from "./entitlement";
 
-const saveSchool = vi.fn(async (_input?: unknown) => undefined);
+const saveSchool = vi.fn<(input?: unknown) => Promise<void>>(async () => undefined);
 const clearSchool = vi.fn(async () => undefined);
 
 vi.mock("./school-cache", () => ({
@@ -12,6 +12,7 @@ vi.mock("./school-cache", () => ({
 
 vi.mock("./warm-shell", () => ({
   OFFLINE_SHELL_CACHE: "school-bus-shell-test",
+  OFFLINE_WARM_DOCUMENT_PATHS: ["/", "/offline", "/offline.html", "/lekcje"],
   warmOfflineShell: vi.fn(),
 }));
 

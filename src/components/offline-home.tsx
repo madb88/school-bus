@@ -7,6 +7,7 @@ import { ScheduleStatusBanner } from "@/components/schedule-status-banner";
 import { ScheduleUnavailable } from "@/components/schedule-unavailable";
 import type { AccountPlan } from "@/lib/child-schedule/account-plan";
 import type { Schedule } from "@/lib/dowozy/types";
+import type { SchoolOfflineCorrection } from "@/lib/offline/school-cache";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
 import { useSchoolOfflineSnapshot } from "@/lib/offline/use-school-offline-snapshot";
 import type { FreshnessInfo } from "@/lib/schedule-freshness";
@@ -18,6 +19,7 @@ type OfflineHomeProps = {
   accountPlans: AccountPlan[];
   plusAccess: boolean;
   plusValidUntil?: string | null;
+  correction?: SchoolOfflineCorrection | null;
 };
 
 export function OfflineHome({
@@ -27,6 +29,7 @@ export function OfflineHome({
   accountPlans,
   plusAccess,
   plusValidUntil = null,
+  correction = undefined,
 }: OfflineHomeProps) {
   const online = useOnlineStatus();
   const { ready: cacheReady, cached } = useSchoolOfflineSnapshot(schedule);
@@ -48,6 +51,7 @@ export function OfflineHome({
         schedule={schedule}
         accountPlans={accountPlans}
         mzkAvailable={mzkAvailable}
+        correction={correction}
       />
       {!cacheReady ? (
         <p className="text-sm text-muted-foreground">Wczytywanie rozkładu…</p>

@@ -6,7 +6,7 @@ import {
   type ScheduleDiffItem,
   type ScheduleDiffSection,
 } from "@/lib/dowozy/schedule-diff";
-import type { ScheduleCorrectionSnapshot } from "@/lib/dowozy/types";
+import type { Schedule } from "@/lib/dowozy/types";
 import { cn } from "cn";
 
 const SECTION_LABELS: Record<ScheduleDiffSection, string> = {
@@ -129,7 +129,11 @@ function EmptyState({
 }
 
 type ScheduleChangesContentProps = {
-  correction: ScheduleCorrectionSnapshot | null;
+  correction: {
+    original: Schedule;
+    modified: Schedule | null;
+    activeUntil?: string;
+  } | null;
 };
 
 export function ScheduleChangesContent({

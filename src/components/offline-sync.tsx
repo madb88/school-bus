@@ -7,6 +7,7 @@ import {
   clearOfflinePlusSession,
   persistOfflinePlusSession,
 } from "@/lib/offline/clear-session";
+import type { SchoolOfflineCorrection } from "@/lib/offline/school-cache";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
 
 type OfflineSyncProps = {
@@ -15,6 +16,7 @@ type OfflineSyncProps = {
   schedule: Schedule | null;
   accountPlans?: AccountPlan[];
   mzkAvailable?: boolean;
+  correction?: SchoolOfflineCorrection | null;
 };
 
 /**
@@ -27,6 +29,7 @@ export function OfflineSync({
   schedule,
   accountPlans = [],
   mzkAvailable = false,
+  correction = undefined,
 }: OfflineSyncProps) {
   const online = useOnlineStatus();
 
@@ -41,9 +44,18 @@ export function OfflineSync({
       schedule,
       accountPlans,
       mzkAvailable,
+      correction,
       online,
     });
-  }, [plusAccess, plusValidUntil, schedule, accountPlans, mzkAvailable, online]);
+  }, [
+    plusAccess,
+    plusValidUntil,
+    schedule,
+    accountPlans,
+    mzkAvailable,
+    correction,
+    online,
+  ]);
 
   return null;
 }

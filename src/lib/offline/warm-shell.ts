@@ -1,7 +1,16 @@
 /** Keep in sync with `SHELL_CACHE` in `public/sw.js`. */
-export const OFFLINE_SHELL_CACHE = "school-bus-shell-v3" as const;
+export const OFFLINE_SHELL_CACHE = "school-bus-shell-v4" as const;
 
-const WARM_PATHS = ["/", "/offline", "/offline.html", "/lekcje"] as const;
+/** Document routes warmed for offline hard-navigation (Plan Plus). */
+export const OFFLINE_WARM_DOCUMENT_PATHS = [
+  "/",
+  "/offline",
+  "/offline.html",
+  "/lekcje",
+  "/zmiany-w-rozkladzie",
+] as const;
+
+const WARM_PATHS = OFFLINE_WARM_DOCUMENT_PATHS;
 
 const STATIC_MEDIA = [
   "/icons/logo-bus-sm.png",
@@ -49,9 +58,9 @@ async function putInShellCache(urls: string[]): Promise<void> {
         if (!response.ok) return;
         await cache.put(url.href, response.clone());
         if (
-          url.pathname === "/" ||
-          url.pathname === "/offline" ||
-          url.pathname === "/offline.html"
+          (OFFLINE_WARM_DOCUMENT_PATHS as readonly string[]).includes(
+            url.pathname,
+          )
         ) {
           await cache.put(url.pathname, response.clone());
         }

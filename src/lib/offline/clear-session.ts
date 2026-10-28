@@ -12,15 +12,15 @@ import { prefetchMzkOdForRoute } from "./prefetch-mzk-od";
 import {
   clearSchoolOfflineSnapshot,
   saveSchoolOfflineSnapshot,
+  type SchoolOfflineCorrection,
 } from "./school-cache";
-import { OFFLINE_SHELL_CACHE, warmOfflineShell } from "./warm-shell";
+import {
+  OFFLINE_SHELL_CACHE,
+  OFFLINE_WARM_DOCUMENT_PATHS,
+  warmOfflineShell,
+} from "./warm-shell";
 
-const SHELL_PATHS_TO_DROP = new Set([
-  "/",
-  "/lekcje",
-  "/offline",
-  "/offline.html",
-]);
+const SHELL_PATHS_TO_DROP = new Set<string>(OFFLINE_WARM_DOCUMENT_PATHS);
 
 /** Serialize clear/persist so logout cleanup cannot wipe a later login. */
 let sessionQueue: Promise<void> = Promise.resolve();
@@ -77,6 +77,7 @@ export function persistOfflinePlusSession(opts: {
   schedule: Schedule | null;
   accountPlans?: AccountPlan[];
   mzkAvailable?: boolean;
+  correction?: SchoolOfflineCorrection | null;
   online: boolean;
 }): Promise<void> {
   return enqueueSessionOp(async () => {
@@ -94,6 +95,7 @@ export function persistOfflinePlusSession(opts: {
         schedule: opts.schedule,
         accountPlans: opts.accountPlans ?? [],
         mzkAvailable: opts.mzkAvailable === true,
+        correction: opts.correction,
       });
     } catch {
       // ignore quota / private mode

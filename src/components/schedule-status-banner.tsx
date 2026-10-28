@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { cn } from "cn";
 import { AlertTriangle, Info, WifiOff } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
@@ -85,7 +84,9 @@ export function ScheduleStatusBanner({
                 ) : null}
               </div>
               {item.cta ? (
-                <Link
+                // Hard navigation so the SW can serve a warmed document offline
+                // (Next soft-nav / RSC fetch fails without a network).
+                <a
                   href={item.cta.href}
                   className={cn(
                     buttonVariants({ variant: "outline", size: "sm" }),
@@ -93,7 +94,7 @@ export function ScheduleStatusBanner({
                   )}
                 >
                   {item.cta.label}
-                </Link>
+                </a>
               ) : null}
             </div>
           </div>

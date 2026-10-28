@@ -1,6 +1,6 @@
+import { OfflineZmiany } from "@/components/offline-zmiany";
 import { PageEyebrow } from "@/components/page-eyebrow";
 import { PageShell } from "@/components/page-shell";
-import { ScheduleChangesContent } from "@/components/schedule-changes-content";
 import { SiteHeader } from "@/components/site-header";
 import { loadScheduleCorrectionSnapshot } from "@/lib/dowozy/load-schedule";
 import { buildPageMetadata } from "@/lib/site-metadata";
@@ -28,7 +28,7 @@ export default async function ZmianyWRozkladziePage() {
           </p>
         </header>
 
-        <ScheduleChangesContent correction={correction} />
+        <OfflineZmiany correction={correction} />
       </div>
     </PageShell>
   );

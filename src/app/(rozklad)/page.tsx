@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 import { fetchPlus } from "@/lib/auth/backend";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { hasPlusAccess } from "@/lib/billing/access";
-import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
+import { loadScheduleCorrectionSnapshot } from "@/lib/dowozy/load-schedule";
 import { overrideFreshnessInfo } from "@/lib/dowozy/override-freshness";
 import { loadMzkScheduleMeta } from "@/lib/mzk/load-schedule";
 import {
@@ -23,11 +23,12 @@ export const metadata = buildPageMetadata({
 });
 
 export default async function Home() {
-  const [loaded, mzkMeta, user] = await Promise.all([
-    loadScheduleSnapshot(),
+  const [correction, mzkMeta, user] = await Promise.all([
+    loadScheduleCorrectionSnapshot(),
     loadMzkScheduleMeta(),
     getCurrentUser(),
   ]);
+  const loaded = correction?.resolved ?? null;
   const schedule = loaded?.schedule ?? null;
   const freshness = [
     schedule ? schoolScheduleFreshness(schedule.fetchedAt) : null,
@@ -47,6 +48,15 @@ export default async function Home() {
     (plus.state === "active" || plus.state === "trial")
       ? (plus.validUntil ?? null)
       : null;
+  const offlineCorrection = correction
+    ? {
+        original: correction.original,
+        modified: correction.modified,
+        ...(correction.activeUntil && correction.modified
+          ? { activeUntil: correction.activeUntil }
+          : {}),
+      }
+    : null;
 
   return (
     <PageShell wide roomy header={<SiteHeader current="rozklad" />}>
@@ -58,6 +68,7 @@ export default async function Home() {
           accountPlans={accountPlans}
           plusAccess={plusAccess}
           plusValidUntil={plusValidUntil}
+          correction={offlineCorrection}
         />
       </div>
     </PageShell>

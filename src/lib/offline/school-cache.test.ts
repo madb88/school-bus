@@ -38,4 +38,37 @@ describe("parseSchoolOfflineSnapshot", () => {
       }),
     ).toBeNull();
   });
+
+  it("parses optional schedule correction for changes page", () => {
+    const original = { ...schedule, title: "Original" };
+    const modified = { ...schedule, title: "Modified" };
+    const parsed = parseSchoolOfflineSnapshot({
+      schedule: modified,
+      accountPlans: [],
+      mzkAvailable: false,
+      cachedAt: "2026-10-28T09:00:00.000Z",
+      correction: {
+        original,
+        modified,
+        activeUntil: "2026-10-31",
+      },
+    });
+    expect(parsed?.correction?.original.title).toBe("Original");
+    expect(parsed?.correction?.modified?.title).toBe("Modified");
+    expect(parsed?.correction?.activeUntil).toBe("2026-10-31");
+  });
+
+  it("allows correction with null modified (no active override)", () => {
+    const parsed = parseSchoolOfflineSnapshot({
+      schedule,
+      accountPlans: [],
+      mzkAvailable: false,
+      cachedAt: "2026-10-28T09:00:00.000Z",
+      correction: {
+        original: schedule,
+        modified: null,
+      },
+    });
+    expect(parsed?.correction?.modified).toBeNull();
+  });
 });

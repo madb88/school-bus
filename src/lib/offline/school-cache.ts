@@ -11,12 +11,42 @@ import {
 } from "./constants";
 import { idbClearStore, idbGet, idbSet } from "./idb";
 
+/** Original + optional active correction for `/zmiany-w-rozkladzie` offline. */
+export type SchoolOfflineCorrection = {
+  original: Schedule;
+  modified: Schedule | null;
+  activeUntil?: string;
+};
+
 export type SchoolOfflineSnapshot = {
   schedule: Schedule;
   accountPlans: AccountPlan[];
   mzkAvailable: boolean;
   cachedAt: string;
+  correction?: SchoolOfflineCorrection | null;
 };
+
+function parseOfflineCorrection(raw: unknown): SchoolOfflineCorrection | null {
+  if (!raw || typeof raw !== "object") return null;
+  const record = raw as Record<string, unknown>;
+  if (!isScheduleSnapshot(record.original)) return null;
+  const modified =
+    record.modified == null
+      ? null
+      : isScheduleSnapshot(record.modified)
+        ? record.modified
+        : null;
+  if (record.modified != null && modified == null) return null;
+  const activeUntil =
+    typeof record.activeUntil === "string" && record.activeUntil.trim() !== ""
+      ? record.activeUntil.trim()
+      : undefined;
+  return {
+    original: record.original,
+    modified,
+    ...(activeUntil && modified ? { activeUntil } : {}),
+  };
+}
 
 export function parseSchoolOfflineSnapshot(
   raw: unknown,
@@ -30,11 +60,19 @@ export function parseSchoolOfflineSnapshot(
         .map(parseAccountPlan)
         .filter((plan): plan is AccountPlan => plan != null)
     : [];
+  const correction =
+    record.correction === undefined
+      ? undefined
+      : parseOfflineCorrection(record.correction);
+  if (record.correction !== undefined && record.correction !== null && !correction) {
+    return null;
+  }
   return {
     schedule: record.schedule,
     accountPlans,
     mzkAvailable: record.mzkAvailable === true,
     cachedAt: record.cachedAt,
+    ...(correction !== undefined ? { correction } : {}),
   };
 }
 
@@ -42,12 +80,16 @@ export async function saveSchoolOfflineSnapshot(input: {
   schedule: Schedule;
   accountPlans?: AccountPlan[];
   mzkAvailable?: boolean;
+  correction?: SchoolOfflineCorrection | null;
 }): Promise<void> {
   const snapshot: SchoolOfflineSnapshot = {
     schedule: input.schedule,
     accountPlans: input.accountPlans ?? [],
     mzkAvailable: input.mzkAvailable === true,
     cachedAt: new Date().toISOString(),
+    ...(input.correction !== undefined
+      ? { correction: input.correction }
+      : {}),
   };
   await idbSet(OFFLINE_STORE_SCHOOL, OFFLINE_SCHOOL_KEY, snapshot);
 }

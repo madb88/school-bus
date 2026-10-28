@@ -2,8 +2,16 @@
    Cold-start fallback is static /offline.html (no Next chunks).
    Cache API: navigations + /_next/static + icons — not /api/*. */
 
-const SHELL_CACHE = "school-bus-shell-v3";
+const SHELL_CACHE = "school-bus-shell-v4";
 const OFFLINE_FALLBACK = "/offline.html";
+/** Keep in sync with OFFLINE_WARM_DOCUMENT_PATHS in warm-shell.ts */
+const WARM_DOCUMENT_PATHS = [
+  "/",
+  "/offline",
+  "/offline.html",
+  "/lekcje",
+  "/zmiany-w-rozkladzie",
+];
 const PRECACHE_URLS = [
   OFFLINE_FALLBACK,
   "/icons/logo-bus-sm.png",
@@ -14,6 +22,10 @@ const PRECACHE_URLS = [
   "/images/weekend-bus.webp",
   "/images/schedule-unavailable.webp",
 ];
+
+function isWarmDocumentPath(pathname) {
+  return WARM_DOCUMENT_PATHS.includes(pathname);
+}
 
 function sameOriginUrl(rawUrl, origin) {
   try {
@@ -90,7 +102,7 @@ async function networkFirstNavigation(request) {
     // Also store under pathname for easier cold-start matching.
     try {
       const url = new URL(request.url);
-      if (fresh.ok && (url.pathname === "/" || url.pathname === "/offline")) {
+      if (fresh.ok && isWarmDocumentPath(url.pathname)) {
         await cachePutSafe(cache, url.pathname, fresh);
       }
     } catch {
@@ -178,7 +190,7 @@ self.addEventListener("message", (event) => {
             }
             const response = await fetch(url.href, { credentials: "same-origin" });
             await cachePutSafe(cache, url.href, response);
-            if (url.pathname === "/" || url.pathname === "/offline") {
+            if (isWarmDocumentPath(url.pathname)) {
               await cachePutSafe(cache, url.pathname, response);
             }
           } catch {
