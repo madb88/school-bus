@@ -22,6 +22,42 @@ const STATIC_MEDIA = [
   "/images/schedule-unavailable.webp",
 ] as const;
 
+function isWarmDocumentPath(pathname: string): boolean {
+  return (OFFLINE_WARM_DOCUMENT_PATHS as readonly string[]).includes(pathname);
+}
+
+function isCacheableAssetPath(pathname: string): boolean {
+  return (
+    pathname.startsWith("/_next/") ||
+    pathname.startsWith("/icons/") ||
+    pathname.startsWith("/images/") ||
+    pathname === "/manifest.webmanifest" ||
+    pathname.endsWith(".webmanifest")
+  );
+}
+
+/** Pull `/_next/*` (and media) URLs out of a warmed HTML document. */
+export function collectHtmlAssetUrls(
+  html: string,
+  baseHref: string,
+  origin: string,
+): string[] {
+  const found = new Set<string>();
+  const re = /\b(?:src|href)=["']([^"']+)["']/gi;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(html)) !== null) {
+    try {
+      const absolute = new URL(match[1], baseHref);
+      if (absolute.origin !== origin) continue;
+      if (!isCacheableAssetPath(absolute.pathname)) continue;
+      found.add(absolute.href);
+    } catch {
+      // ignore bad URLs
+    }
+  }
+  return [...found];
+}
+
 function collectDocumentAssetUrls(): string[] {
   if (typeof document === "undefined") return [];
   const urls = new Set<string>();
@@ -46,26 +82,45 @@ function collectDocumentAssetUrls(): string[] {
 async function putInShellCache(urls: string[]): Promise<void> {
   if (typeof caches === "undefined") return;
   const cache = await caches.open(OFFLINE_SHELL_CACHE);
+  const origin = window.location.origin;
+  const seen = new Set<string>();
+
+  async function putOne(raw: string, parseHtml: boolean): Promise<void> {
+    try {
+      const url = new URL(raw, origin);
+      if (url.origin !== origin) return;
+      if (url.pathname.startsWith("/api/") || url.pathname === "/sw.js") return;
+      if (seen.has(url.href)) return;
+      seen.add(url.href);
+
+      const response = await fetch(url.href, { credentials: "same-origin" });
+      if (!response.ok) return;
+      await cache.put(url.href, response.clone());
+      if (isWarmDocumentPath(url.pathname)) {
+        await cache.put(url.pathname, response.clone());
+      }
+
+      if (!parseHtml) return;
+      const contentType = response.headers.get("content-type") ?? "";
+      const looksHtml =
+        contentType.includes("text/html") || isWarmDocumentPath(url.pathname);
+      if (!looksHtml) return;
+
+      const html = await response.clone().text();
+      const assets = collectHtmlAssetUrls(html, url.href, origin);
+      await Promise.all(assets.map((asset) => putOne(asset, false)));
+    } catch {
+      // Quota / network / private mode
+    }
+  }
+
   await Promise.all(
-    urls.map(async (raw) => {
+    urls.map((raw) => {
       try {
-        const url = new URL(raw, window.location.origin);
-        if (url.origin !== window.location.origin) return;
-        if (url.pathname.startsWith("/api/") || url.pathname === "/sw.js") {
-          return;
-        }
-        const response = await fetch(url.href, { credentials: "same-origin" });
-        if (!response.ok) return;
-        await cache.put(url.href, response.clone());
-        if (
-          (OFFLINE_WARM_DOCUMENT_PATHS as readonly string[]).includes(
-            url.pathname,
-          )
-        ) {
-          await cache.put(url.pathname, response.clone());
-        }
+        const pathname = new URL(raw, origin).pathname;
+        return putOne(raw, isWarmDocumentPath(pathname));
       } catch {
-        // ignore
+        return putOne(raw, false);
       }
     }),
   );
@@ -74,6 +129,7 @@ async function putInShellCache(urls: string[]): Promise<void> {
 /**
  * Warm Cache API + ask the service worker to cache shell URLs while online.
  * Needed so a cold PWA open offline can serve HTML/assets (or /offline.html).
+ * Document routes also pull their `/_next` chunks from the HTML.
  */
 export function warmOfflineShell(): void {
   if (typeof window === "undefined") return;

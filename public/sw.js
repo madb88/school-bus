@@ -27,6 +27,37 @@ function isWarmDocumentPath(pathname) {
   return WARM_DOCUMENT_PATHS.includes(pathname);
 }
 
+function isCacheableAssetPath(pathname) {
+  return (
+    pathname.startsWith("/_next/") ||
+    pathname.startsWith("/icons/") ||
+    pathname.startsWith("/images/") ||
+    pathname === "/manifest.webmanifest" ||
+    pathname.endsWith(".webmanifest")
+  );
+}
+
+/** Keep in sync with collectHtmlAssetUrls in warm-shell.ts */
+function collectHtmlAssetUrls(html, baseHref) {
+  const found = [];
+  const seen = new Set();
+  const re = /\b(?:src|href)=["']([^"']+)["']/gi;
+  let match;
+  while ((match = re.exec(html)) !== null) {
+    try {
+      const absolute = new URL(match[1], baseHref);
+      if (absolute.origin !== self.location.origin) continue;
+      if (!isCacheableAssetPath(absolute.pathname)) continue;
+      if (seen.has(absolute.href)) continue;
+      seen.add(absolute.href);
+      found.push(absolute.href);
+    } catch {
+      // ignore
+    }
+  }
+  return found;
+}
+
 function sameOriginUrl(rawUrl, origin) {
   try {
     const target = new URL(rawUrl, origin);
@@ -180,21 +211,46 @@ self.addEventListener("message", (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(SHELL_CACHE);
+      const seen = new Set();
+
+      async function putOne(raw, parseHtml) {
+        try {
+          const url = new URL(raw, self.location.origin);
+          if (url.origin !== self.location.origin) return;
+          if (url.pathname.startsWith("/api/") || url.pathname === "/sw.js") {
+            return;
+          }
+          if (seen.has(url.href)) return;
+          seen.add(url.href);
+
+          const response = await fetch(url.href, { credentials: "same-origin" });
+          await cachePutSafe(cache, url.href, response);
+          if (isWarmDocumentPath(url.pathname)) {
+            await cachePutSafe(cache, url.pathname, response);
+          }
+          if (!parseHtml || !response || !response.ok) return;
+
+          const contentType = response.headers.get("content-type") || "";
+          const looksHtml =
+            contentType.includes("text/html") ||
+            isWarmDocumentPath(url.pathname);
+          if (!looksHtml) return;
+
+          const html = await response.clone().text();
+          const assets = collectHtmlAssetUrls(html, url.href);
+          await Promise.all(assets.map((asset) => putOne(asset, false)));
+        } catch {
+          // ignore
+        }
+      }
+
       await Promise.all(
-        data.urls.map(async (raw) => {
+        data.urls.map((raw) => {
           try {
-            const url = new URL(raw, self.location.origin);
-            if (url.origin !== self.location.origin) return;
-            if (url.pathname.startsWith("/api/") || url.pathname === "/sw.js") {
-              return;
-            }
-            const response = await fetch(url.href, { credentials: "same-origin" });
-            await cachePutSafe(cache, url.href, response);
-            if (isWarmDocumentPath(url.pathname)) {
-              await cachePutSafe(cache, url.pathname, response);
-            }
+            const pathname = new URL(raw, self.location.origin).pathname;
+            return putOne(raw, isWarmDocumentPath(pathname));
           } catch {
-            // ignore
+            return putOne(raw, false);
           }
         }),
       );

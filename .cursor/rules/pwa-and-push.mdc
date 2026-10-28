@@ -43,7 +43,7 @@ Nagłówki no-cache dla `/sw.js` w `next.config.ts` zostaw.
 ## Offline (Plan Plus)
 
 1. Online + Plus → `syncOfflineEntitlement` (localStorage) + zapis snapshotu szkolnego (+ korekta original/modified) do IDB + prefetch OD MZK dla zapisanej trasy
-2. Offline → `OfflineConnectivityBanner`; board / lekcje / zmiany z IDB (dokumenty z warm shell)
+2. Offline → `OfflineConnectivityBanner`; board / lekcje z IDB; zmiany rozkładu z IDB na `/#zmiany` (bez soft-nav do `/zmiany-w-rozkladzie`)
 3. MZK slim: cache `/api/mzk-departures` per board/alight/date — nie pełny GTFS
 4. Push **nie** jest częścią offline (wymaga backendu / sieci)
 

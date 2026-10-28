@@ -93,6 +93,7 @@ export function OfflineFallbackApp() {
       accountPlans={phase.cached.accountPlans}
       plusAccess
       plusValidUntil={null}
+      correction={phase.cached.correction ?? null}
     />
   );
 }

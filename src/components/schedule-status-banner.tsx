@@ -1,7 +1,12 @@
+"use client";
+
 import { cn } from "cn";
 import { AlertTriangle, Info, WifiOff } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { useOnlineStatus } from "@/lib/offline/use-online-status";
 import type { FreshnessInfo, FreshnessLevel } from "@/lib/schedule-freshness";
+
+export const OFFLINE_ZMIANY_HASH = "#zmiany" as const;
 
 type ScheduleStatusBannerProps = {
   items: FreshnessInfo[];
@@ -12,6 +17,52 @@ function rowIcon(level: FreshnessLevel) {
   if (level === "offline") return WifiOff;
   if (level === "expired") return AlertTriangle;
   return Info;
+}
+
+function isZmianyHref(href: string): boolean {
+  try {
+    return new URL(href, "https://local.invalid").pathname === "/zmiany-w-rozkladzie";
+  } catch {
+    return href.includes("zmiany-w-rozkladzie");
+  }
+}
+
+function BannerCta({ href, label }: { href: string; label: string }) {
+  const online = useOnlineStatus();
+  const className = cn(
+    buttonVariants({ variant: "outline", size: "sm" }),
+    "w-fit",
+  );
+
+  // Offline: stay on the already-loaded rozkład shell and show the diff from IDB.
+  // Soft/hard nav to /zmiany-w-rozkladzie needs page chunks that may not be cached yet.
+  if (!online && isZmianyHref(href)) {
+    return (
+      <a
+        href={`/${OFFLINE_ZMIANY_HASH}`}
+        className={className}
+        onClick={(event) => {
+          const path = window.location.pathname;
+          if (path === "/" || path === "/offline") {
+            event.preventDefault();
+            if (window.location.hash !== OFFLINE_ZMIANY_HASH) {
+              window.location.hash = OFFLINE_ZMIANY_HASH.slice(1);
+            } else {
+              window.dispatchEvent(new Event("hashchange"));
+            }
+          }
+        }}
+      >
+        {label}
+      </a>
+    );
+  }
+
+  return (
+    <a href={href} className={className}>
+      {label}
+    </a>
+  );
 }
 
 export function ScheduleStatusBanner({
@@ -84,17 +135,7 @@ export function ScheduleStatusBanner({
                 ) : null}
               </div>
               {item.cta ? (
-                // Hard navigation so the SW can serve a warmed document offline
-                // (Next soft-nav / RSC fetch fails without a network).
-                <a
-                  href={item.cta.href}
-                  className={cn(
-                    buttonVariants({ variant: "outline", size: "sm" }),
-                    "w-fit",
-                  )}
-                >
-                  {item.cta.label}
-                </a>
+                <BannerCta href={item.cta.href} label={item.cta.label} />
               ) : null}
             </div>
           </div>
