@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { LessonPlanForm } from "@/components/lesson-plan-form";
-import { OfflineConnectivityBanner } from "@/components/offline-connectivity-banner";
 import { OfflineNoAccessScreen } from "@/components/offline-no-access-screen";
 import { OfflineSync } from "@/components/offline-sync";
 import type { AccountPlan } from "@/lib/child-schedule/account-plan";
@@ -10,7 +11,6 @@ import { DOWOZY_SOURCE_URL, type Schedule } from "@/lib/dowozy/types";
 import type { MzkSchedule } from "@/lib/mzk/types";
 import { hasOfflineEntitlement } from "@/lib/offline/entitlement";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
-import { useSchoolOfflineSnapshot } from "@/lib/offline/use-school-offline-snapshot";
 
 type OfflineLekcjeProps = {
   schedule: Schedule | null;
@@ -43,22 +43,23 @@ export function OfflineLekcje({
   suspendOfflineSync = false,
 }: OfflineLekcjeProps) {
   const online = useOnlineStatus();
-  const { ready: cacheReady, cached } = useSchoolOfflineSnapshot(schedule);
-  const blockOffline = !online && !hasOfflineEntitlement();
+  const router = useRouter();
+  const entitled = hasOfflineEntitlement();
 
-  const usingCache = !schedule && cached != null;
-  const effectiveSchedule = schedule ?? cached?.schedule ?? null;
+  useEffect(() => {
+    if (!online && entitled) {
+      router.replace("/offline");
+    }
+  }, [online, entitled, router]);
+
   const effectivePlaces =
     places.length > 0
       ? places
-      : effectiveSchedule
-        ? collectPlaces(effectiveSchedule)
+      : schedule
+        ? collectPlaces(schedule)
         : [];
-  const effectivePlans =
-    initialPlans.length > 0 ? initialPlans : (cached?.accountPlans ?? []);
   const effectiveMode =
-    plusAccess || effectivePlans.length > 0 ? mode : "local";
-  const showOfflineBanner = !online || usingCache;
+    plusAccess || initialPlans.length > 0 ? mode : "local";
 
   return (
     <>
@@ -70,28 +71,17 @@ export function OfflineLekcje({
         mzkAvailable={Boolean(mzkSchedule)}
         suspend={suspendOfflineSync}
       />
-      {blockOffline ? <OfflineNoAccessScreen /> : null}
-      {!blockOffline && showOfflineBanner ? (
-        <OfflineConnectivityBanner
-          cachedAt={cached?.cachedAt ?? schedule?.fetchedAt}
-          className="mb-4 print:hidden md:mb-6"
-        />
-      ) : null}
-      {blockOffline ? null : !online && effectiveMode === "account" ? (
-        <p className="mb-4 text-sm text-muted-foreground print:hidden">
-          Edycje planu zapiszą się lokalnie na tym urządzeniu. Synchronizacja z
-          kontem będzie możliwa po powrocie połączenia.
-        </p>
-      ) : null}
-      {blockOffline ? null : !cacheReady ? (
-        <p className="text-muted-foreground">Wczytywanie planu…</p>
-      ) : effectiveSchedule && effectivePlaces.length > 0 ? (
+      {!online && entitled ? (
+        <p className="text-muted-foreground">Przechodzę do rozkładu offline…</p>
+      ) : !online && !entitled ? (
+        <OfflineNoAccessScreen />
+      ) : schedule && effectivePlaces.length > 0 ? (
         <LessonPlanForm
           places={effectivePlaces}
-          schedule={effectiveSchedule}
-          mzkSchedule={online ? mzkSchedule : null}
-          mode={online ? effectiveMode : "local"}
-          initialPlans={online ? effectivePlans : []}
+          schedule={schedule}
+          mzkSchedule={mzkSchedule}
+          mode={effectiveMode}
+          initialPlans={initialPlans}
           loggedIn={loggedIn}
           trialEnded={trialEnded}
         />

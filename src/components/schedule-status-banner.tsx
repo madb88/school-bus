@@ -4,10 +4,7 @@ import Link from "next/link";
 import { cn } from "cn";
 import { AlertTriangle, Info, WifiOff } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { useOnlineStatus } from "@/lib/offline/use-online-status";
 import type { FreshnessInfo, FreshnessLevel } from "@/lib/schedule-freshness";
-
-export const OFFLINE_ZMIANY_HASH = "#zmiany" as const;
 
 type ScheduleStatusBannerProps = {
   items: FreshnessInfo[];
@@ -20,47 +17,12 @@ function rowIcon(level: FreshnessLevel) {
   return Info;
 }
 
-function isZmianyHref(href: string): boolean {
-  try {
-    return new URL(href, "https://local.invalid").pathname === "/zmiany-w-rozkladzie";
-  } catch {
-    return href.includes("zmiany-w-rozkladzie");
-  }
-}
-
 function BannerCta({ href, label }: { href: string; label: string }) {
-  const online = useOnlineStatus();
-  const className = cn(
-    buttonVariants({ variant: "outline", size: "sm" }),
-    "w-fit",
-  );
-
-  // Offline: stay on the already-loaded rozkład shell and show the diff from IDB.
-  // Soft/hard nav to /zmiany-w-rozkladzie needs page chunks that may not be cached yet.
-  if (!online && isZmianyHref(href)) {
-    return (
-      <a
-        href={`/${OFFLINE_ZMIANY_HASH}`}
-        className={className}
-        onClick={(event) => {
-          const path = window.location.pathname;
-          if (path === "/" || path === "/offline") {
-            event.preventDefault();
-            if (window.location.hash !== OFFLINE_ZMIANY_HASH) {
-              window.location.hash = OFFLINE_ZMIANY_HASH.slice(1);
-            } else {
-              window.dispatchEvent(new Event("hashchange"));
-            }
-          }
-        }}
-      >
-        {label}
-      </a>
-    );
-  }
-
   return (
-    <Link href={href} className={className}>
+    <Link
+      href={href}
+      className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-fit")}
+    >
       {label}
     </Link>
   );

@@ -38,14 +38,14 @@ export const NAV_ITEMS: ReadonlyArray<{
     href: "/",
     label: "Rozkład",
     icon: Bus,
-    offlineAvailable: true,
+    offlineAvailable: false,
   },
   {
     id: "lekcje",
     href: "/lekcje",
     label: "Plan lekcji",
     icon: CalendarDays,
-    offlineAvailable: true,
+    offlineAvailable: false,
   },
   { id: "mzk", href: "/mzk", label: "MZK", icon: Map, offlineAvailable: false },
   {

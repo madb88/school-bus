@@ -2,16 +2,10 @@
    Cold-start fallback is static /offline.html (no Next chunks).
    Cache API: navigations + /_next/static + icons — not /api/*. */
 
-const SHELL_CACHE = "school-bus-shell-v5";
+const SHELL_CACHE = "school-bus-shell-v6";
 const OFFLINE_FALLBACK = "/offline.html";
 /** Keep in sync with OFFLINE_WARM_DOCUMENT_PATHS in warm-shell.ts */
-const WARM_DOCUMENT_PATHS = [
-  "/",
-  "/offline",
-  "/offline.html",
-  "/lekcje",
-  "/zmiany-w-rozkladzie",
-];
+const WARM_DOCUMENT_PATHS = ["/offline", "/offline.html"];
 const PRECACHE_URLS = [
   OFFLINE_FALLBACK,
   "/icons/logo-bus-sm.png",
@@ -117,12 +111,10 @@ async function matchNavigation(cache, request) {
     return matchCachedPath(cache, OFFLINE_FALLBACK);
   }
 
-  // Prefer the static offline shell over a stale cached `/` (often anonymous
-  // SSR). Plus users with entitlement hydrate from IndexedDB via offline.html.
+  // Dedicated Plus offline page first, then static cold-start shell.
   return (
-    (await matchCachedPath(cache, OFFLINE_FALLBACK)) ||
     (await matchCachedPath(cache, "/offline")) ||
-    (await matchCachedPath(cache, "/"))
+    (await matchCachedPath(cache, OFFLINE_FALLBACK))
   );
 }
 
