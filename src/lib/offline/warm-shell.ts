@@ -132,10 +132,10 @@ export function warmOfflineShell(): void {
   if (typeof window === "undefined") return;
   if (!navigator.onLine) return;
 
+  // Only warm dedicated offline documents — never cache arbitrary current route HTML.
   const urls = [
     ...WARM_PATHS.map((path) => new URL(path, window.location.origin).href),
     ...STATIC_MEDIA.map((path) => new URL(path, window.location.origin).href),
-    window.location.href,
     ...collectDocumentAssetUrls(),
   ];
 

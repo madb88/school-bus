@@ -23,18 +23,18 @@ alwaysApply: false
 - Manifest: `src/app/manifest.ts` (standalone, ikony w `public/icons/`)
 - Rejestracja SW: `PwaRegister` → `/sw.js`
 - SW (`public/sw.js`): `push` + `notificationclick` **oraz** ograniczony offline shell (Cache API)
-- Offline (Plan Plus): `src/lib/offline/*` + `OfflineSync` / `OfflineHome` / `OfflineLekcje` / `OfflineZmiany` / `/offline`
+- Offline (Plan Plus): `src/lib/offline/*` + `OfflineSync` (online) + dedykowana `/offline` (`OfflineScheduleApp` / spersonalizowany rozkład)
 - Instalacja / guide: `/instalacja`, `InstallGuide`; ustawienia push: `NotificationsPanel` w profilu
 - Feature flag UI: `PUSH_NOTIFICATIONS_UI_ENABLED === "true"` (`isPushNotificationsUiEnabled`)
 
 ## Service worker — Cache API
 
 Dozwolony **wyłącznie** dla:
-- nawigacji dokumentowych (network-first → cache → **`/offline.html`**)
+- nawigacji dokumentowych (network-first → cache → **`/offline`** / **`/offline.html`**)
 - assetów `/_next/static/`, `/icons/`, manifest
-- `WARM_SHELL` z klienta (`warmOfflineShell`) — dogrzewa `/`, `/lekcje`, `/zmiany-w-rozkladzie`, chunki i `/offline.html`
+- `WARM_SHELL` z klienta (`warmOfflineShell`) — dogrzewa **tylko** `/offline`, `/offline.html`, chunki i ikony (nie `/`, `/lekcje`, `/zmiany-w-rozkladzie`)
 
-**Cold start:** Next App Router HTML bez chunków pada offline → pewny fallback to **statyczny** [`public/offline.html`](public/offline.html) (inline JS + IndexedDB). Manifest `start_url` = `/offline.html` (online robi `location.replace("/")`).
+**Cold start:** Next App Router HTML bez chunków pada offline → pewny fallback to **statyczny** [`public/offline.html`](public/offline.html). Manifest `start_url` = `/offline.html` (online → `/`; offline + entitlement → `/offline`).
 
 **Nie** cachuj w SW odpowiedzi `/api/*` ani `/sw.js`. Dane rozkładu offline żyją w **IndexedDB** (`school-bus-offline`), nie w Cache API SW.
 
@@ -42,9 +42,9 @@ Nagłówki no-cache dla `/sw.js` w `next.config.ts` zostaw.
 
 ## Offline (Plan Plus)
 
-1. Online + Plus → `syncOfflineEntitlement` (localStorage) + zapis snapshotu szkolnego (+ korekta original/modified) do IDB + prefetch OD MZK dla zapisanej trasy
-2. Offline → `OfflineConnectivityBanner`; board / lekcje z IDB; zmiany rozkładu z IDB na `/#zmiany` (bez soft-nav do `/zmiany-w-rozkladzie`)
-3. MZK slim: cache `/api/mzk-departures` per board/alight/date — nie pełny GTFS
+1. Online + Plus → `syncOfflineEntitlement` (localStorage) + zapis snapshotu szkolnego (+ `accountPlans`) do IDB + warm `/offline`
+2. Offline → wyłącznie spersonalizowany rozkład na `/offline` (bez filtrów / nav); bez entitlement → `OfflineNoAccessScreen`
+3. Wejście offline na `/` / `/lekcje` / `/zmiany-w-rozkladzie` → redirect na `/offline` (Plus) albo no-access
 4. Push **nie** jest częścią offline (wymaga backendu / sieci)
 
 Bez ważnego lokalnego entitlementu nie udostępniaj zapisanych snapshotów jako „offline Plus”.
