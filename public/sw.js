@@ -117,11 +117,12 @@ async function matchNavigation(cache, request) {
     return matchCachedPath(cache, OFFLINE_FALLBACK);
   }
 
-  // Prefer last cached home document, then static offline shell.
+  // Prefer the static offline shell over a stale cached `/` (often anonymous
+  // SSR). Plus users with entitlement hydrate from IndexedDB via offline.html.
   return (
-    (await matchCachedPath(cache, "/")) ||
+    (await matchCachedPath(cache, OFFLINE_FALLBACK)) ||
     (await matchCachedPath(cache, "/offline")) ||
-    (await matchCachedPath(cache, OFFLINE_FALLBACK))
+    (await matchCachedPath(cache, "/"))
   );
 }
 

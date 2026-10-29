@@ -106,13 +106,20 @@ export function parseAccountPlan(value: unknown): AccountPlan | null {
   return plan;
 }
 
-/** Accepts `[]` or a list of valid plans. `null` when the shape is wrong. */
+/**
+ * Accepts `[]` or a list of plans. Skips individual invalid items so one bad
+ * plan cannot break `/users/me` session resolution. `null` only when the
+ * top-level value is not an array.
+ */
 export function parseAccountPlans(value: unknown): AccountPlan[] | null {
   if (!Array.isArray(value)) return null;
   const plans: AccountPlan[] = [];
   for (const item of value) {
     const plan = parseAccountPlan(item);
-    if (!plan) return null;
+    if (!plan) {
+      console.warn("Skipping invalid account plan in API response");
+      continue;
+    }
     plans.push(plan);
   }
   return plans;

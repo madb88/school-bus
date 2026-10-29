@@ -78,12 +78,23 @@ function emailInitial(email: string): string {
   return letter ? letter.toUpperCase() : "?";
 }
 
-export function AccountButton({ email }: { email: string | null }) {
+export function AccountButton({
+  email,
+  sessionUnavailable = false,
+}: {
+  email: string | null;
+  /** Cookie present but /users/me failed — do not show "Zaloguj się". */
+  sessionUnavailable?: boolean;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const online = useOnlineStatus();
   const signedIn = email !== null;
-  const active = signedIn ? pathname === "/profil" : pathname === "/login";
+  const active = signedIn
+    ? pathname === "/profil"
+    : sessionUnavailable
+      ? pathname === "/profil"
+      : pathname === "/login";
   const menuSection = useSyncExternalStore(
     subscribeProfileMenuSection,
     getProfileMenuSection,
@@ -96,7 +107,9 @@ export function AccountButton({ email }: { email: string | null }) {
   const triggerLabel = online
     ? signedIn
       ? "Konto"
-      : "Menu konta"
+      : sessionUnavailable
+        ? "Konto chwilowo niedostępne"
+        : "Menu konta"
     : OFFLINE_NAV_HINT;
   const triggerClassName = cn(
     "size-9 shrink-0 border-border/80 bg-card/70 backdrop-blur-sm",
@@ -126,6 +139,11 @@ export function AccountButton({ email }: { email: string | null }) {
     }
   }
 
+  function refreshSession() {
+    setSheetOpen(false);
+    router.refresh();
+  }
+
   async function logout() {
     setPending(true);
     try {
@@ -147,6 +165,77 @@ export function AccountButton({ email }: { email: string | null }) {
     }
   }
 
+  const accountFooter = signedIn ? (
+    <Button
+      type="button"
+      variant="outline"
+      className="h-11 w-full justify-center gap-2 rounded-xl"
+      disabled={pending}
+      onClick={() => void logout()}
+    >
+      <LogOut aria-hidden className="size-4 shrink-0" />
+      {pending ? "Wylogowuję…" : "Wyloguj"}
+    </Button>
+  ) : sessionUnavailable ? (
+    <div className="space-y-3">
+      <p className="px-1 text-sm text-muted-foreground">
+        Nie udało się sprawdzić sesji. Logowanie nie zostało anulowane.
+      </p>
+      <Button
+        type="button"
+        className="h-11 w-full justify-center rounded-xl"
+        onClick={refreshSession}
+      >
+        Odśwież
+      </Button>
+    </div>
+  ) : (
+    <Link
+      href="/login"
+      onClick={() => setSheetOpen(false)}
+      className={cn(
+        "inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border/80 px-3 text-base font-medium transition-colors",
+        pathname === "/login"
+          ? "bg-bus/10 font-semibold text-bus dark:bg-bus/15"
+          : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+      )}
+      aria-current={pathname === "/login" ? "page" : undefined}
+    >
+      Zaloguj się
+    </Link>
+  );
+
+  const desktopFooter = signedIn ? (
+    <DropdownMenuItem
+      disabled={pending}
+      className="px-2 py-1.5"
+      onClick={() => void logout()}
+    >
+      {pending ? "Wylogowuję…" : "Wyloguj"}
+    </DropdownMenuItem>
+  ) : sessionUnavailable ? (
+    <>
+      <p className="px-2 py-1.5 text-sm text-muted-foreground">
+        Nie udało się sprawdzić sesji. Logowanie nie zostało anulowane.
+      </p>
+      <DropdownMenuItem className="px-2 py-1.5" onClick={refreshSession}>
+        Odśwież
+      </DropdownMenuItem>
+    </>
+  ) : (
+    <DropdownMenuLinkItem
+      href="/login"
+      closeOnClick
+      className="px-2 py-1.5"
+      onClick={(event) => {
+        event.preventDefault();
+        router.push("/login");
+      }}
+    >
+      Zaloguj się
+    </DropdownMenuLinkItem>
+  );
+
   return (
     <>
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
@@ -166,7 +255,9 @@ export function AccountButton({ email }: { email: string | null }) {
         </SheetTrigger>
         <SheetContent side="right" className="gap-0 sm:max-w-sm">
           <SheetHeader>
-            <SheetTitle>{signedIn ? "Konto" : "Menu konta"}</SheetTitle>
+            <SheetTitle>
+              {signedIn || sessionUnavailable ? "Konto" : "Menu konta"}
+            </SheetTitle>
           </SheetHeader>
 
           <div className="flex flex-col px-4 pb-4">
@@ -226,32 +317,7 @@ export function AccountButton({ email }: { email: string | null }) {
             </div>
 
             <div className="mt-4 border-t border-border/60 pt-4">
-              {signedIn ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-11 w-full justify-center gap-2 rounded-xl"
-                  disabled={pending}
-                  onClick={() => void logout()}
-                >
-                  <LogOut aria-hidden className="size-4 shrink-0" />
-                  {pending ? "Wylogowuję…" : "Wyloguj"}
-                </Button>
-              ) : (
-                <Link
-                  href="/login"
-                  onClick={() => setSheetOpen(false)}
-                  className={cn(
-                    "inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border/80 px-3 text-base font-medium transition-colors",
-                    pathname === "/login"
-                      ? "bg-bus/10 font-semibold text-bus dark:bg-bus/15"
-                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
-                  )}
-                  aria-current={pathname === "/login" ? "page" : undefined}
-                >
-                  Zaloguj się
-                </Link>
-              )}
+              {accountFooter}
             </div>
           </div>
         </SheetContent>
@@ -314,27 +380,7 @@ export function AccountButton({ email }: { email: string | null }) {
 
           <DropdownMenuSeparator />
 
-          {signedIn ? (
-            <DropdownMenuItem
-              disabled={pending}
-              className="px-2 py-1.5"
-              onClick={() => void logout()}
-            >
-              {pending ? "Wylogowuję…" : "Wyloguj"}
-            </DropdownMenuItem>
-          ) : (
-            <DropdownMenuLinkItem
-              href="/login"
-              closeOnClick
-              className="px-2 py-1.5"
-              onClick={(event) => {
-                event.preventDefault();
-                router.push("/login");
-              }}
-            >
-              Zaloguj się
-            </DropdownMenuLinkItem>
-          )}
+          {desktopFooter}
         </DropdownMenuContent>
       </DropdownMenu>
     </>

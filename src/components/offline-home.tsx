@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { OfflineConnectivityBanner } from "@/components/offline-connectivity-banner";
+import { OfflineNoAccessScreen } from "@/components/offline-no-access-screen";
 import { OfflineSync } from "@/components/offline-sync";
 import { ScheduleBoard } from "@/components/schedule-board";
 import { ScheduleChangesContent } from "@/components/schedule-changes-content";
@@ -13,6 +14,7 @@ import { ScheduleUnavailable } from "@/components/schedule-unavailable";
 import { buttonVariants } from "@/components/ui/button";
 import type { AccountPlan } from "@/lib/child-schedule/account-plan";
 import type { Schedule } from "@/lib/dowozy/types";
+import { hasOfflineEntitlement } from "@/lib/offline/entitlement";
 import type { SchoolOfflineCorrection } from "@/lib/offline/school-cache";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
 import { useSchoolOfflineSnapshot } from "@/lib/offline/use-school-offline-snapshot";
@@ -61,6 +63,7 @@ export function OfflineHome({
   const online = useOnlineStatus();
   const { ready: cacheReady, cached } = useSchoolOfflineSnapshot(schedule);
   const [showZmiany, setShowZmiany] = useState(readZmianyHash);
+  const blockOffline = !online && !hasOfflineEntitlement();
 
   useEffect(() => {
     const sync = () => setShowZmiany(readZmianyHash());
@@ -107,7 +110,9 @@ export function OfflineHome({
         mzkAvailable={mzkAvailable}
         correction={correction}
       />
-      {!cacheReady ? (
+      {blockOffline ? (
+        <OfflineNoAccessScreen />
+      ) : !cacheReady ? (
         <p className="text-sm text-muted-foreground">Wczytywanie rozkładu…</p>
       ) : showZmiany ? (
         <div className="space-y-6">

@@ -3,9 +3,10 @@ import { redirect } from "next/navigation";
 import { PageEyebrow } from "@/components/page-eyebrow";
 import { PageShell } from "@/components/page-shell";
 import { ProfilePanel } from "@/components/profile-panel";
+import { SessionUnavailablePanel } from "@/components/session-unavailable";
 import { SiteHeader } from "@/components/site-header";
 import { rememberPaymentReturn } from "@/lib/auth/backend";
-import { getCurrentUser } from "@/lib/auth/current-user";
+import { getAuthSession } from "@/lib/auth/current-user";
 import { loadPlusPanel } from "@/lib/billing/status";
 import { isPushNotificationsUiEnabled } from "@/lib/push/feature";
 import { buildPageMetadata } from "@/lib/site-metadata";
@@ -28,9 +29,20 @@ type ProfilePageProps = {
 };
 
 export default async function ProfilePage({ searchParams }: ProfilePageProps) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  const session = await getAuthSession();
+  if (session.status === "anonymous") redirect("/login");
 
+  if (session.status === "unavailable") {
+    return (
+      <PageShell wide header={<SiteHeader />}>
+        <div className="page-enter flex min-h-[50vh] items-center justify-center py-10">
+          <SessionUnavailablePanel />
+        </div>
+      </PageShell>
+    );
+  }
+
+  const user = session.user;
   const params = await searchParams;
   const paid = params.paid === "1";
 

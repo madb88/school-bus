@@ -2,11 +2,13 @@
 
 import { LessonPlanForm } from "@/components/lesson-plan-form";
 import { OfflineConnectivityBanner } from "@/components/offline-connectivity-banner";
+import { OfflineNoAccessScreen } from "@/components/offline-no-access-screen";
 import { OfflineSync } from "@/components/offline-sync";
 import type { AccountPlan } from "@/lib/child-schedule/account-plan";
 import { collectPlaces } from "@/lib/dowozy/filter-schedule";
 import { DOWOZY_SOURCE_URL, type Schedule } from "@/lib/dowozy/types";
 import type { MzkSchedule } from "@/lib/mzk/types";
+import { hasOfflineEntitlement } from "@/lib/offline/entitlement";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
 import { useSchoolOfflineSnapshot } from "@/lib/offline/use-school-offline-snapshot";
 
@@ -39,6 +41,7 @@ export function OfflineLekcje({
 }: OfflineLekcjeProps) {
   const online = useOnlineStatus();
   const { ready: cacheReady, cached } = useSchoolOfflineSnapshot(schedule);
+  const blockOffline = !online && !hasOfflineEntitlement();
 
   const usingCache = !schedule && cached != null;
   const effectiveSchedule = schedule ?? cached?.schedule ?? null;
@@ -63,19 +66,20 @@ export function OfflineLekcje({
         accountPlans={initialPlans}
         mzkAvailable={Boolean(mzkSchedule)}
       />
-      {showOfflineBanner ? (
+      {blockOffline ? <OfflineNoAccessScreen /> : null}
+      {!blockOffline && showOfflineBanner ? (
         <OfflineConnectivityBanner
           cachedAt={cached?.cachedAt ?? schedule?.fetchedAt}
           className="mb-4 print:hidden md:mb-6"
         />
       ) : null}
-      {!online && effectiveMode === "account" ? (
+      {blockOffline ? null : !online && effectiveMode === "account" ? (
         <p className="mb-4 text-sm text-muted-foreground print:hidden">
           Edycje planu zapiszą się lokalnie na tym urządzeniu. Synchronizacja z
           kontem będzie możliwa po powrocie połączenia.
         </p>
       ) : null}
-      {!cacheReady ? (
+      {blockOffline ? null : !cacheReady ? (
         <p className="text-muted-foreground">Wczytywanie planu…</p>
       ) : effectiveSchedule && effectivePlaces.length > 0 ? (
         <LessonPlanForm

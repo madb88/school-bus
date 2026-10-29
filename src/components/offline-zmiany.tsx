@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { OfflineConnectivityBanner } from "@/components/offline-connectivity-banner";
+import { OfflineNoAccessScreen } from "@/components/offline-no-access-screen";
 import { ScheduleChangesContent } from "@/components/schedule-changes-content";
 import type { ScheduleCorrectionSnapshot } from "@/lib/dowozy/types";
 import { hasOfflineEntitlement } from "@/lib/offline/entitlement";
@@ -56,6 +57,11 @@ export function OfflineZmiany({ correction }: OfflineZmianyProps) {
   const usingCache = !correction && cachedCorrection != null;
   const effective = toContentCorrection(correction) ?? cachedCorrection;
   const showOfflineBanner = !online || usingCache;
+  const blockOffline = !online && !hasOfflineEntitlement();
+
+  if (blockOffline) {
+    return <OfflineNoAccessScreen />;
+  }
 
   return (
     <>

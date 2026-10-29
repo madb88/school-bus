@@ -36,12 +36,9 @@ export async function PUT(request: Request) {
     return jsonError(BAD_REQUEST, 400);
   }
 
+  // Lenient skip is for /users/me only — client PUT must send fully valid plans.
   const plans = parseAccountPlans(record.plans);
-  if (!plans) {
-    // Empty list is valid; non-empty must parse. Allow [] even if parse fails on items.
-    if (record.plans.length === 0) {
-      return putPlans(user.sessionToken, []);
-    }
+  if (!plans || plans.length !== record.plans.length) {
     return jsonError(BAD_REQUEST, 400);
   }
 

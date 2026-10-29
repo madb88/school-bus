@@ -44,6 +44,19 @@
         padding: 1.25rem 1rem 2.5rem;
         padding-top: max(1.25rem, env(safe-area-inset-top));
       }
+      main.centered {
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+      }
+      main.centered .actions {
+        justify-content: center;
+      }
       h1 {
         font-size: 1.5rem;
         margin: 0 0 0.5rem;
@@ -140,15 +153,29 @@
         border: 1px solid var(--line);
         color: var(--fg);
       }
+      button.btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.55rem 0.9rem;
+        border-radius: 0.6rem;
+        border: none;
+        font-size: 0.9rem;
+        font-weight: 600;
+        background: var(--bus);
+        color: #fff;
+        cursor: pointer;
+        font-family: inherit;
+      }
     </style>
   </head>
   <body>
-    <main>
-      <h1>Rozkład offline</h1>
+    <main id="shell">
+      <h1 id="heading">Rozkład offline</h1>
       <p id="status" class="muted">Wczytywanie lokalnej kopii…</p>
       <div id="banner" class="banner" hidden></div>
       <div id="content"></div>
-      <div class="actions">
+      <div class="actions" id="actions">
         <a class="btn" href="/">Odśwież aplikację</a>
         <a id="lessons-btn" class="btn secondary" href="/lekcje" hidden
           >Plan lekcji</a
@@ -163,9 +190,12 @@
         var KEY = "snapshot";
         var ENTITLEMENT_KEY = "school-bus.offline-entitlement.v1";
 
+        var shellEl = document.getElementById("shell");
+        var headingEl = document.getElementById("heading");
         var statusEl = document.getElementById("status");
         var bannerEl = document.getElementById("banner");
         var contentEl = document.getElementById("content");
+        var actionsEl = document.getElementById("actions");
         var lessonsBtn = document.getElementById("lessons-btn");
 
         function esc(s) {
@@ -306,10 +336,22 @@
         }
 
         if (!hasEntitlement()) {
+          if (shellEl) shellEl.className = "centered";
+          if (headingEl) headingEl.hidden = true;
           showMessage(
             "Brak połączenia z internetem",
-            "Rozkład offline jest dostępny w Planie Plus — po wcześniejszym otwarciu aplikacji online.",
+            "Bez internetu nie ma dostępu do aplikacji. Tryb offline z lokalną kopią rozkładu jest dostępny w Planie Plus — po wcześniejszym otwarciu aplikacji online.",
           );
+          if (actionsEl) {
+            actionsEl.innerHTML =
+              '<button type="button" class="btn" id="reload-btn">Odśwież</button>';
+            var reloadBtn = document.getElementById("reload-btn");
+            if (reloadBtn) {
+              reloadBtn.addEventListener("click", function () {
+                location.reload();
+              });
+            }
+          }
           return;
         }
 

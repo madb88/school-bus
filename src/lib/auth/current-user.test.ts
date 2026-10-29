@@ -24,7 +24,7 @@ vi.mock("react", async () => {
 
 const TOKEN = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG";
 
-describe("getCurrentUser", () => {
+describe("getAuthSession / getCurrentUser", () => {
   beforeEach(() => {
     fetchMe.mockReset();
     cookieGet.mockReset();
@@ -37,26 +37,28 @@ describe("getCurrentUser", () => {
   async function load() {
     const mod = await import("./current-user");
     mod.resetCurrentUserWarnCache();
-    return mod.getCurrentUser;
+    return mod;
   }
 
-  it("returns null without fetching when the cookie is missing", async () => {
+  it("returns anonymous without fetching when the cookie is missing", async () => {
     cookieGet.mockReturnValue(undefined);
-    const getCurrentUser = await load();
+    const { getAuthSession, getCurrentUser } = await load();
+    expect(await getAuthSession()).toEqual({ status: "anonymous" });
     expect(await getCurrentUser()).toBeNull();
     expect(fetchMe).not.toHaveBeenCalled();
   });
 
-  it("returns null without fetching when the cookie is malformed", async () => {
+  it("returns anonymous without fetching when the cookie is malformed", async () => {
     cookieGet.mockImplementation((name: string) =>
       name === SESSION_COOKIE ? { value: "old.sealed.value" } : undefined,
     );
-    const getCurrentUser = await load();
+    const { getAuthSession, getCurrentUser } = await load();
+    expect(await getAuthSession()).toEqual({ status: "anonymous" });
     expect(await getCurrentUser()).toBeNull();
     expect(fetchMe).not.toHaveBeenCalled();
   });
 
-  it("returns the user on 200", async () => {
+  it("returns authenticated user on 200", async () => {
     cookieGet.mockImplementation((name: string) =>
       name === SESSION_COOKIE ? { value: TOKEN } : undefined,
     );
@@ -67,34 +69,41 @@ describe("getCurrentUser", () => {
       createdAt: "2026-01-01T00:00:00.000Z",
       plans: [],
     });
-    const getCurrentUser = await load();
-    expect(await getCurrentUser()).toEqual({
+    const { getAuthSession, getCurrentUser } = await load();
+    const user = {
       userId: "11111111-1111-4111-8111-111111111111",
       email: "parent@example.com",
       role: "individual",
       plans: [],
       createdAt: "2026-01-01T00:00:00.000Z",
       sessionToken: TOKEN,
+    };
+    expect(await getAuthSession()).toEqual({
+      status: "authenticated",
+      user,
     });
+    expect(await getCurrentUser()).toEqual(user);
     expect(fetchMe).toHaveBeenCalledWith(TOKEN);
   });
 
-  it("returns null on 401", async () => {
+  it("returns anonymous on 401", async () => {
     cookieGet.mockImplementation((name: string) =>
       name === SESSION_COOKIE ? { value: TOKEN } : undefined,
     );
     fetchMe.mockResolvedValue(null);
-    const getCurrentUser = await load();
+    const { getAuthSession, getCurrentUser } = await load();
+    expect(await getAuthSession()).toEqual({ status: "anonymous" });
     expect(await getCurrentUser()).toBeNull();
   });
 
-  it("returns null on network unavailable", async () => {
+  it("returns unavailable on network error (not logged out)", async () => {
     cookieGet.mockImplementation((name: string) =>
       name === SESSION_COOKIE ? { value: TOKEN } : undefined,
     );
     fetchMe.mockResolvedValue("unavailable");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    const getCurrentUser = await load();
+    const { getAuthSession, getCurrentUser } = await load();
+    expect(await getAuthSession()).toEqual({ status: "unavailable" });
     expect(await getCurrentUser()).toBeNull();
     expect(warn).toHaveBeenCalledOnce();
     warn.mockRestore();

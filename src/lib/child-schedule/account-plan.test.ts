@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ACCOUNT_PLAN_NAME_MAX,
   accountPlanLabel,
@@ -247,8 +247,26 @@ describe("accountPlanLabel", () => {
 });
 
 describe("parseAccountPlans", () => {
-  it("accepts an empty list and rejects a bad item", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("accepts an empty list and skips invalid items", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     expect(parseAccountPlans([])).toEqual([]);
-    expect(parseAccountPlans([{ place: "X", days: {} }])).toBeNull();
+    expect(parseAccountPlans([{ place: "X", days: {} }])).toEqual([]);
+    expect(parseAccountPlans("not-an-array")).toBeNull();
+    expect(warn).toHaveBeenCalled();
+  });
+
+  it("keeps valid plans when one sibling is invalid", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const valid = {
+      place: "Zatonie",
+      days: { "1": { start: "08:00", end: "14:00" } },
+    };
+    expect(parseAccountPlans([valid, { place: "X", days: {} }, null])).toEqual([
+      valid,
+    ]);
   });
 });

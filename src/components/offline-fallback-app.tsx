@@ -1,15 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { OfflineHome } from "@/components/offline-home";
-import { buttonVariants } from "@/components/ui/button";
+import { OfflineNoAccessScreen } from "@/components/offline-no-access-screen";
+import { Button } from "@/components/ui/button";
 import { hasOfflineEntitlement } from "@/lib/offline/entitlement";
 import {
   loadSchoolOfflineSnapshot,
   type SchoolOfflineSnapshot,
 } from "@/lib/offline/school-cache";
-import { cn } from "cn";
 
 type FallbackPhase =
   | { kind: "loading" }
@@ -51,26 +50,12 @@ export function OfflineFallbackApp() {
   }
 
   if (phase.kind === "no-plus") {
-    return (
-      <div className="mx-auto max-w-lg space-y-4 text-center">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-asphalt">
-          Brak połączenia z internetem
-        </h1>
-        <p className="text-muted-foreground">
-          Rozkład offline jest dostępny w Planie Plus — po wcześniejszym
-          otwarciu aplikacji online. Połącz się z siecią albo odblokuj Plan
-          Plus w profilu.
-        </p>
-        <Link href="/profil" className={cn(buttonVariants(), "inline-flex")}>
-          Przejdź do profilu
-        </Link>
-      </div>
-    );
+    return <OfflineNoAccessScreen />;
   }
 
   if (phase.kind === "no-data") {
     return (
-      <div className="mx-auto max-w-lg space-y-4 text-center">
+      <div className="mx-auto flex min-h-[50vh] max-w-lg flex-col items-center justify-center space-y-4 text-center">
         <h1 className="font-display text-2xl font-bold tracking-tight text-asphalt">
           Brak zapisanej kopii rozkładu
         </h1>
@@ -78,9 +63,14 @@ export function OfflineFallbackApp() {
           Otwórz aplikację mając internet (z aktywnym Planem Plus), żeby zapisać
           rozkład na tym urządzeniu. Potem będzie dostępny offline.
         </p>
-        <Link href="/" className={cn(buttonVariants(), "inline-flex")}>
-          Spróbuj ponownie
-        </Link>
+        <Button
+          type="button"
+          onClick={() => {
+            window.location.reload();
+          }}
+        >
+          Odśwież
+        </Button>
       </div>
     );
   }
