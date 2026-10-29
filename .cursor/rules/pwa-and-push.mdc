@@ -43,9 +43,10 @@ Nagłówki no-cache dla `/sw.js` w `next.config.ts` zostaw.
 ## Offline (Plan Plus)
 
 1. Online + Plus → `syncOfflineEntitlement` (localStorage) + zapis snapshotu szkolnego (+ `accountPlans`) do IDB + warm `/offline`
-2. Offline → wyłącznie spersonalizowany rozkład na `/offline` (bez filtrów / nav); bez entitlement → `OfflineNoAccessScreen`
-3. Wejście offline na `/` / `/lekcje` / `/zmiany-w-rozkladzie` → redirect na `/offline` (Plus) albo no-access
-4. Push **nie** jest częścią offline (wymaga backendu / sieci)
+2. Offline → wyłącznie spersonalizowany rozkład na `/offline` (bez filtrów / nav); bez entitlement → statyczny [`public/offline.html`](public/offline.html)
+3. Wejście offline na `/` / `/lekcje` / `/zmiany-w-rozkladzie` → redirect na `/offline` (Plus) albo `offline.html`
+4. Push **nie** jest częścią offline (wymaga backendu / sieci); MZK nie ma cold-start offline (opcjonalny cache OD tylko przy już otwartej stronie)
+
 
 Bez ważnego lokalnego entitlementu nie udostępniaj zapisanych snapshotów jako „offline Plus”.
 

@@ -483,8 +483,8 @@ export function ScheduleBoard({
     const current = `${window.location.pathname}${window.location.search}`;
     if (next === current) return;
 
-    // Offline: Next soft-nav / RSC fetch fails and can hard-reload into the
-    // offline shell. Keep filters in React state and sync the URL locally.
+    // Offline: Next soft-nav / RSC fetch fails; keep filters in React state
+    // and sync the URL locally (Plus users are redirected to `/offline`).
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       window.history.replaceState(window.history.state, "", next);
       return;

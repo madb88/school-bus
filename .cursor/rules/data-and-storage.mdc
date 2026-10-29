@@ -47,10 +47,10 @@ Baza `school-bus-offline` (`src/lib/offline/*`):
 
 | Store | Zawartość |
 | --- | --- |
-| `school` | ostatni snapshot rozkładu szkolnego + `accountPlans` + `mzkAvailable` |
-| `mzkOd` | odpowiedzi OD dla zapisanej trasy (`board|alight|date`) |
+| `school` | ostatni snapshot rozkładu szkolnego + `accountPlans` (+ opcjonalnie korekty) — źródło widoku `/offline` |
+| `mzkOd` | opcjonalny cache odpowiedzi OD przy już otwartej stronie MZK (`board|alight|date`); **nie** cold-start offline |
 
-Zapis **tylko** przy aktywnym Plus (entitlement). Nie trzymaj pełnego GTFS MZK — tylko slim OD. Shell HTML/assetów: Cache API w `public/sw.js` (nie IDB).
+Zapis snapshotu szkolnego **tylko** przy aktywnym Plus (entitlement). Nie trzymaj pełnego GTFS MZK. Shell HTML/assetów: Cache API w `public/sw.js` (nie IDB) — wyłącznie `/offline` + `/offline.html`.
 
 ## Redis (Upstash) — kiedy
 

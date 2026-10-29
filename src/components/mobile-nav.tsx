@@ -68,7 +68,7 @@ export function MobileNav({ current }: MobileNavProps) {
                 const active = current === item.id;
                 const Icon = item.icon;
                 const isNowosci = item.id === "nowosci";
-                const disabled = !online && !item.offlineAvailable;
+                const disabled = !online;
                 const itemClass = cn(
                   "inline-flex items-center gap-3 rounded-xl px-3 py-3 text-base font-medium transition-colors",
                   disabled

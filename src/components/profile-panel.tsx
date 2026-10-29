@@ -611,7 +611,7 @@ function ActivePlanHero({
 const PLUS_FEATURE_LABELS = [
   "Powiadomienia o zmianach w kursach",
   "Do 5 planów lekcji na koncie, na każdym urządzeniu",
-  "Rozkład offline (PWA) — kopia na urządzeniu bez internetu",
+  "Rozkład offline — spersonalizowany rozkład jazdy bez internetu",
 ] as const;
 
 const PLUS_COMING_SOON = [
@@ -758,7 +758,7 @@ const PLUS_BENEFITS = [
     icon: WifiOff,
     title: "Rozkład offline",
     description:
-      "Otwórz aplikację bez internetu — lokalna kopia rozkładu szkolnego, trasy MZK i planu lekcji.",
+      "Bez internetu zobaczysz spersonalizowany rozkład jazdy dopasowany do Twojego planu lekcji (po wcześniejszym otwarciu aplikacji online).",
     iconClassName: "bg-sky-500/12 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400",
   },
   {
@@ -795,7 +795,8 @@ function InactivePlusHero({
           </div>
           <p className="max-w-xl text-base leading-relaxed text-muted-foreground">
             Korzystasz z darmowej wersji. Wykup Plan Plus, aby włączyć
-            powiadomienia i zapisać do pięciu planów lekcji na koncie.
+            powiadomienia, zapisać do pięciu planów lekcji na koncie i mieć
+            dostęp do rozkładu offline.
           </p>
           {trialEnded ? (
             <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">

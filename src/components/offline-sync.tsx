@@ -25,7 +25,7 @@ type OfflineSyncProps = {
 };
 
 /**
- * When Plan Plus is active online, persist entitlement + school snapshot (+ MZK OD prefetch).
+ * When Plan Plus is active online, persist entitlement + school snapshot for `/offline`.
  * When access is revoked, clear local offline data (race-safe vs a later re-login).
  */
 export function OfflineSync({

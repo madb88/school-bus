@@ -4,14 +4,9 @@ import { LESSON_PLAN_STORAGE_KEY } from "@/lib/child-schedule/types";
 import type { Schedule } from "@/lib/dowozy/types";
 import { MZK_ROUTE_STORAGE_KEY } from "@/lib/mzk/route-preference";
 import {
-  hasConfiguredMzkRoute,
-  loadMzkRoutePreference,
-} from "@/lib/mzk/route-storage";
-import {
   clearOfflineEntitlement,
   syncOfflineEntitlement,
 } from "./entitlement";
-import { prefetchMzkOdForRoute } from "./prefetch-mzk-od";
 import {
   clearSchoolOfflineSnapshot,
   saveSchoolOfflineSnapshot,
@@ -124,20 +119,6 @@ export function persistOfflinePlusSession(opts: {
       });
     } catch {
       // ignore quota / private mode
-    }
-
-    const route = loadMzkRoutePreference();
-    if (
-      opts.mzkAvailable &&
-      hasConfiguredMzkRoute(route) &&
-      route.boardStopId &&
-      route.alightStopId
-    ) {
-      await prefetchMzkOdForRoute({
-        boardStopId: route.boardStopId,
-        alightStopId: route.alightStopId,
-        route: route.route,
-      });
     }
   });
 }

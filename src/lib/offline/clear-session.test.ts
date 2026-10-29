@@ -15,21 +15,8 @@ vi.mock("./school-cache", () => ({
 
 vi.mock("./warm-shell", () => ({
   OFFLINE_SHELL_CACHE: "school-bus-shell-test",
-  OFFLINE_WARM_DOCUMENT_PATHS: ["/", "/offline", "/offline.html", "/lekcje"],
+  OFFLINE_WARM_DOCUMENT_PATHS: ["/offline", "/offline.html"],
   warmOfflineShell: vi.fn(),
-}));
-
-vi.mock("./prefetch-mzk-od", () => ({
-  prefetchMzkOdForRoute: vi.fn(async () => undefined),
-}));
-
-vi.mock("@/lib/mzk/route-storage", () => ({
-  hasConfiguredMzkRoute: () => false,
-  loadMzkRoutePreference: () => ({
-    boardStopId: null,
-    alightStopId: null,
-    route: null,
-  }),
 }));
 
 const schedule = {

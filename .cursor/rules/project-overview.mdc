@@ -51,7 +51,7 @@ Nawigacja: `NAV_ITEMS` w `src/components/site-nav.tsx`. Layout stron: `PageShell
 ## Ograniczenia
 
 - Dane użytkownika domyślnie **lokalne**; serwer tylko przy feedbacku, QR transferze lub push
-- **Offline (Plan Plus):** shell w SW + snapshot szkolny / OD MZK w IndexedDB (`src/lib/offline/*`); push wymaga sieci
+- **Offline (Plan Plus):** SW Cache API (`/offline`, `/offline.html`) + snapshot szkolny w IndexedDB; spersonalizowany rozkład na `/offline`; push wymaga sieci
 - Mobile-first, szybki odczyt najbliższego kursu — nie buduj „dashboardu”
 - Wersja w `package.json` → stopka (`APP_VERSION`)
 

@@ -30,51 +30,43 @@ export const NAV_ITEMS: ReadonlyArray<{
   href: string;
   label: string;
   icon: LucideIcon;
-  /** Safe to open from a cold offline PWA shell. */
-  offlineAvailable: boolean;
 }> = [
   {
     id: "rozklad",
     href: "/",
     label: "Rozkład",
     icon: Bus,
-    offlineAvailable: false,
   },
   {
     id: "lekcje",
     href: "/lekcje",
     label: "Plan lekcji",
     icon: CalendarDays,
-    offlineAvailable: false,
   },
-  { id: "mzk", href: "/mzk", label: "MZK", icon: Map, offlineAvailable: false },
+  { id: "mzk", href: "/mzk", label: "MZK", icon: Map },
   {
     id: "nowosci",
     href: "/nowosci",
     label: "Nowości",
     icon: Newspaper,
-    offlineAvailable: false,
   },
   {
     id: "instalacja",
     href: "/instalacja",
     label: "Aplikacja",
     icon: Smartphone,
-    offlineAvailable: false,
   },
   {
     id: "o-aplikacji",
     href: "/o-aplikacji",
     label: "Jak zacząć",
     icon: Info,
-    offlineAvailable: false,
   },
   {
     id: "o-projekcie",
     href: "/o-projekcie",
     label: "O projekcie",
     icon: BookOpen,
-    offlineAvailable: false,
   },
 ];
 
@@ -105,7 +97,7 @@ export function SiteNav({ current }: SiteNavProps) {
       {NAV_ITEMS.map((item) => {
         const Icon = item.icon;
         const active = current === item.id;
-        const disabled = !online && !item.offlineAvailable;
+        const disabled = !online;
         const className = linkClass(active, disabled);
 
         if (disabled) {
