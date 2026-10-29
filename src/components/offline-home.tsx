@@ -30,6 +30,8 @@ type OfflineHomeProps = {
   offlinePlusAccess: boolean;
   plusValidUntil?: string | null;
   correction?: SchoolOfflineCorrection | null;
+  /** Auth blip: keep local Plus data until /users/me succeeds again. */
+  suspendOfflineSync?: boolean;
 };
 
 const CORRECTION_BANNER: FreshnessInfo = {
@@ -59,6 +61,7 @@ export function OfflineHome({
   offlinePlusAccess,
   plusValidUntil = null,
   correction = undefined,
+  suspendOfflineSync = false,
 }: OfflineHomeProps) {
   const online = useOnlineStatus();
   const { ready: cacheReady, cached } = useSchoolOfflineSnapshot(schedule);
@@ -109,6 +112,7 @@ export function OfflineHome({
         accountPlans={accountPlans}
         mzkAvailable={mzkAvailable}
         correction={correction}
+        suspend={suspendOfflineSync}
       />
       {blockOffline ? (
         <OfflineNoAccessScreen />

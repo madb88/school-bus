@@ -2,7 +2,7 @@
    Cold-start fallback is static /offline.html (no Next chunks).
    Cache API: navigations + /_next/static + icons — not /api/*. */
 
-const SHELL_CACHE = "school-bus-shell-v4";
+const SHELL_CACHE = "school-bus-shell-v5";
 const OFFLINE_FALLBACK = "/offline.html";
 /** Keep in sync with OFFLINE_WARM_DOCUMENT_PATHS in warm-shell.ts */
 const WARM_DOCUMENT_PATHS = [
@@ -129,7 +129,8 @@ async function matchNavigation(cache, request) {
 async function networkFirstNavigation(request) {
   const cache = await caches.open(SHELL_CACHE);
   try {
-    const fresh = await fetch(request);
+    // Bypass HTTP cache so auth/session SSR is not served stale by the browser.
+    const fresh = await fetch(request, { cache: "no-store" });
     await cachePutSafe(cache, request, fresh);
     // Also store under pathname for easier cold-start matching.
     try {

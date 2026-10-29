@@ -25,6 +25,8 @@ type OfflineLekcjeProps = {
   /** True Plus (admin/active/trial) — drives offline entitlement sync. */
   offlinePlusAccess: boolean;
   plusValidUntil?: string | null;
+  /** Auth blip: keep local Plus data until /users/me succeeds again. */
+  suspendOfflineSync?: boolean;
 };
 
 export function OfflineLekcje({
@@ -38,6 +40,7 @@ export function OfflineLekcje({
   plusAccess,
   offlinePlusAccess,
   plusValidUntil = null,
+  suspendOfflineSync = false,
 }: OfflineLekcjeProps) {
   const online = useOnlineStatus();
   const { ready: cacheReady, cached } = useSchoolOfflineSnapshot(schedule);
@@ -65,6 +68,7 @@ export function OfflineLekcje({
         schedule={schedule}
         accountPlans={initialPlans}
         mzkAvailable={Boolean(mzkSchedule)}
+        suspend={suspendOfflineSync}
       />
       {blockOffline ? <OfflineNoAccessScreen /> : null}
       {!blockOffline && showOfflineBanner ? (

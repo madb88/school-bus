@@ -17,6 +17,11 @@ type OfflineSyncProps = {
   accountPlans?: AccountPlan[];
   mzkAvailable?: boolean;
   correction?: SchoolOfflineCorrection | null;
+  /**
+   * Session cookie present but /users/me failed — do not clear or renew
+   * offline Plus data based on a transient auth blip.
+   */
+  suspend?: boolean;
 };
 
 /**
@@ -30,10 +35,13 @@ export function OfflineSync({
   accountPlans = [],
   mzkAvailable = false,
   correction = undefined,
+  suspend = false,
 }: OfflineSyncProps) {
   const online = useOnlineStatus();
 
   useEffect(() => {
+    if (suspend) return;
+
     if (!plusAccess) {
       void clearOfflinePlusSession();
       return;
@@ -48,6 +56,7 @@ export function OfflineSync({
       online,
     });
   }, [
+    suspend,
     plusAccess,
     plusValidUntil,
     schedule,

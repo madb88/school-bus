@@ -141,7 +141,8 @@ export function AccountButton({
 
   function refreshSession() {
     setSheetOpen(false);
-    router.refresh();
+    // Hard reload so PWA/SW do not keep a stale unavailable SSR shell.
+    window.location.reload();
   }
 
   async function logout() {

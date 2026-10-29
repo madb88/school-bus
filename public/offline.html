@@ -329,9 +329,39 @@
             : "";
         }
 
-        // If we're online, prefer the full Next app.
+        // navigator.onLine can be true while Next is unreachable — probe first
+        // to avoid offline.html ↔ / redirect loops. Use /sw.js (SW does not
+        // intercept it) so we never get a false OK from a cached document.
         if (navigator.onLine) {
-          location.replace("/");
+          function showAppDown() {
+            if (shellEl) shellEl.className = "centered";
+            if (headingEl) headingEl.hidden = true;
+            showMessage(
+              "Aplikacja chwilowo niedostępna",
+              "Wygląda na to, że jesteś online, ale serwer aplikacji nie odpowiada. Sprawdź połączenie i odśwież.",
+            );
+            if (actionsEl) {
+              actionsEl.innerHTML =
+                '<button type="button" class="btn" id="reload-btn">Odśwież</button>';
+              var reloadBtn = document.getElementById("reload-btn");
+              if (reloadBtn) {
+                reloadBtn.addEventListener("click", function () {
+                  location.reload();
+                });
+              }
+            }
+          }
+          fetch("/sw.js", { method: "GET", cache: "no-store" })
+            .then(function (res) {
+              if (res && res.ok) {
+                location.replace("/");
+                return;
+              }
+              showAppDown();
+            })
+            .catch(function () {
+              showAppDown();
+            });
           return;
         }
 

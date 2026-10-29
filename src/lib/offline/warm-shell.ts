@@ -1,5 +1,5 @@
 /** Keep in sync with `SHELL_CACHE` in `public/sw.js`. */
-export const OFFLINE_SHELL_CACHE = "school-bus-shell-v4" as const;
+export const OFFLINE_SHELL_CACHE = "school-bus-shell-v5" as const;
 
 /** Document routes warmed for offline hard-navigation (Plan Plus). */
 export const OFFLINE_WARM_DOCUMENT_PATHS = [

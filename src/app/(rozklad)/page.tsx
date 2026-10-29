@@ -2,7 +2,7 @@ import { OfflineHome } from "@/components/offline-home";
 import { PageShell } from "@/components/page-shell";
 import { SiteHeader } from "@/components/site-header";
 import { fetchPlus } from "@/lib/auth/backend";
-import { getCurrentUser } from "@/lib/auth/current-user";
+import { getAuthSession } from "@/lib/auth/current-user";
 import { hasPlusAccess } from "@/lib/billing/access";
 import { loadScheduleCorrectionSnapshot } from "@/lib/dowozy/load-schedule";
 import { overrideFreshnessInfo } from "@/lib/dowozy/override-freshness";
@@ -23,11 +23,13 @@ export const metadata = buildPageMetadata({
 });
 
 export default async function Home() {
-  const [correction, mzkMeta, user] = await Promise.all([
+  const [correction, mzkMeta, session] = await Promise.all([
     loadScheduleCorrectionSnapshot(),
     loadMzkScheduleMeta(),
-    getCurrentUser(),
+    getAuthSession(),
   ]);
+  const user = session.status === "authenticated" ? session.user : null;
+  const suspendOfflineSync = session.status === "unavailable";
   const loaded = correction?.resolved ?? null;
   const schedule = loaded?.schedule ?? null;
   const freshness = [
@@ -69,6 +71,7 @@ export default async function Home() {
           offlinePlusAccess={offlinePlusAccess}
           plusValidUntil={plusValidUntil}
           correction={offlineCorrection}
+          suspendOfflineSync={suspendOfflineSync}
         />
       </div>
     </PageShell>

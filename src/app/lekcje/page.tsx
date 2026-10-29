@@ -3,7 +3,7 @@ import { PageEyebrow } from "@/components/page-eyebrow";
 import { PageShell } from "@/components/page-shell";
 import { SiteHeader } from "@/components/site-header";
 import { fetchPlus } from "@/lib/auth/backend";
-import { getCurrentUser } from "@/lib/auth/current-user";
+import { getAuthSession } from "@/lib/auth/current-user";
 import { hasPlusAccess, isPastTrialWindow } from "@/lib/billing/access";
 import { collectPlaces } from "@/lib/dowozy/filter-schedule";
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
@@ -18,11 +18,13 @@ export const metadata = buildPageMetadata({
 });
 
 export default async function LekcjePage() {
-  const [loaded, mzkSchedule, user] = await Promise.all([
+  const [loaded, mzkSchedule, session] = await Promise.all([
     loadScheduleSnapshot(),
     loadMzkScheduleSnapshot(),
-    getCurrentUser(),
+    getAuthSession(),
   ]);
+  const user = session.status === "authenticated" ? session.user : null;
+  const suspendOfflineSync = session.status === "unavailable";
   const schedule = loaded?.schedule ?? null;
   const places = schedule ? collectPlaces(schedule) : [];
 
@@ -64,6 +66,7 @@ export default async function LekcjePage() {
           plusAccess={plusAccess}
           offlinePlusAccess={offlinePlusAccess}
           plusValidUntil={plusValidUntil}
+          suspendOfflineSync={suspendOfflineSync}
         />
       </div>
     </PageShell>

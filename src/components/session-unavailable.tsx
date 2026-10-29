@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -8,8 +7,6 @@ import { Button } from "@/components/ui/button";
  * Must not look like a logged-out state.
  */
 export function SessionUnavailablePanel() {
-  const router = useRouter();
-
   return (
     <div className="mx-auto max-w-lg space-y-4 text-center">
       <h1 className="font-display text-2xl font-bold tracking-tight text-asphalt sm:text-3xl">
@@ -19,7 +16,13 @@ export function SessionUnavailablePanel() {
         Nie udało się sprawdzić sesji. Twoje logowanie nie zostało anulowane —
         spróbuj odświeżyć stronę za chwilę.
       </p>
-      <Button type="button" onClick={() => router.refresh()}>
+      <Button
+        type="button"
+        onClick={() => {
+          // Hard reload bypasses soft RSC + stale SW document snapshots.
+          window.location.reload();
+        }}
+      >
         Odśwież
       </Button>
     </div>
