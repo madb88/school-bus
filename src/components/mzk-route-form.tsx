@@ -2,13 +2,15 @@
 
 import { ArrowDown, ArrowRight, Bus, ChevronRight, Home, School } from "lucide-react";
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useState, useSyncExternalStore, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { cn } from "cn";
 import { StopCombobox } from "@/components/stop-combobox";
 import { SettingsTransferSheet } from "@/components/settings-transfer-sheet";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
 import {
   NativeSelect,
   NativeSelectOption,
@@ -55,6 +57,12 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
     alightStopId: canonicalUniqueStopId(schedule, rawPref.alightStopId),
   };
   const [pending, startTransition] = useTransition();
+  // Server=false, client=true — avoids setState-in-effect for the sticky portal.
+  const stickySaveMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   const hintPlace = lessonPlan.place ?? preferredPlace;
   const suggestions = suggestMzkRoutes(schedule, hintPlace);
@@ -167,9 +175,10 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
   }
 
   const routeReady = Boolean(boardName) && Boolean(alightName);
+  const saveDisabled = pending || sameStop;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-24 md:pb-0">
       {suggestions.length > 0 ? (
         <div className="space-y-3">
           <div className="space-y-1">
@@ -416,10 +425,22 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
         <Button
           type="button"
           size="lg"
-          disabled={pending || sameStop}
+          className="hidden md:inline-flex"
+          disabled={saveDisabled}
+          aria-busy={pending}
           onClick={handleSave}
         >
-          Zapisz trasę
+          <span className="relative inline-flex items-center justify-center">
+            {pending ? (
+              <span
+                className="absolute right-full mr-2 inline-flex size-4 items-center justify-center"
+                aria-hidden
+              >
+                <Spinner />
+              </span>
+            ) : null}
+            <span>Zapisz trasę</span>
+          </span>
         </Button>
         <Button
           type="button"
@@ -450,6 +471,36 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
           </Link>
         ) : null}
       </div>
+      {stickySaveMounted
+        ? createPortal(
+            <div
+              className="fixed bottom-0 left-0 z-40 w-screen max-w-none shrink-0 border-t border-border/70 bg-card/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] shadow-[0_-4px_16px_color-mix(in_srgb,var(--foreground)_6%,transparent)] backdrop-blur-sm md:hidden dark:shadow-[0_-4px_16px_rgba(0,0,0,0.35)]"
+              style={{ width: "100vw" }}
+            >
+              <Button
+                type="button"
+                size="lg"
+                className="h-11 w-full max-w-none px-4"
+                disabled={saveDisabled}
+                aria-busy={pending}
+                onClick={handleSave}
+              >
+                <span className="relative flex w-full items-center justify-center">
+                  {pending ? (
+                    <span
+                      className="absolute left-0 inline-flex size-4 items-center justify-center"
+                      aria-hidden
+                    >
+                      <Spinner />
+                    </span>
+                  ) : null}
+                  <span>Zapisz trasę</span>
+                </span>
+              </Button>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
