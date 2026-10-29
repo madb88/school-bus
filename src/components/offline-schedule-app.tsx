@@ -114,46 +114,45 @@ export function OfflineScheduleApp() {
     <div className="min-h-dvh bg-background px-4 pb-10 pt-[max(1rem,env(safe-area-inset-top))]">
       <div
         role="status"
-        className="mb-5 flex items-start gap-3 rounded-2xl border-2 border-red-500/45 bg-red-500/12 px-3.5 py-3 text-red-950 dark:border-red-400/35 dark:bg-red-500/18 dark:text-red-50"
+        className="mb-5 space-y-3 rounded-2xl border-2 border-red-500/45 bg-red-500/12 px-3.5 py-3 text-red-950 dark:border-red-400/35 dark:bg-red-500/18 dark:text-red-50"
       >
-        <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-red-600 text-white dark:bg-red-500">
-          <WifiOff aria-hidden className="size-4" strokeWidth={2.5} />
-        </span>
-        <div className="min-w-0 space-y-1">
-          <p className="text-sm font-semibold leading-snug">
-            Jesteś offline — masz dostęp tylko do swojego rozkładu jazdy.
-          </p>
-          <p className="text-xs leading-snug opacity-90">
-            Połącz się z internetem, żeby wrócić do pełnej aplikacji
-            {(() => {
-              const when = phase.cached.cachedAt
-                ? formatCachedAt(phase.cached.cachedAt)
-                : null;
-              return when ? ` · kopia z ${when}` : "";
-            })()}
-            .
-          </p>
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-red-600 text-white dark:bg-red-500">
+            <WifiOff aria-hidden className="size-4" strokeWidth={2.5} />
+          </span>
+          <div className="min-w-0 space-y-1">
+            <p className="text-sm font-semibold leading-snug">
+              Jesteś offline — masz dostęp tylko do swojego rozkładu jazdy.
+            </p>
+            <p className="text-xs leading-snug opacity-90">
+              Połącz się z internetem, żeby wrócić do pełnej aplikacji
+              {(() => {
+                const when = phase.cached.cachedAt
+                  ? formatCachedAt(phase.cached.cachedAt)
+                  : null;
+                return when ? ` · kopia z ${when}` : "";
+              })()}
+              .
+            </p>
+          </div>
         </div>
-      </div>
-
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="font-display text-sm font-bold tracking-tight">
-          <span className="text-asphalt">autobus</span>
-          <span className="text-bus">szkolny.pl</span>
-        </p>
         <Button
           type="button"
-          variant="outline"
-          size="sm"
-          className="gap-1.5 shrink-0"
+          variant="secondary"
+          className="h-10 w-full gap-2 rounded-xl border border-red-500/25 bg-background/80 text-foreground hover:bg-background dark:border-red-400/20"
           onClick={() => {
             window.location.reload();
           }}
         >
-          <RefreshCw aria-hidden className="size-3.5" />
-          Odśwież
+          <RefreshCw aria-hidden className="size-4" />
+          Odśwież aplikację
         </Button>
       </div>
+
+      <p className="mb-4 font-display text-sm font-bold tracking-tight">
+        <span className="text-asphalt">autobus</span>
+        <span className="text-bus">szkolny.pl</span>
+      </p>
 
       <OfflinePersonalizedSchedule view={phase.view} />
     </div>
