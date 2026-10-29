@@ -41,15 +41,41 @@ function readLocalPlan() {
   }
 }
 
+/** Probe real network (not just navigator.onLine) — same idea as offline.html. */
+async function canReachApp(): Promise<boolean> {
+  try {
+    const res = await fetch("/sw.js", { method: "GET", cache: "no-store" });
+    return Boolean(res?.ok);
+  } catch {
+    return false;
+  }
+}
+
+async function leaveOfflineForFullApp(): Promise<boolean> {
+  if (!(await canReachApp())) return false;
+  window.location.replace("/");
+  return true;
+}
+
+async function refreshOfflineApp(): Promise<void> {
+  if (await leaveOfflineForFullApp()) return;
+  window.location.reload();
+}
+
 /**
  * Sole Plan Plus offline experience: personalized schedule, no app chrome/filters.
+ * When the network is back, leave `/offline` for the full app (`/`).
  */
 export function OfflineScheduleApp() {
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
 
   useEffect(() => {
     let cancelled = false;
+
     void (async () => {
+      if (await leaveOfflineForFullApp()) return;
+      if (cancelled) return;
+
       if (!hasOfflineEntitlement()) {
         goToStaticOfflineGate();
         return;
@@ -77,8 +103,15 @@ export function OfflineScheduleApp() {
 
       setPhase({ kind: "ready", cached: snap, view: result.view });
     })();
+
+    const onOnline = () => {
+      void leaveOfflineForFullApp();
+    };
+    window.addEventListener("online", onOnline);
+
     return () => {
       cancelled = true;
+      window.removeEventListener("online", onOnline);
     };
   }, []);
 
@@ -103,7 +136,7 @@ export function OfflineScheduleApp() {
             ? "Otwórz aplikację online z aktywnym Planem Plus i zapisz plan lekcji — wtedy offline zobaczysz swój rozkład."
             : "Otwórz aplikację mając internet (Plan Plus), żeby zapisać rozkład na tym urządzeniu."}
         </p>
-        <Button type="button" onClick={() => window.location.reload()}>
+        <Button type="button" onClick={() => void refreshOfflineApp()}>
           Odśwież
         </Button>
       </div>
@@ -141,7 +174,7 @@ export function OfflineScheduleApp() {
           variant="secondary"
           className="h-10 w-full gap-2 rounded-xl border border-red-500/25 bg-background/80 text-foreground hover:bg-background dark:border-red-400/20"
           onClick={() => {
-            window.location.reload();
+            void refreshOfflineApp();
           }}
         >
           <RefreshCw aria-hidden className="size-4" />
