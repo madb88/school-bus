@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { OfflineNoAccessScreen } from "@/components/offline-no-access-screen";
 import { OfflinePersonalizedSchedule } from "@/components/offline-personalized-schedule";
 import { Button } from "@/components/ui/button";
 import { loadSelectedPlanId } from "@/lib/child-schedule/selected-plan";
@@ -20,11 +19,11 @@ import {
   loadSchoolOfflineSnapshot,
   type SchoolOfflineSnapshot,
 } from "@/lib/offline/school-cache";
+import { goToStaticOfflineGate } from "@/lib/offline/static-offline-gate";
 import { WifiOff } from "lucide-react";
 
 type Phase =
   | { kind: "loading" }
-  | { kind: "no-plus" }
   | { kind: "no-data" }
   | { kind: "no-plan" }
   | {
@@ -52,7 +51,7 @@ export function OfflineScheduleApp() {
     let cancelled = false;
     void (async () => {
       if (!hasOfflineEntitlement()) {
-        if (!cancelled) setPhase({ kind: "no-plus" });
+        goToStaticOfflineGate();
         return;
       }
       const snap = await loadSchoolOfflineSnapshot();
@@ -89,10 +88,6 @@ export function OfflineScheduleApp() {
         Wczytywanie rozkładu offline…
       </p>
     );
-  }
-
-  if (phase.kind === "no-plus") {
-    return <OfflineNoAccessScreen />;
   }
 
   if (phase.kind === "no-data" || phase.kind === "no-plan") {

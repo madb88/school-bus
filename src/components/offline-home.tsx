@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { OfflineNoAccessScreen } from "@/components/offline-no-access-screen";
 import { OfflineSync } from "@/components/offline-sync";
 import { ScheduleBoard } from "@/components/schedule-board";
 import { ScheduleStatusBanner } from "@/components/schedule-status-banner";
@@ -11,6 +10,7 @@ import type { AccountPlan } from "@/lib/child-schedule/account-plan";
 import type { Schedule } from "@/lib/dowozy/types";
 import { hasOfflineEntitlement } from "@/lib/offline/entitlement";
 import type { SchoolOfflineCorrection } from "@/lib/offline/school-cache";
+import { goToStaticOfflineGate } from "@/lib/offline/static-offline-gate";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
 import type { FreshnessInfo } from "@/lib/schedule-freshness";
 
@@ -58,16 +58,14 @@ export function OfflineHome({
   useEffect(() => {
     if (!online && entitled) {
       router.replace("/offline");
+      return;
+    }
+    if (!online && !entitled) {
+      goToStaticOfflineGate();
     }
   }, [online, entitled, router]);
 
-  if (!online && entitled) {
-    return (
-      <p className="text-sm text-muted-foreground">Przechodzę do rozkładu offline…</p>
-    );
-  }
-
-  if (!online && !entitled) {
+  if (!online) {
     return (
       <>
         <OfflineSync
@@ -79,7 +77,11 @@ export function OfflineHome({
           correction={correction}
           suspend={suspendOfflineSync}
         />
-        <OfflineNoAccessScreen />
+        <p className="text-sm text-muted-foreground">
+          {entitled
+            ? "Przechodzę do rozkładu offline…"
+            : "Przekierowanie…"}
+        </p>
       </>
     );
   }

@@ -2,7 +2,7 @@
    Cold-start fallback is static /offline.html (no Next chunks).
    Cache API: navigations + /_next/static + icons — not /api/*. */
 
-const SHELL_CACHE = "school-bus-shell-v7";
+const SHELL_CACHE = "school-bus-shell-v8";
 const OFFLINE_FALLBACK = "/offline.html";
 /** Keep in sync with OFFLINE_WARM_DOCUMENT_PATHS in warm-shell.ts */
 const WARM_DOCUMENT_PATHS = ["/offline", "/offline.html"];
@@ -111,10 +111,11 @@ async function matchNavigation(cache, request) {
     return matchCachedPath(cache, OFFLINE_FALLBACK);
   }
 
-  // Dedicated Plus offline page first, then static cold-start shell.
+  // Static HTML gate first (free users / cold start). Plus users land on
+  // /offline.html → entitlement check → /offline.
   return (
-    (await matchCachedPath(cache, "/offline")) ||
-    (await matchCachedPath(cache, OFFLINE_FALLBACK))
+    (await matchCachedPath(cache, OFFLINE_FALLBACK)) ||
+    (await matchCachedPath(cache, "/offline"))
   );
 }
 

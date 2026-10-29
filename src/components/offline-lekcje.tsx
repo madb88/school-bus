@@ -3,13 +3,13 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { LessonPlanForm } from "@/components/lesson-plan-form";
-import { OfflineNoAccessScreen } from "@/components/offline-no-access-screen";
 import { OfflineSync } from "@/components/offline-sync";
 import type { AccountPlan } from "@/lib/child-schedule/account-plan";
 import { collectPlaces } from "@/lib/dowozy/filter-schedule";
 import { DOWOZY_SOURCE_URL, type Schedule } from "@/lib/dowozy/types";
 import type { MzkSchedule } from "@/lib/mzk/types";
 import { hasOfflineEntitlement } from "@/lib/offline/entitlement";
+import { goToStaticOfflineGate } from "@/lib/offline/static-offline-gate";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
 
 type OfflineLekcjeProps = {
@@ -49,6 +49,10 @@ export function OfflineLekcje({
   useEffect(() => {
     if (!online && entitled) {
       router.replace("/offline");
+      return;
+    }
+    if (!online && !entitled) {
+      goToStaticOfflineGate();
     }
   }, [online, entitled, router]);
 
@@ -71,10 +75,10 @@ export function OfflineLekcje({
         mzkAvailable={Boolean(mzkSchedule)}
         suspend={suspendOfflineSync}
       />
-      {!online && entitled ? (
-        <p className="text-muted-foreground">Przechodzę do rozkładu offline…</p>
-      ) : !online && !entitled ? (
-        <OfflineNoAccessScreen />
+      {!online ? (
+        <p className="text-muted-foreground">
+          {entitled ? "Przechodzę do rozkładu offline…" : "Przekierowanie…"}
+        </p>
       ) : schedule && effectivePlaces.length > 0 ? (
         <LessonPlanForm
           places={effectivePlaces}

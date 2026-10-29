@@ -2,10 +2,10 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { OfflineNoAccessScreen } from "@/components/offline-no-access-screen";
 import { ScheduleChangesContent } from "@/components/schedule-changes-content";
 import type { ScheduleCorrectionSnapshot } from "@/lib/dowozy/types";
 import { hasOfflineEntitlement } from "@/lib/offline/entitlement";
+import { goToStaticOfflineGate } from "@/lib/offline/static-offline-gate";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
 
 type OfflineZmianyProps = {
@@ -24,17 +24,19 @@ export function OfflineZmiany({ correction }: OfflineZmianyProps) {
   useEffect(() => {
     if (!online && entitled) {
       router.replace("/offline");
+      return;
+    }
+    if (!online && !entitled) {
+      goToStaticOfflineGate();
     }
   }, [online, entitled, router]);
 
-  if (!online && entitled) {
+  if (!online) {
     return (
-      <p className="text-sm text-muted-foreground">Przechodzę do rozkładu offline…</p>
+      <p className="text-sm text-muted-foreground">
+        {entitled ? "Przechodzę do rozkładu offline…" : "Przekierowanie…"}
+      </p>
     );
-  }
-
-  if (!online && !entitled) {
-    return <OfflineNoAccessScreen />;
   }
 
   return <ScheduleChangesContent correction={correction} />;
