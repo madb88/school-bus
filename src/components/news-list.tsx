@@ -19,6 +19,24 @@ export type NewsItem = {
 /** Newest first — prepend new entries here. */
 export const NEWS_ITEMS: readonly NewsItem[] = [
   {
+    id: "offline-schedule-plus",
+    dateLabel: "29 października 2026",
+    title: "Rozkład offline z Planem Plus",
+    lead: "Nie masz zasięgu albo Wi‑Fi w autobusie? Z Planem Plus rozkład i tak masz pod ręką.",
+    body: "Gdy wcześniej otworzysz aplikację online z aktywnym Planem Plus i zapisanym planem lekcji, bez internetu zobaczysz swój spersonalizowany rozkład jazdy — dojazd do szkoły i powrót dopasowane do godzin dziecka. Bez Plus aplikacja nadal potrzebuje połączenia z siecią.",
+    pointsTitle: "Co nowego?",
+    points: [
+      "📴 Rozkład bez internetu — szybki podgląd Twoich kursów, nawet gdy sieć nie działa.",
+      "🎒 Dopasowanie do planu lekcji — widzisz to, co naprawdę potrzebujesz, bez przekopywania całego rozkładu.",
+      "🚌 Idealne w drodze — w autobusie, na przystanku albo tam, gdzie zasięg bywa kapryśny.",
+    ],
+    after:
+      "Wystarczy raz otworzyć aplikację z internetem (Plan Plus). Przy następnym uruchomieniu offline od razu zobaczysz zapisany rozkład. Dane mogą być z ostatniej synchronizacji — gdy wrócisz online, wszystko się odświeży.",
+    closing: "Plan Plus — rozkład zawsze przy Tobie. 🚌",
+    href: "/profil?plus=1",
+    cta: "Zobacz Plan Plus",
+  },
+  {
     id: "schedule-changes-page",
     dateLabel: "28 października 2026",
     title: "Podgląd korekt rozkładu",
