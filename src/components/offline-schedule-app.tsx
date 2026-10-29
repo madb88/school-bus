@@ -20,7 +20,7 @@ import {
   type SchoolOfflineSnapshot,
 } from "@/lib/offline/school-cache";
 import { goToStaticOfflineGate } from "@/lib/offline/static-offline-gate";
-import { WifiOff } from "lucide-react";
+import { RefreshCw, WifiOff } from "lucide-react";
 
 type Phase =
   | { kind: "loading" }
@@ -136,10 +136,24 @@ export function OfflineScheduleApp() {
         </div>
       </div>
 
-      <p className="mb-4 font-display text-sm font-bold tracking-tight">
-        <span className="text-asphalt">autobus</span>
-        <span className="text-bus">szkolny.pl</span>
-      </p>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <p className="font-display text-sm font-bold tracking-tight">
+          <span className="text-asphalt">autobus</span>
+          <span className="text-bus">szkolny.pl</span>
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-1.5 shrink-0"
+          onClick={() => {
+            window.location.reload();
+          }}
+        >
+          <RefreshCw aria-hidden className="size-3.5" />
+          Odśwież
+        </Button>
+      </div>
 
       <OfflinePersonalizedSchedule view={phase.view} />
     </div>
