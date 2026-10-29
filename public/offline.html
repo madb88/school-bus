@@ -16,6 +16,7 @@
         --fg: #e8eef5;
         --muted: #9aa8b8;
         --bus: #3d7eff;
+        --danger: #ef4444;
       }
       * {
         box-sizing: border-box;
@@ -34,38 +35,61 @@
           sans-serif;
         background: var(--bg);
         color: var(--fg);
-        line-height: 1.45;
+        line-height: 1.5;
       }
       main {
         min-height: 100dvh;
         display: flex;
-        flex-direction: column;
         align-items: center;
         justify-content: center;
         text-align: center;
         padding: 1.5rem;
         padding-top: max(1.5rem, env(safe-area-inset-top));
+        padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+      }
+      .panel {
+        width: 100%;
+        max-width: 22rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .icon {
+        width: 3.5rem;
+        height: 3.5rem;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(239, 68, 68, 0.18);
+        color: #fecaca;
+        margin-bottom: 1.25rem;
       }
       h1 {
         font-size: 1.5rem;
-        margin: 0 0 0.75rem;
+        margin: 0;
         letter-spacing: -0.02em;
+        font-weight: 700;
       }
-      .muted {
+      .lead,
+      .plus {
         color: var(--muted);
-        font-size: 0.95rem;
-        max-width: 22rem;
-        margin: 0 auto;
+        font-size: 1rem;
+        margin: 0.75rem 0 0;
+      }
+      .plus strong {
+        color: var(--fg);
+        font-weight: 600;
       }
       .actions {
-        margin-top: 1.5rem;
+        margin-top: 2rem;
       }
       button.btn {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 0.6rem 1rem;
-        border-radius: 0.6rem;
+        padding: 0.65rem 1.15rem;
+        border-radius: 0.65rem;
         border: none;
         font-size: 0.95rem;
         font-weight: 600;
@@ -74,20 +98,54 @@
         cursor: pointer;
         font-family: inherit;
       }
+      .loading .icon,
+      .loading .plus,
+      .loading .actions {
+        display: none;
+      }
     </style>
   </head>
   <body>
-    <main id="shell">
-      <h1 id="heading">Rozkład offline</h1>
-      <p id="status" class="muted">Wczytywanie…</p>
-      <div class="actions" id="actions" hidden></div>
+    <main>
+      <div class="panel loading" id="panel">
+        <div class="icon" aria-hidden="true">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 20h.01" />
+            <path d="M8.5 16.429a5 5 0 0 1 7 0" />
+            <path d="M5 12.859a10 10 0 0 1 5.17-2.69" />
+            <path d="M19 12.859a10 10 0 0 0-2.007-1.523" />
+            <path d="M2 8.82a15 15 0 0 1 4.177-2.643" />
+            <path d="M22 8.82a15 15 0 0 0-11.288-3.764" />
+            <path d="m2 2 20 20" />
+          </svg>
+        </div>
+        <h1 id="heading">Rozkład offline</h1>
+        <p id="lead" class="lead">Wczytywanie…</p>
+        <p id="plus" class="plus" hidden></p>
+        <div class="actions" id="actions" hidden>
+          <button type="button" class="btn" id="reload-btn">Odśwież</button>
+        </div>
+      </div>
     </main>
     <script>
       (function () {
         var ENTITLEMENT_KEY = "school-bus.offline-entitlement.v1";
+        var panel = document.getElementById("panel");
         var headingEl = document.getElementById("heading");
-        var statusEl = document.getElementById("status");
+        var leadEl = document.getElementById("lead");
+        var plusEl = document.getElementById("plus");
         var actionsEl = document.getElementById("actions");
+        var reloadBtn = document.getElementById("reload-btn");
 
         function warsawYmd() {
           try {
@@ -126,22 +184,26 @@
           }
         }
 
-        function showMessage(title, detail) {
+        function showCentered(title, lead, plusHtml) {
+          if (panel) panel.classList.remove("loading");
           if (headingEl) headingEl.textContent = title;
-          if (statusEl) statusEl.textContent = detail || "";
+          if (leadEl) leadEl.textContent = lead;
+          if (plusEl) {
+            if (plusHtml) {
+              plusEl.hidden = false;
+              plusEl.innerHTML = plusHtml;
+            } else {
+              plusEl.hidden = true;
+              plusEl.textContent = "";
+            }
+          }
+          if (actionsEl) actionsEl.hidden = false;
         }
 
-        function showReload() {
-          if (!actionsEl) return;
-          actionsEl.hidden = false;
-          actionsEl.innerHTML =
-            '<button type="button" class="btn" id="reload-btn">Odśwież</button>';
-          var btn = document.getElementById("reload-btn");
-          if (btn) {
-            btn.addEventListener("click", function () {
-              location.reload();
-            });
-          }
+        if (reloadBtn) {
+          reloadBtn.addEventListener("click", function () {
+            location.reload();
+          });
         }
 
         if (navigator.onLine) {
@@ -151,33 +213,33 @@
                 location.replace("/");
                 return;
               }
-              showMessage(
+              showCentered(
                 "Aplikacja chwilowo niedostępna",
                 "Serwer aplikacji nie odpowiada. Sprawdź połączenie i odśwież.",
+                "",
               );
-              showReload();
             })
             .catch(function () {
-              showMessage(
+              showCentered(
                 "Aplikacja chwilowo niedostępna",
                 "Serwer aplikacji nie odpowiada. Sprawdź połączenie i odśwież.",
+                "",
               );
-              showReload();
             });
           return;
         }
 
         if (hasEntitlement()) {
-          showMessage("Rozkład offline", "Otwieram Twój zapisany rozkład…");
+          if (leadEl) leadEl.textContent = "Otwieram Twój zapisany rozkład…";
           location.replace("/offline");
           return;
         }
 
-        showMessage(
+        showCentered(
           "Brak połączenia z internetem",
-          "Bez internetu nie ma dostępu do aplikacji. Tryb offline z lokalną kopią rozkładu jest dostępny w Planie Plus — po wcześniejszym otwarciu aplikacji online.",
+          "Bez internetu nie ma dostępu do aplikacji.",
+          'Rozkład offline działa tylko dla użytkowników <strong>Planu Plus</strong> — po wcześniejszym otwarciu aplikacji online.',
         );
-        showReload();
       })();
     </script>
   </body>
