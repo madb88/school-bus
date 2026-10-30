@@ -1,70 +1,33 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Bus,
-  Check,
-  CircleHelp,
-  Clock,
-  Home,
-  MapPin,
-  Plus,
-  Printer,
-  School,
-  Trash2,
-} from "lucide-react";
 import {
   useEffect,
   useRef,
   useState,
   useSyncExternalStore,
   useTransition,
-  type ReactNode,
 } from "react";
-import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { cn } from "cn";
 import {
-  LessonPlanPrint,
-  type LessonPlanPrintMode,
-} from "@/components/lesson-plan-print";
-import { PlaceCombobox } from "@/components/place-combobox";
-import { SettingsTransferSheet } from "@/components/settings-transfer-sheet";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Spinner } from "@/components/ui/spinner";
+  AccountPlansSection,
+  PlanNameSection,
+} from "@/components/lesson-plan/account-plans-section";
 import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-  Popover,
-  PopoverContent,
-  PopoverDescription,
-  PopoverHeader,
-  PopoverTitle,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  LessonPlanDeleteSheet,
+  LessonPlanInlineActions,
+  LessonPlanLocalUpsell,
+  LessonPlanPrintOutputs,
+  LessonPlanPrintSection,
+  LessonPlanStickySave,
+} from "@/components/lesson-plan/form-actions";
+import { HoursSection } from "@/components/lesson-plan/hours-section";
+import { PlaceSection } from "@/components/lesson-plan/place-section";
+import type { LessonPlanPrintMode } from "@/components/lesson-plan-print";
 import { AnalyticsEvent, trackEvent } from "@/lib/analytics/events";
 import { MAX_ACCOUNT_PLANS } from "@/lib/billing/constants";
 import {
-  ACCOUNT_PLAN_NAME_MAX,
   accountPlanLabel,
   fromAccountPlan,
   isAccountPlanId,
@@ -95,66 +58,12 @@ import {
   type ChildLessonPlan,
   type WeekdayKey,
 } from "@/lib/child-schedule/types";
-import { filtersHref } from "@/lib/dowozy/filter-url";
 import type { Schedule } from "@/lib/dowozy/types";
 import { useLessonPlan } from "@/lib/child-schedule/use-lesson-plan";
 import { hasConfiguredMzkRoute } from "@/lib/mzk/route-storage";
 import type { MzkSchedule } from "@/lib/mzk/types";
 import { useMzkRoutePreference } from "@/lib/mzk/use-mzk-route";
 import { disablePush, getPushStatus, setPushPlans } from "@/lib/push/browser";
-
-const cardClass =
-  "space-y-5 rounded-xl border border-border/70 bg-card/90 p-4 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] dark:shadow-[0_1px_0_rgba(0,0,0,0.35)] sm:p-6";
-
-const actionButtonClass = "h-11 w-full px-4 sm:w-auto";
-
-function FieldHelpHint({
-  title,
-  description,
-  icon,
-}: {
-  title: string;
-  description: string;
-  icon?: ReactNode;
-}) {
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-1">
-        <h2 className="flex min-w-0 items-center gap-2 text-base font-semibold text-foreground">
-          {icon}
-          {title}
-        </h2>
-        <Popover>
-          <PopoverTrigger
-            type="button"
-            aria-label={`Pomoc: ${title}`}
-            className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-bus/40 aria-expanded:text-foreground md:hidden"
-          >
-            <CircleHelp className="size-3.5" aria-hidden />
-          </PopoverTrigger>
-          <PopoverContent
-            side="bottom"
-            align="start"
-            sideOffset={6}
-            className="w-[min(18rem,calc(100vw-2rem))] gap-1 p-3"
-          >
-            <PopoverHeader>
-              <PopoverTitle className="text-xs font-semibold">
-                {title}
-              </PopoverTitle>
-              <PopoverDescription className="text-xs leading-snug">
-                {description}
-              </PopoverDescription>
-            </PopoverHeader>
-          </PopoverContent>
-        </Popover>
-      </div>
-      <p className="hidden text-sm leading-relaxed text-muted-foreground md:block">
-        {description}
-      </p>
-    </div>
-  );
-}
 
 type LessonPlanFormProps = {
   places: string[];
@@ -213,14 +122,6 @@ function normalizeLocalPlan(source: ChildLessonPlan): ChildLessonPlan {
   return normalized;
 }
 
-function dayTimeSummary(
-  day: { start?: string; end?: string } | undefined,
-): string {
-  if (!day?.start) return "Brak";
-  if (!day.end) return `${day.start} – …`;
-  return `${day.start} – ${day.end}`;
-}
-
 type LessonPlanFormIssues = {
   place: boolean;
   invalidDayKeys: WeekdayKey[];
@@ -271,42 +172,6 @@ function collectLessonPlanFormIssues(
   }
 
   return { place, invalidDayKeys, noCompleteDay, messages };
-}
-
-function LessonTimeInput({
-  id,
-  label,
-  value,
-  disabled,
-  invalid,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  disabled?: boolean;
-  invalid?: boolean;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className="flex min-w-0 flex-col gap-1.5">
-      <Label
-        htmlFor={id}
-        className="text-xs font-medium tracking-wide text-muted-foreground uppercase md:sr-only"
-      >
-        {label}
-      </Label>
-      <Input
-        id={id}
-        type="time"
-        value={value}
-        disabled={disabled}
-        aria-invalid={invalid || undefined}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full bg-background tabular-nums md:h-10"
-      />
-    </div>
-  );
 }
 
 export function LessonPlanForm({
@@ -756,123 +621,16 @@ export function LessonPlanForm({
     <>
       <div className="space-y-6 pb-24 print:hidden md:pb-0">
         {mode === "account" ? (
-          <section
-            className={cn(
-              cardClass,
-              "border-bus/35 bg-white shadow-[0_1px_0_color-mix(in_srgb,var(--bus)_12%,white)] dark:border-bus/25 dark:bg-card dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]",
-            )}
-          >
-            <div className="space-y-1">
-              <h2 className="text-base font-semibold text-foreground">
-                Plany na koncie
-              </h2>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                Do {MAX_ACCOUNT_PLANS} planów, synchronizowanych między
-                urządzeniami.
-              </p>
-            </div>
-            {accountPlans.length > 0 ? (
-              <div className="flex flex-wrap items-center gap-2.5">
-                <div className="flex min-w-0 flex-1 flex-wrap gap-2 overflow-visible rounded-2xl border border-dashed border-border/70 p-2">
-                  {accountPlans.map((item, index) => {
-                    const selected = index === selectedIndex;
-                    return (
-                      <button
-                        key={`${item.place}-${item.name ?? ""}-${index}`}
-                        type="button"
-                        onClick={() => selectAccountPlan(index)}
-                        className={cn(
-                          "relative rounded-full border px-3.5 py-2 text-sm font-medium transition-colors",
-                          selected
-                            ? "border-bus/50 bg-bus/10 text-foreground"
-                            : "border-border/70 bg-background text-muted-foreground hover:text-foreground",
-                        )}
-                      >
-                        {accountPlanLabel(item, index)}
-                        {selected ? (
-                          <span
-                            aria-hidden
-                            className="pointer-events-none absolute top-0 right-0 z-10 grid size-4 translate-x-1/3 -translate-y-1/3 place-items-center rounded-full bg-bus text-bus-foreground shadow-xs"
-                          >
-                            <Check className="size-2.5 stroke-[3]" />
-                          </span>
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                  {accountPlans.length < MAX_ACCOUNT_PLANS ? (
-                    <button
-                      type="button"
-                      onClick={handleAddPlan}
-                      disabled={isDraftingNewPlan}
-                      title={
-                        isDraftingNewPlan
-                          ? "Najpierw zapisz nowy plan"
-                          : undefined
-                      }
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-full border border-dashed px-3.5 py-2 text-sm font-medium transition-colors",
-                        isDraftingNewPlan
-                          ? "cursor-not-allowed border-border/50 text-muted-foreground/60"
-                          : "border-border/70 bg-background text-muted-foreground hover:border-bus/40 hover:text-foreground",
-                      )}
-                    >
-                      <Plus aria-hidden className="size-3.5" />
-                      Dodaj plan
-                    </button>
-                  ) : null}
-                </div>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="lg"
-                  className="h-11 shrink-0 px-4"
-                  disabled={pending || isDraftingNewPlan}
-                  title={
-                    isDraftingNewPlan
-                      ? "Nie można usunąć planu w trakcie dodawania"
-                      : undefined
-                  }
-                  onClick={() => setDeleteConfirmOpen(true)}
-                >
-                  <Trash2 aria-hidden className="size-4" />
-                  Usuń plan
-                </Button>
-              </div>
-            ) : null}
-            {accountPlans.length >= MAX_ACCOUNT_PLANS ? (
-              <p className="text-sm text-muted-foreground">
-                Możesz zapisać najwyżej 5 planów
-              </p>
-            ) : null}
-          </section>
-        ) : null}
-
-        {mode === "account" && isDraftingNewPlan ? (
-          <div className="flex flex-col gap-3 rounded-xl border border-bus/30 bg-bus/5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5 sm:py-4">
-            <div className="min-w-0 space-y-1">
-              <p className="text-base font-semibold text-foreground">
-                Nowy plan
-              </p>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                Podaj nazwę i przystanek, uzupełnij godziny, potem zapisz. Bez
-                zapisu zniknie po przełączeniu na inny plan lub odświeżeniu
-                strony.
-              </p>
-            </div>
-            {accountPlans.length > 0 ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                className="h-11 w-full shrink-0 px-4 sm:w-auto"
-                disabled={pending}
-                onClick={handleCancelDraft}
-              >
-                Anuluj
-              </Button>
-            ) : null}
-          </div>
+          <AccountPlansSection
+            accountPlans={accountPlans}
+            selectedIndex={selectedIndex}
+            isDraftingNewPlan={isDraftingNewPlan}
+            pending={pending}
+            onSelectPlan={selectAccountPlan}
+            onAddPlan={handleAddPlan}
+            onRequestDelete={() => setDeleteConfirmOpen(true)}
+            onCancelDraft={handleCancelDraft}
+          />
         ) : null}
 
         <div
@@ -882,647 +640,79 @@ export function LessonPlanForm({
           )}
         >
           {mode === "account" ? (
-            <section
-              className={cn(cardClass, "flex h-full flex-col space-y-0")}
-            >
-              <FieldHelpHint
-                title="Nazwa planu"
-                description="Opcjonalna nazwa (np. imię dziecka) — widać ją w przełączniku i na rozkładzie."
-              />
-              <div className="mt-auto flex w-full min-w-0 flex-col gap-1.5 pt-2 md:pt-3">
-                <Label htmlFor="lesson-plan-name" className="sr-only">
-                  Nazwa planu
-                </Label>
-                <Input
-                  ref={planNameInputRef}
-                  id="lesson-plan-name"
-                  type="text"
-                  value={planName}
-                  maxLength={ACCOUNT_PLAN_NAME_MAX}
-                  placeholder="np. Ania"
-                  onChange={(event) => {
-                    setSaveError(null);
-                    setPlanName(event.target.value);
-                  }}
-                  className="h-11 bg-background md:h-10"
-                />
-              </div>
-            </section>
+            <PlanNameSection
+              planName={planName}
+              planNameInputRef={planNameInputRef}
+              onPlanNameChange={(value) => {
+                setSaveError(null);
+                setPlanName(value);
+              }}
+            />
           ) : null}
 
-          <section
-            className={cn(
-              cardClass,
-              "flex h-full flex-col space-y-0",
-              placeInvalid && "border-destructive/60",
-            )}
-          >
-            <FieldHelpHint
-              title="Przystanek"
-              description="Wybierz przystanek, z którego dziecko jedzie do szkoły."
-              icon={
-                <MapPin className="size-4 shrink-0 text-bus-deep" aria-hidden />
-              }
-            />
-            <div className="mt-auto flex w-full min-w-0 flex-col gap-1.5 pt-2 md:pt-3">
-              <Label
-                id="lesson-place-label"
-                htmlFor="lesson-place"
-                className="sr-only"
-              >
-                Przystanek
-              </Label>
-              <NativeSelect
-                id="lesson-place"
-                className="w-full max-w-full md:hidden [&_select]:h-11 [&_select]:text-base"
-                aria-labelledby="lesson-place-label"
-                aria-invalid={placeInvalid || undefined}
-                value={plan.place ?? ""}
-                onChange={(event) => {
-                  setPlace(
-                    event.target.value === "" ? null : event.target.value,
-                  );
-                }}
-              >
-                <NativeSelectOption value="">
-                  Wybierz miejsce
-                </NativeSelectOption>
-                {places.map((place) => (
-                  <NativeSelectOption key={place} value={place}>
-                    {place}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-              <div className="hidden w-full min-w-0 md:block">
-                <PlaceCombobox
-                  id="lesson-place-desktop"
-                  places={places}
-                  value={plan.place}
-                  onChange={setPlace}
-                  invalid={placeInvalid}
-                  aria-labelledby="lesson-place-label"
-                  placeholder="Wybierz lub szukaj miejsca…"
-                />
-              </div>
-              {placeInvalid ? (
-                <p className="text-sm text-destructive" role="alert">
-                  Wybierz przystanek.
-                </p>
-              ) : null}
-            </div>
-          </section>
+          <PlaceSection
+            places={places}
+            place={plan.place}
+            placeInvalid={placeInvalid}
+            onPlaceChange={setPlace}
+          />
         </div>
 
-        <section
-          className={cn(
-            cardClass,
-            hoursSectionInvalid && "border-destructive/60",
-          )}
+        <HoursSection
+          plan={plan}
+          mode={mode}
+          hoursSectionInvalid={hoursSectionInvalid}
+          daysMissingEnd={daysMissingEnd}
+          daysInvalidEnd={daysInvalidEnd}
+          saveError={saveError}
+          onUpdateDay={updateDay}
         >
-          <div className="space-y-1">
-            <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
-              <Clock className="size-4 text-bus-deep" aria-hidden />
-              Godziny lekcji
-            </h2>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Podaj godziny rozpoczęcia i zakończenia lekcji w poszczególne dni.
-            </p>
-          </div>
-
-          <Accordion
-            multiple
-            className={cn(
-              "min-w-0 overflow-hidden rounded-xl border md:hidden",
-              hoursSectionInvalid
-                ? "border-destructive/50"
-                : "border-border/60",
-            )}
-          >
-            {WEEKDAY_OPTIONS.map(({ key, label }) => {
-              const day = plan.days[key];
-              const invalidEnd = dayHasInvalidTimeRange(day?.start, day?.end);
-              return (
-                <AccordionItem key={key} value={String(key)}>
-                  <AccordionTrigger className="px-3 py-3.5 font-sans text-base font-medium tracking-normal sm:text-base">
-                    <span className="flex min-w-0 flex-1 items-center justify-between gap-3">
-                      <span className="text-asphalt">{label}</span>
-                      <span
-                        className={cn(
-                          "shrink-0 tabular-nums text-sm font-normal",
-                          invalidEnd
-                            ? "text-destructive"
-                            : "text-muted-foreground",
-                        )}
-                      >
-                        {dayTimeSummary(day)}
-                      </span>
-                    </span>
-                  </AccordionTrigger>
-                  <AccordionContent className="space-y-3 px-3 pt-0 pb-4">
-                    <LessonTimeInput
-                      id={`lesson-start-mobile-${key}`}
-                      label="Start lekcji"
-                      value={day?.start ?? ""}
-                      invalid={invalidEnd}
-                      onChange={(next) => updateDay(key, "start", next)}
-                    />
-                    <LessonTimeInput
-                      id={`lesson-end-mobile-${key}`}
-                      label="Koniec lekcji"
-                      value={day?.end ?? ""}
-                      disabled={!day?.start}
-                      invalid={invalidEnd}
-                      onChange={(next) => updateDay(key, "end", next)}
-                    />
-                  </AccordionContent>
-                </AccordionItem>
-              );
-            })}
-          </Accordion>
-
-          <div
-            className={cn(
-              "hidden min-w-0 overflow-hidden rounded-xl border md:block",
-              hoursSectionInvalid
-                ? "border-destructive/50"
-                : "border-border/60",
-            )}
-          >
-            <div className="border-b border-border/60 px-4 py-3 text-xs font-medium tracking-wide text-muted-foreground uppercase md:grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)] md:gap-4">
-              <span>Dzień</span>
-              <span>Start lekcji</span>
-              <span>Koniec lekcji</span>
-            </div>
-            <div className="divide-y divide-border/40">
-              {WEEKDAY_OPTIONS.map(({ key, label }) => {
-                const day = plan.days[key];
-                const invalidEnd = dayHasInvalidTimeRange(day?.start, day?.end);
-                return (
-                  <div
-                    key={key}
-                    className="grid min-w-0 grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-4 px-4 py-3"
-                  >
-                    <div
-                      className={cn(
-                        "font-medium",
-                        invalidEnd ? "text-destructive" : "text-asphalt",
-                      )}
-                    >
-                      {label}
-                    </div>
-                    <LessonTimeInput
-                      id={`lesson-start-${key}`}
-                      label="Start lekcji"
-                      value={day?.start ?? ""}
-                      invalid={invalidEnd}
-                      onChange={(next) => updateDay(key, "start", next)}
-                    />
-                    <LessonTimeInput
-                      id={`lesson-end-${key}`}
-                      label="Koniec lekcji"
-                      value={day?.end ?? ""}
-                      disabled={!day?.start}
-                      invalid={invalidEnd}
-                      onChange={(next) => updateDay(key, "end", next)}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <Accordion className="overflow-hidden rounded-xl border border-border/70 bg-muted/30">
-            <AccordionItem value="match-info" className="border-0">
-              <AccordionTrigger className="rounded-none px-4 py-4 font-sans text-sm font-semibold tracking-normal hover:bg-muted/50 sm:px-5 sm:text-sm">
-                <span className="flex items-center gap-2">
-                  <Bus className="size-4 text-bus-deep" aria-hidden />
-                  Jak dobieramy kursy?
-                </span>
-              </AccordionTrigger>
-              <AccordionContent className="space-y-4 px-4 pt-0 pb-4 sm:px-5">
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Na podstawie podanych godzin lekcji dopasowujemy odpowiednie
-                  kursy.
-                </p>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="flex items-start gap-3">
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-card text-muted-foreground">
-                      <Home className="size-4" aria-hidden />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground">
-                        Dowóz
-                      </p>
-                      <p className="text-sm leading-relaxed text-muted-foreground">
-                        Wybieramy kurs przed rozpoczęciem lekcji.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-card text-muted-foreground">
-                      <School className="size-4" aria-hidden />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground">
-                        Odwóz
-                      </p>
-                      <p className="text-sm leading-relaxed text-muted-foreground">
-                        Wybieramy kurs o godzinie zakończenia lekcji lub
-                        późniejszy.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-
-          {daysMissingEnd.length > 0 ||
-          daysInvalidEnd.length > 0 ||
-          saveError ||
-          hoursSectionInvalid ? (
-            <div className="space-y-2 text-sm leading-relaxed">
-              {daysMissingEnd.length > 0 ? (
-                <p className="text-asphalt/80">
-                  Brak końca lekcji (
-                  {daysMissingEnd.map((d) => d.label).join(", ")}) — odwozy nie
-                  dopasują się do planu w te dni
-                  {mode === "account"
-                    ? "; dni bez godziny końca nie zapiszą się na koncie"
-                    : ""}
-                  .
-                </p>
-              ) : null}
-              {daysInvalidEnd.length > 0 || saveError ? (
-                <p className="text-destructive" role="alert">
-                  {saveError ??
-                    `Koniec lekcji musi być późniejszy niż start (${daysInvalidEnd.map((d) => d.label).join(", ")}).`}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Button
-                type="button"
-                size="lg"
-                className={cn(actionButtonClass, "hidden md:inline-flex")}
-                disabled={saveDisabled}
-                aria-busy={pending}
-                onClick={handleSave}
-              >
-                <span className="relative inline-flex items-center justify-center">
-                  {pending ? (
-                    <span
-                      className="absolute right-full mr-2 inline-flex size-4 items-center justify-center"
-                      aria-hidden
-                    >
-                      <Spinner />
-                    </span>
-                  ) : null}
-                  <span>{saveLabel}</span>
-                </span>
-              </Button>
-              {mode === "local" ? (
-                <Button
-                  type="button"
-                  size="lg"
-                  variant="outline"
-                  className={actionButtonClass}
-                  disabled={!hasConfiguredLessons(plan) && !plan.place}
-                  onClick={handleClear}
-                >
-                  Wyczyść
-                </Button>
-              ) : null}
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center max-sm:[&_a]:h-11 max-sm:[&_a]:w-full max-sm:[&_a]:px-4 max-sm:[&_button]:h-11 max-sm:[&_button]:w-full max-sm:[&_button]:px-4">
-              <SettingsTransferSheet
-                canTransfer={
-                  hasConfiguredLessons(stored) ||
-                  hasConfiguredMzkRoute(mzkRoute)
-                }
-                triggerLabel="Użyj na innym urządzeniu"
-                accountSyncHint={mode === "account"}
-              />
-              <Link
-                href="/przywroc"
-                className={buttonVariants({ size: "lg", variant: "outline" })}
-              >
-                Wpisz kod z kodu QR
-              </Link>
-            </div>
-          </div>
-
-          {hasConfiguredLessons(plan) ? (
-            <Link
-              href={filtersHref({
-                place: plan.place,
-                dateFilter: "today",
-                direction: "all",
-                matchLessonPlan: true,
-              })}
-              className="text-sm font-medium text-asphalt underline underline-offset-2 hover:text-foreground"
-            >
-              Zobacz dopasowany rozkład
-            </Link>
-          ) : null}
-        </section>
+          <LessonPlanInlineActions
+            mode={mode}
+            plan={plan}
+            stored={stored}
+            mzkRoute={mzkRoute}
+            pending={pending}
+            saveDisabled={saveDisabled}
+            saveLabel={saveLabel}
+            onSave={handleSave}
+            onClear={handleClear}
+          />
+        </HoursSection>
 
         {mode === "local" ? (
-          <section className={cardClass}>
-            {!loggedIn ? (
-              <>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Zaloguj się, żeby zapisać plan na koncie i korzystać z niego
-                  na każdym urządzeniu.
-                </p>
-                <Link
-                  href="/login"
-                  className={buttonVariants({
-                    size: "lg",
-                    className: actionButtonClass,
-                  })}
-                >
-                  Zaloguj się
-                </Link>
-              </>
-            ) : (
-              <>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Więcej planów i synchronizacja między urządzeniami w Planie
-                  Plus.
-                </p>
-                {trialEnded ? (
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    Plany zapisane na koncie nie znikają — wrócą po wykupieniu
-                    Planu Plus.
-                  </p>
-                ) : null}
-                <Link
-                  href="/profil?plus=1"
-                  className={buttonVariants({
-                    size: "lg",
-                    className: actionButtonClass,
-                  })}
-                >
-                  Zobacz Plan Plus
-                </Link>
-              </>
-            )}
-          </section>
+          <LessonPlanLocalUpsell loggedIn={loggedIn} trialEnded={trialEnded} />
         ) : null}
 
-        <Accordion
-          className={cn(
-            cardClass,
-            "space-y-0 overflow-hidden p-0 shadow-[0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent)] sm:p-0 dark:shadow-[0_1px_0_rgba(0,0,0,0.35)]",
-          )}
-        >
-          <AccordionItem value="print" className="border-0">
-            <AccordionTrigger className="w-full rounded-none px-4 py-4 font-sans text-sm font-semibold tracking-normal hover:bg-muted/50 sm:px-6 sm:text-sm">
-              <span className="flex items-center gap-2">
-                <Printer className="size-4 text-bus-deep" aria-hidden />
-                Wydrukuj plan dojazdów dopasowany do planu lekcji
-              </span>
-            </AccordionTrigger>
-            <AccordionContent className="space-y-5 px-4 pt-0 pb-4 sm:px-6 sm:pb-6">
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                Wybierz, jakie połączenia chcesz uwzględnić na wydruku.
-              </p>
-
-              <fieldset className="space-y-2">
-                <legend className="sr-only">Rodzaj wydruku</legend>
-                <label
-                  className={cn(
-                    "flex w-full items-start gap-3 rounded-xl border border-border/70 bg-card px-4 py-3.5 text-left transition-colors",
-                    "has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
-                    printMode === "school" && "border-bus/40 bg-muted/40",
-                    !canPrint && "cursor-not-allowed opacity-60",
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="lesson-print-mode"
-                    value="school"
-                    checked={printMode === "school"}
-                    disabled={!canPrint}
-                    onChange={() => setPrintMode("school")}
-                    title={
-                      canPrint
-                        ? undefined
-                        : "Wybierz przystanek i uzupełnij godziny lekcji"
-                    }
-                    className="mt-1 size-4 accent-bus"
-                  />
-                  <span className="min-w-0">
-                    <span className="block text-sm font-medium text-foreground sm:text-base">
-                      Autobus szkolny
-                    </span>
-                    <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">
-                      Pełny rozkład kursów autobusu szkolnego
-                    </span>
-                  </span>
-                </label>
-                <label
-                  className={cn(
-                    "flex w-full items-start gap-3 rounded-xl border border-border/70 bg-card px-4 py-3.5 text-left transition-colors",
-                    "has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
-                    printMode === "school-mzk" && "border-bus/40 bg-muted/40",
-                    !canPrintMzk && "cursor-not-allowed opacity-60",
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="lesson-print-mode"
-                    value="school-mzk"
-                    checked={printMode === "school-mzk"}
-                    disabled={!canPrintMzk}
-                    onChange={() => setPrintMode("school-mzk")}
-                    title={
-                      canPrintMzk
-                        ? undefined
-                        : canPrint
-                          ? "Najpierw ustaw trasę MZK w zakładce MZK"
-                          : "Wybierz przystanek, uzupełnij lekcje i ustaw trasę MZK"
-                    }
-                    className="mt-1 size-4 accent-bus"
-                  />
-                  <span className="min-w-0">
-                    <span className="block text-sm font-medium text-foreground sm:text-base">
-                      Autobus szkolny + MZK
-                    </span>
-                    <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">
-                      Autobus szkolny oraz najbliższe kursy MZK
-                    </span>
-                  </span>
-                </label>
-                <label
-                  className={cn(
-                    "flex w-full items-start gap-3 rounded-xl border border-border/70 bg-card px-4 py-3.5 text-left transition-colors",
-                    "has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
-                    printMode === "compact" && "border-bus/40 bg-muted/40",
-                    !canPrint && "cursor-not-allowed opacity-60",
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="lesson-print-mode"
-                    value="compact"
-                    checked={printMode === "compact"}
-                    disabled={!canPrint}
-                    onChange={() => setPrintMode("compact")}
-                    title={
-                      canPrint
-                        ? undefined
-                        : "Wybierz przystanek i uzupełnij godziny lekcji"
-                    }
-                    className="mt-1 size-4 accent-bus"
-                  />
-                  <span className="min-w-0">
-                    <span className="block text-sm font-medium text-foreground sm:text-base">
-                      Kompaktowy rozkład do kieszeni
-                    </span>
-                    <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">
-                      Skrócona wersja rozkładu do wycięcia i schowania do
-                      kieszeni
-                    </span>
-                  </span>
-                </label>
-              </fieldset>
-
-              {!canPrint ? (
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Uzupełnij godziny lekcji (i wybierz przystanek), żeby
-                  wydrukować spersonalizowany plan dojazdów.
-                </p>
-              ) : null}
-              {canPrint && !canPrintMzk ? (
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                  Wydruk ze szkolnym + MZK wymaga zapisanej trasy w zakładce{" "}
-                  <Link
-                    href="/mzk"
-                    className="font-medium text-asphalt underline underline-offset-2 hover:text-foreground"
-                  >
-                    MZK
-                  </Link>
-                  . Na kartce pojawi się tylko najbliższy kurs MZK do planu
-                  lekcji.
-                </p>
-              ) : canPrintMzk ? (
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                  Wariant z MZK dodaje najbliższe połączenia MZK na początku i
-                  końcu trasy, bez pełnego rozkładu linii.
-                </p>
-              ) : null}
-
-              <Button
-                type="button"
-                size="lg"
-                variant="outline"
-                className={actionButtonClass}
-                disabled={!selectedPrintReady}
-                aria-label={
-                  printMode === "school"
-                    ? "Wydrukuj plan dojazdów szkolnych"
-                    : printMode === "school-mzk"
-                      ? "Wydrukuj plan dojazdów szkolnych z najbliższym MZK"
-                      : "Wydrukuj kompaktowy plan dojazdów do kieszeni"
-                }
-                title={
-                  selectedPrintReady
-                    ? undefined
-                    : printMode === "school-mzk"
-                      ? canPrint
-                        ? "Najpierw ustaw trasę MZK w zakładce MZK"
-                        : "Wybierz przystanek, uzupełnij lekcje i ustaw trasę MZK"
-                      : "Wybierz przystanek i uzupełnij godziny lekcji"
-                }
-                onClick={() => handlePrint(printMode)}
-              >
-                <Printer aria-hidden />
-                Drukuj
-              </Button>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-      </div>
-      {stickySaveMounted
-        ? createPortal(
-            <div
-              className="fixed bottom-0 left-0 z-40 w-screen max-w-none shrink-0 border-t border-border/70 bg-card/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] shadow-[0_-4px_16px_color-mix(in_srgb,var(--foreground)_6%,transparent)] backdrop-blur-sm print:hidden md:hidden dark:shadow-[0_-4px_16px_rgba(0,0,0,0.35)]"
-              style={{ width: "100vw" }}
-            >
-              <Button
-                type="button"
-                size="lg"
-                className="h-11 w-full max-w-none px-4"
-                disabled={saveDisabled}
-                aria-busy={pending}
-                onClick={handleSave}
-              >
-                <span className="relative flex w-full items-center justify-center">
-                  {pending ? (
-                    <span
-                      className="absolute left-0 inline-flex size-4 items-center justify-center"
-                      aria-hidden
-                    >
-                      <Spinner />
-                    </span>
-                  ) : null}
-                  <span>{saveLabel}</span>
-                </span>
-              </Button>
-            </div>,
-            document.body,
-          )
-        : null}
-      <Sheet open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <SheetContent side="bottom" className="print:hidden">
-          <SheetHeader>
-            <SheetTitle>Usunąć plan?</SheetTitle>
-            <SheetDescription>
-              Plan „{deleteTargetLabel}” zostanie trwale usunięty z konta. Tej
-              operacji nie da się cofnąć.
-            </SheetDescription>
-          </SheetHeader>
-          <SheetFooter className="flex flex-col items-center gap-3">
-            <Button
-              type="button"
-              variant="destructive"
-              size="lg"
-              className="h-11 w-full max-w-xs px-4"
-              disabled={pending}
-              onClick={handleClear}
-            >
-              <Trash2 aria-hidden className="size-4" />
-              Usuń plan
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              className="h-11 w-full max-w-xs px-4"
-              disabled={pending}
-              onClick={() => setDeleteConfirmOpen(false)}
-            >
-              Anuluj
-            </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
-      <LessonPlanPrint schedule={schedule} plan={plan} mode="school" />
-      <LessonPlanPrint schedule={schedule} plan={plan} mode="compact" />
-      {mzkSchedule ? (
-        <LessonPlanPrint
-          schedule={schedule}
-          plan={plan}
-          mode="school-mzk"
-          mzkSchedule={mzkSchedule}
-          mzkRoute={mzkRoute}
+        <LessonPlanPrintSection
+          printMode={printMode}
+          canPrint={canPrint}
+          canPrintMzk={canPrintMzk}
+          selectedPrintReady={selectedPrintReady}
+          onPrintModeChange={setPrintMode}
+          onPrint={handlePrint}
         />
-      ) : null}
+      </div>
+      <LessonPlanStickySave
+        mounted={stickySaveMounted}
+        pending={pending}
+        saveDisabled={saveDisabled}
+        saveLabel={saveLabel}
+        onSave={handleSave}
+      />
+      <LessonPlanDeleteSheet
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        deleteTargetLabel={deleteTargetLabel}
+        pending={pending}
+        onConfirm={handleClear}
+      />
+      <LessonPlanPrintOutputs
+        schedule={schedule}
+        plan={plan}
+        mzkSchedule={mzkSchedule}
+        mzkRoute={mzkRoute}
+      />
     </>
   );
 }
