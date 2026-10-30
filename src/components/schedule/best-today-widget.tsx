@@ -198,7 +198,7 @@ function SourcePills({
             aria-label={option.label}
             title={option.label}
             className={cn(
-              "min-w-0 flex-1 truncate rounded-full px-1.5 py-0.5 text-[0.65rem] font-semibold transition-colors md:flex-none md:px-2",
+              "min-w-0 flex-1 truncate rounded-full px-3 py-1.5 text-[0.7rem] font-semibold transition-colors md:flex-none md:px-2 md:py-0.5 md:text-[0.65rem]",
               active
                 ? "bg-bus text-bus-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
@@ -430,10 +430,6 @@ export function BestTodayWidget({
               Najlepsze połączenia
             </h2>
           </div>
-
-          <span className="inline-flex max-w-[9.5rem] shrink-0 items-center truncate rounded-full bg-bus px-1.5 py-px text-[0.6rem] font-semibold tracking-wide text-bus-foreground md:hidden">
-            {dateLabel}
-          </span>
 
           {expanded ? (
             <div
