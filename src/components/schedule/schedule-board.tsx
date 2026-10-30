@@ -6,9 +6,8 @@ import {
   ArrowLeftRight,
   CalendarDays,
   Check,
-  ChevronDown,
-  ChevronUp,
   Clock,
+  Filter,
   FilterX,
   Link2,
   Loader2,
@@ -58,6 +57,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { AnalyticsEvent, trackEvent } from "@/lib/analytics/events";
 import {
   accountPlanLabel,
@@ -173,39 +179,6 @@ function uniquePlaces(values: Array<string | null | undefined>): string[] {
 const filterToggleActiveClass =
   "border-transparent bg-bus text-bus-foreground shadow-none hover:bg-bus/90 hover:text-bus-foreground dark:border-transparent dark:bg-bus dark:text-bus-foreground dark:hover:bg-bus/85 dark:hover:text-bus-foreground";
 
-/**
- * Sticky compact filters change the sticky bar height. On short trip lists that
- * height change toggles the sentinel in/out of view and loops collapse↔expand.
- * Skip compact mode when there is not enough scroll room for it to be stable.
- */
-const MOBILE_FILTERS_MIN_SCROLL_ROOM_PX = 160;
-
-/** Matches MobileHeightCollapse transition; keep observer locked for the same window. */
-const MOBILE_FILTERS_COLLAPSE_MS = 300;
-
-function MobileHeightCollapse({
-  open,
-  children,
-  className,
-}: {
-  open: boolean;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <div
-      className={cn(
-        "grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none",
-        className,
-      )}
-      // Inline style: Tailwind grid-rows-[0fr] was not collapsing height in practice.
-      style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
-    >
-      <div className="min-h-0 overflow-hidden">{children}</div>
-    </div>
-  );
-}
-
 function FilterFieldLabel({
   id,
   icon: Icon,
@@ -314,32 +287,13 @@ export function ScheduleBoard({
     ScheduleDateFilter | undefined
   >(undefined);
   const [now, setNow] = useState(() => new Date());
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [extraOptionsOpen, setExtraOptionsOpen] = useState(false);
+  const [filtersSheetOpen, setFiltersSheetOpen] = useState(false);
   const [copiedFlash, setCopiedFlash] = useState(false);
   const [filtersStuck, setFiltersStuck] = useState(false);
-  /** Mobile: thin filter bar after scrolling away from the top. */
-  const [filtersCompact, setFiltersCompact] = useState(false);
-  /** Mobile: user expanded the sticky thin bar while scrolled. */
-  const [filtersPinnedOpen, setFiltersPinnedOpen] = useState(false);
   const filtersSentinelRef = useRef<HTMLDivElement>(null);
-  const filtersWasStuckRef = useRef(false);
-  const filtersCollapseLockRef = useRef(false);
-  const filtersCollapseLockTimerRef = useRef<number | null>(null);
   const planHintDismissed = useHintDismissed("plan");
   const mzkHintDismissed = useHintDismissed("mzk");
   const skipUrlWrite = useRef(false);
-
-  function lockFiltersCollapseAnimation() {
-    filtersCollapseLockRef.current = true;
-    if (filtersCollapseLockTimerRef.current != null) {
-      window.clearTimeout(filtersCollapseLockTimerRef.current);
-    }
-    filtersCollapseLockTimerRef.current = window.setTimeout(() => {
-      filtersCollapseLockRef.current = false;
-      filtersCollapseLockTimerRef.current = null;
-    }, MOBILE_FILTERS_COLLAPSE_MS);
-  }
 
   if (prefsReady && !urlApplied) {
     const parsed = parseFilterParams(
@@ -415,52 +369,24 @@ export function ScheduleBoard({
     const sentinel = filtersSentinelRef.current;
     if (!sentinel) return;
 
-    const scrollRoomPx = () =>
-      document.documentElement.scrollHeight - window.innerHeight;
-
     const observer = new IntersectionObserver(
       ([entry]) => {
-        const stuck = !entry.isIntersecting;
-        setFiltersStuck(stuck);
-
-        // Height animation moves the sentinel; ignore stuck flips until it settles.
-        if (filtersCollapseLockRef.current) return;
-
-        const wasStuck = filtersWasStuckRef.current;
-        if (stuck && !wasStuck) {
-          // Short pages: sticky height changes flip the sentinel and loop
-          // collapse↔expand. Only enter compact mode with enough scroll room.
-          if (scrollRoomPx() >= MOBILE_FILTERS_MIN_SCROLL_ROOM_PX) {
-            lockFiltersCollapseAnimation();
-            setFiltersCompact(true);
-            setFiltersPinnedOpen(false);
-            setFiltersOpen(false);
-            setExtraOptionsOpen(false);
-          }
-        } else if (!stuck && wasStuck) {
-          // Scrolled back to the filter origin. Expand only if the page is
-          // still long enough — after compacting a short list, room drops and
-          // the sentinel pops back into view; expanding then restarts the loop.
-          if (scrollRoomPx() >= MOBILE_FILTERS_MIN_SCROLL_ROOM_PX) {
-            lockFiltersCollapseAnimation();
-            setFiltersCompact(false);
-            setFiltersPinnedOpen(false);
-          }
-        }
-
-        filtersWasStuckRef.current = stuck;
+        setFiltersStuck(!entry.isIntersecting);
       },
       { threshold: 0 },
     );
     observer.observe(sentinel);
-    return () => {
-      observer.disconnect();
-      if (filtersCollapseLockTimerRef.current != null) {
-        window.clearTimeout(filtersCollapseLockTimerRef.current);
-        filtersCollapseLockTimerRef.current = null;
-      }
-      filtersCollapseLockRef.current = false;
+    return () => observer.disconnect();
+  }, []);
+
+  // Close mobile filters sheet when crossing to desktop layout.
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const onChange = () => {
+      if (mq.matches) setFiltersSheetOpen(false);
     };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
   }, []);
 
   // Keep address bar in sync so filters are shareable.
@@ -816,15 +742,6 @@ export function ScheduleBoard({
   }
   const dayPickerValue = absoluteDateSelected ? dateFilter : null;
 
-  const mobileDateItems = [
-    { label: "Dziś", value: "today" as const },
-    { label: "Jutro", value: "tomorrow" as const },
-    ...dayPickerItems.map((item) => ({
-      label: item.label,
-      value: item.value as ScheduleDateFilter,
-    })),
-  ];
-
   const singlePlaceForWidgets =
     placesFilter?.length === 1 ? placesFilter[0]! : placesFilter?.[0] ?? null;
 
@@ -967,12 +884,6 @@ export function ScheduleBoard({
     lessonMatchWindowEnabled &&
     (bestTodayWindowGaps.pickup || bestTodayWindowGaps.dropoff);
 
-  const mobileDirectionItems = [
-    { label: "Wszystkie", value: "all" as const },
-    { label: "Do szkoły", value: "pickups" as const },
-    { label: "Ze szkoły", value: "dropoffs" as const },
-  ];
-
   function persistPlace(next: string | null) {
     savePreferredPlace(next);
   }
@@ -987,13 +898,15 @@ export function ScheduleBoard({
   }
 
   function openLessonWindowFilters() {
-    setFiltersOpen(true);
-    setFiltersPinnedOpen(true);
-    // Wait for mobile panel expand before focusing the window input.
+    const isDesktop = window.matchMedia("(min-width: 768px)").matches;
+    if (!isDesktop) setFiltersSheetOpen(true);
+    // Wait for the sheet to mount (mobile) before focusing the window input.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        const input = document.getElementById(
-          "schedule-lesson-match-window",
+        const sheet = document.getElementById("schedule-filters-sheet");
+        const input = (
+          sheet?.querySelector("#schedule-lesson-match-window") ??
+          document.getElementById("schedule-lesson-match-window")
         ) as HTMLInputElement | null;
         if (!input || input.disabled) return;
         input.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -1224,13 +1137,18 @@ export function ScheduleBoard({
 
   function renderSourceAndPlanFilters(
     idPrefix: string,
-    options?: { stacked?: boolean },
+    options?: { stacked?: boolean; largeControls?: boolean },
   ) {
     const stacked = options?.stacked ?? false;
+    const largeControls = options?.largeControls ?? false;
     const sourceId = `${idPrefix}-source`;
     const planId = `${idPrefix}-plan`;
     const sourceLabelId = `${idPrefix}-source-filter-label`;
     const planLabelId = `${idPrefix}-lesson-plan-label`;
+    const stackedSelectClass = cn(
+      "w-full max-w-full",
+      largeControls && "[&_select]:h-11 [&_select]:text-base",
+    );
 
     const mzkPlanToggle = showMzkPlanToggle ? (
       <Button
@@ -1239,6 +1157,7 @@ export function ScheduleBoard({
         aria-pressed={showAllMzkConnections}
         className={cn(
           stacked && "w-full",
+          largeControls && "h-11",
           showAllMzkConnections && filterToggleActiveClass,
         )}
         onClick={() => {
@@ -1265,8 +1184,8 @@ export function ScheduleBoard({
             </Label>
             <NativeSelect
               id={sourceId}
-              size="sm"
-              className="w-full max-w-full"
+              size={largeControls ? "default" : "sm"}
+              className={stackedSelectClass}
               value={sourceMode}
               onChange={(event) => {
                 applySourceSelectValue(event.target.value);
@@ -1287,8 +1206,8 @@ export function ScheduleBoard({
             {planReady ? (
               <NativeSelect
                 id={planId}
-                size="sm"
-                className="w-full max-w-full"
+                size={largeControls ? "default" : "sm"}
+                className={stackedSelectClass}
                 value={planSelectValue}
                 onChange={(event) => {
                   applyPlanSelectValue(event.target.value);
@@ -1303,7 +1222,10 @@ export function ScheduleBoard({
             ) : (
               <Link
                 href="/lekcje"
-                className="inline-flex h-8 w-full items-center justify-center rounded-lg border border-border bg-card px-2.5 text-sm font-medium hover:bg-muted"
+                className={cn(
+                  "inline-flex w-full items-center justify-center rounded-lg border border-border bg-card px-2.5 text-sm font-medium hover:bg-muted",
+                  largeControls ? "h-11" : "h-8",
+                )}
               >
                 Ustaw plan
               </Link>
@@ -1383,20 +1305,6 @@ export function ScheduleBoard({
       </div>
     );
   }
-
-  const clearFiltersButton = hasActiveFilters ? (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      className="text-bus-deep hover:bg-bus/10 hover:text-bus-deep"
-      aria-label="Wyczyść filtry"
-      onClick={clearFilters}
-    >
-      <FilterX aria-hidden />
-      <span>Wyczyść</span>
-    </Button>
-  ) : null;
 
   const primaryFilters = (
     <div className="flex flex-col">
@@ -1595,7 +1503,6 @@ export function ScheduleBoard({
   ].filter(Boolean);
 
   const tripCountLabel = formatTripCount(tripCount);
-  const mobileFiltersCollapsed = filtersCompact && !filtersPinnedOpen;
 
   function renderFilterSummaryFooter() {
     return (
@@ -1683,16 +1590,18 @@ export function ScheduleBoard({
       <div className="sticky top-0 z-30 -mx-6 isolate [overflow-anchor:none] pb-2 print:hidden sm:-mx-10 md:py-2.5">
         <div
           className={cn(
-            "relative overflow-hidden rounded-b-xl border border-border/70 bg-card shadow-[0_10px_28px_-18px_color-mix(in_srgb,var(--foreground)_45%,transparent)] transition-[border-top-left-radius,border-top-right-radius] duration-300 ease-out motion-reduce:transition-none dark:shadow-[0_8px_22px_-16px_rgba(0,0,0,0.55)] md:rounded-t-xl",
-            filtersStuck ? "rounded-t-none" : "rounded-t-xl",
+            "relative overflow-hidden transition-[border-top-left-radius,border-top-right-radius] duration-300 ease-out motion-reduce:transition-none max-md:overflow-visible max-md:border-0 max-md:bg-transparent max-md:shadow-none max-md:rounded-none md:rounded-b-xl md:border md:border-border/70 md:bg-card md:shadow-[0_10px_28px_-18px_color-mix(in_srgb,var(--foreground)_45%,transparent)] md:dark:shadow-[0_8px_22px_-16px_rgba(0,0,0,0.55)] md:rounded-t-xl",
+            filtersStuck ? "md:rounded-t-none" : null,
           )}
         >
-          {/* Mobile sticky: thin bar while scrolled */}
-          <MobileHeightCollapse
-            open={mobileFiltersCollapsed}
-            className="md:hidden"
-          >
-            <div className="flex items-center gap-2 px-3 py-2">
+          {/* Mobile: compact summary + filters sheet trigger */}
+          <div className="md:hidden">
+            <div
+              className={cn(
+                "flex items-center gap-2 rounded-xl border border-[#DCE4F2] bg-white px-3 py-2 shadow-[0_2px_8px_rgba(40,60,100,0.06)] dark:border-[#2A3548] dark:bg-[#19222d] dark:shadow-[0_2px_8px_rgba(0,0,0,0.25)]",
+                filtersStuck && "rounded-t-none",
+              )}
+            >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm text-foreground">
                   {filterSummaryPrimary}
@@ -1704,7 +1613,7 @@ export function ScheduleBoard({
                 ) : null}
               </div>
               {isWeekendView ? null : (
-                <span className="inline-flex shrink-0 items-center rounded-full bg-bus/15 px-2 py-0.5 text-[0.7rem] font-semibold text-bus-deep tabular-nums">
+                <span className="inline-flex shrink-0 items-center rounded-full bg-[#E8EDFF] px-2 py-0.5 text-[0.7rem] font-semibold text-[#334A9B] tabular-nums dark:bg-[#243152] dark:text-[#A8B6E8]">
                   {tripCountLabel}
                 </span>
               )}
@@ -1712,180 +1621,254 @@ export function ScheduleBoard({
                 type="button"
                 size="sm"
                 variant="outline"
-                aria-expanded={false}
-                aria-controls="schedule-mobile-filters"
-                onClick={() => {
-                  lockFiltersCollapseAnimation();
-                  setFiltersPinnedOpen(true);
-                }}
+                className="border-[#C7D2FE] bg-[#E8EDFF] text-[#334A9B] hover:bg-[#E8EDFF] hover:text-[#334A9B] dark:border-[#3A4A6E] dark:bg-[#243152] dark:text-[#A8B6E8] dark:hover:bg-[#243152] dark:hover:text-[#A8B6E8]"
+                aria-expanded={filtersSheetOpen}
+                aria-controls="schedule-filters-sheet"
+                onClick={() => setFiltersSheetOpen(true)}
               >
-                Rozwiń
-                <ChevronDown aria-hidden className="size-3.5" />
+                <Filter aria-hidden className="size-3.5" />
+                Filtry
+                {activeFilterCount > 0 ? (
+                  <span className="inline-flex min-w-5 items-center justify-center rounded-md bg-[#DCE4F2] px-1 text-[0.7rem] font-semibold text-[#334A9B] tabular-nums dark:bg-[#1A2332] dark:text-[#A8B6E8]">
+                    {activeFilterCount}
+                  </span>
+                ) : null}
               </Button>
             </div>
-          </MobileHeightCollapse>
+          </div>
 
-          {/* Mobile: full filter chrome — one height animation for scroll-compact */}
-          <MobileHeightCollapse
-            open={!mobileFiltersCollapsed}
-            className="md:hidden"
-          >
-            <div id="schedule-mobile-filters">
-              <div className="flex flex-col gap-2 border-b border-border/60 p-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={filtersOpen ? "secondary" : "outline"}
-                    aria-expanded={filtersOpen}
-                    aria-controls="schedule-filters-panel"
-                    onClick={() => setFiltersOpen((open) => !open)}
-                  >
-                    Filtry
-                    {activeFilterCount > 0 ? (
-                      <span className="inline-flex min-w-5 items-center justify-center rounded-md bg-bus/15 px-1 text-[0.7rem] font-semibold text-bus-deep tabular-nums">
-                        {activeFilterCount}
-                      </span>
-                    ) : null}
-                    <span aria-hidden className="text-muted-foreground">
-                      {filtersOpen ? "▴" : "▾"}
-                    </span>
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={extraOptionsOpen ? "secondary" : "outline"}
-                    aria-expanded={extraOptionsOpen}
-                    aria-controls="schedule-extra-options-panel"
-                    onClick={() => setExtraOptionsOpen((open) => !open)}
-                  >
-                    <Settings2 aria-hidden />
-                    Dodatkowe opcje
-                    <span aria-hidden className="text-muted-foreground">
-                      {extraOptionsOpen ? "▴" : "▾"}
-                    </span>
-                  </Button>
-                  {clearFiltersButton}
-                  {filtersCompact ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      className="ml-auto"
-                      aria-expanded
-                      onClick={() => {
-                        lockFiltersCollapseAnimation();
-                        setFiltersPinnedOpen(false);
-                      }}
+          <Sheet open={filtersSheetOpen} onOpenChange={setFiltersSheetOpen}>
+            <SheetContent
+              side="bottom"
+              id="schedule-filters-sheet"
+              className="max-h-[min(92dvh,100%)] w-full max-w-none gap-0 rounded-t-2xl border-x-0 border-b-0 p-0 data-[side=bottom]:h-auto data-[side=bottom]:max-h-[min(92dvh,100%)]"
+            >
+              <SheetHeader className="shrink-0 border-b border-border/60 py-3">
+                <SheetTitle>Filtry</SheetTitle>
+              </SheetHeader>
+
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">
+                <div className="flex w-full flex-col gap-3.5">
+                  <div className="flex w-full flex-col gap-1.5">
+                    <FilterFieldLabel
+                      id="schedule-sheet-place-label"
+                      icon={MapPin}
                     >
-                      Zwiń
-                      <ChevronUp aria-hidden className="size-3.5" />
-                    </Button>
-                  ) : null}
-                </div>
-                <div className="flex min-w-0 flex-col gap-1">
-                  <Label
-                    id="schedule-mobile-place-label"
-                    className="text-xs text-muted-foreground"
-                  >
-                    Miejsce
-                  </Label>
-                  <PlaceMultiSelect
-                    id="schedule-mobile-place"
-                    places={places}
-                    value={placesFilter}
-                    labelledBy="schedule-mobile-place-label"
-                    onChange={(next) => {
-                      startTransition(() => {
-                        setPlacesOverride(next);
-                        persistPlace(next?.[0] ?? null);
-                      });
-                    }}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <Label
-                      htmlFor="schedule-mobile-date"
-                      className="text-xs text-muted-foreground"
+                      Miejsce
+                    </FilterFieldLabel>
+                    <PlaceMultiSelect
+                      id="schedule-sheet-place"
+                      places={places}
+                      value={placesFilter}
+                      labelledBy="schedule-sheet-place-label"
+                      className="h-11 text-base"
+                      onChange={(next) => {
+                        startTransition(() => {
+                          setPlacesOverride(next);
+                          persistPlace(next?.[0] ?? null);
+                        });
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex w-full flex-col gap-1.5">
+                    <FilterFieldLabel
+                      id="schedule-sheet-date-label"
+                      icon={CalendarDays}
                     >
                       Kiedy?
-                    </Label>
-                    <NativeSelect
-                      id="schedule-mobile-date"
-                      size="sm"
-                      className="w-full max-w-full"
-                      value={dateFilter === "all" ? "today" : dateFilter}
-                      onChange={(event) => {
-                        const next = event.target.value as ScheduleDateFilter;
-                        startTransition(() => setDateFilter(next));
-                      }}
-                    >
-                      {mobileDateItems.map((item) => (
-                        <NativeSelectOption key={item.value} value={item.value}>
-                          {item.label}
+                    </FilterFieldLabel>
+                    <div className="flex w-full items-stretch gap-1.5">
+                      <ButtonGroup
+                        aria-labelledby="schedule-sheet-date-label"
+                        className="shrink-0"
+                      >
+                        {(
+                          [
+                            ["today", "Dziś"],
+                            ["tomorrow", "Jutro"],
+                          ] as const
+                        ).map(([value, label]) => (
+                          <Button
+                            key={value}
+                            type="button"
+                            variant="outline"
+                            aria-pressed={dateFilter === value}
+                            className={cn(
+                              "h-11 px-3.5",
+                              dateFilter === value && filterToggleActiveClass,
+                            )}
+                            onClick={() => {
+                              startTransition(() => setDateFilter(value));
+                            }}
+                          >
+                            {label}
+                          </Button>
+                        ))}
+                      </ButtonGroup>
+                      <NativeSelect
+                        id="schedule-sheet-date"
+                        aria-labelledby="schedule-sheet-date-label"
+                        className={cn(
+                          "w-full min-w-0 flex-1 [&_select]:h-11 [&_select]:rounded-lg [&_select]:border-border [&_select]:bg-card [&_select]:text-base",
+                          absoluteDateSelected &&
+                            "[&_select]:border-transparent [&_select]:bg-bus [&_select]:text-bus-foreground [&_select]:dark:bg-bus",
+                        )}
+                        value={dayPickerValue ?? ""}
+                        onChange={(event) => {
+                          const next = event.target.value;
+                          if (!next) return;
+                          startTransition(() => setDateFilter(next));
+                        }}
+                      >
+                        <NativeSelectOption value="" disabled>
+                          Wybierz dzień
                         </NativeSelectOption>
-                      ))}
-                    </NativeSelect>
+                        {dayPickerItems.map((item) => (
+                          <NativeSelectOption
+                            key={item.value}
+                            value={item.value}
+                          >
+                            {item.label}
+                          </NativeSelectOption>
+                        ))}
+                      </NativeSelect>
+                    </div>
                   </div>
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <Label
-                      htmlFor="schedule-mobile-direction"
-                      className="text-xs text-muted-foreground"
+
+                  <div className="flex w-full flex-col gap-1.5">
+                    <FilterFieldLabel
+                      id="schedule-sheet-direction-label"
+                      icon={ArrowLeftRight}
                     >
                       Kierunek
-                    </Label>
-                    <NativeSelect
-                      id="schedule-mobile-direction"
-                      size="sm"
-                      className="w-full max-w-full"
-                      value={direction}
-                      onChange={(event) => {
-                        const next = event.target.value as ScheduleDirection;
-                        startTransition(() => setDirection(next));
-                      }}
+                    </FilterFieldLabel>
+                    <ButtonGroup
+                      aria-labelledby="schedule-sheet-direction-label"
+                      className="w-full max-w-none"
                     >
-                      {mobileDirectionItems.map((item) => (
-                        <NativeSelectOption key={item.value} value={item.value}>
-                          {item.label}
-                        </NativeSelectOption>
+                      {(
+                        [
+                          ["all", "Wszystkie"],
+                          ["pickups", "Do szkoły"],
+                          ["dropoffs", "Ze szkoły"],
+                        ] as const
+                      ).map(([value, label]) => (
+                        <Button
+                          key={value}
+                          type="button"
+                          variant="outline"
+                          aria-pressed={direction === value}
+                          className={cn(
+                            "h-11 min-w-0 flex-1 px-2",
+                            direction === value && filterToggleActiveClass,
+                          )}
+                          onClick={() => {
+                            startTransition(() => setDirection(value));
+                          }}
+                        >
+                          {label}
+                        </Button>
                       ))}
-                    </NativeSelect>
+                    </ButtonGroup>
                   </div>
-                </div>
-              </div>
 
-              <MobileHeightCollapse open={filtersOpen}>
-                <div
-                  id="schedule-filters-panel"
-                  className="space-y-3 border-b border-border/60 p-3"
-                >
-                  <div className="flex flex-col gap-1.5">
+                  <div className="flex w-full flex-col gap-1.5">
                     <FilterFieldLabel
-                      id="schedule-mobile-hours-label"
+                      id="schedule-sheet-hours-label"
                       icon={Clock}
                     >
                       Godziny lekcyjne
                     </FilterFieldLabel>
-                    <div aria-labelledby="schedule-mobile-hours-label">
+                    <div
+                      className="w-full"
+                      aria-labelledby="schedule-sheet-hours-label"
+                    >
                       {hoursFilterBody}
                     </div>
                   </div>
-                  {renderSourceAndPlanFilters("schedule-mobile", {
+
+                  {renderSourceAndPlanFilters("schedule-sheet", {
                     stacked: true,
+                    largeControls: true,
                   })}
-                </div>
-              </MobileHeightCollapse>
 
-              <MobileHeightCollapse open={extraOptionsOpen}>
-                <div id="schedule-extra-options-panel">
-                  {renderAdditionalOptions()}
+                  <div className="flex w-full flex-col gap-1.5 border-t border-border/60 pt-3">
+                    <span className="inline-flex items-center gap-1 text-[0.7rem] font-semibold text-muted-foreground">
+                      <Settings2
+                        className="size-3 text-bus-deep"
+                        aria-hidden
+                      />
+                      Dodatkowe opcje
+                    </span>
+                    <div className="flex w-full gap-1.5">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 min-w-0 flex-1 justify-center bg-card text-xs"
+                        aria-label="Drukuj"
+                        onClick={() => {
+                          trackEvent(AnalyticsEvent.schedulePrintClicked, {
+                            mode: sourceMode,
+                          });
+                          setFiltersSheetOpen(false);
+                          window.setTimeout(() => window.print(), 150);
+                        }}
+                      >
+                        <Printer aria-hidden className="size-3.5" />
+                        <span>Drukuj</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 min-w-0 flex-1 justify-center bg-card text-xs"
+                        aria-label={
+                          copiedFlash ? "Skopiowano" : "Kopiuj link"
+                        }
+                        onClick={() => {
+                          void copyShareLink();
+                        }}
+                      >
+                        {copiedFlash ? (
+                          <Check aria-hidden className="size-3.5" />
+                        ) : (
+                          <Link2 aria-hidden className="size-3.5" />
+                        )}
+                        <span>
+                          {copiedFlash ? "Skopiowano" : "Kopiuj link"}
+                        </span>
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </MobileHeightCollapse>
+              </div>
 
-              {renderFilterSummaryFooter()}
-            </div>
-          </MobileHeightCollapse>
+              <SheetFooter className="shrink-0 gap-1.5 border-t border-border/60 bg-popover pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
+                {hasActiveFilters ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 w-full text-bus-deep hover:bg-bus/10 hover:text-bus-deep"
+                    aria-label="Wyczyść filtry"
+                    onClick={clearFilters}
+                  >
+                    <FilterX aria-hidden />
+                    <span>Wyczyść filtry</span>
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  className="h-12 w-full text-base font-semibold"
+                  onClick={() => setFiltersSheetOpen(false)}
+                >
+                  Pokaż {tripCountLabel}
+                </Button>
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
 
           {/* Desktop filters — always expanded */}
           <div className="hidden md:block">
