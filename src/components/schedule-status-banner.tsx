@@ -12,10 +12,20 @@ type ScheduleStatusBannerProps = {
   className?: string;
 };
 
-function rowIcon(level: FreshnessLevel) {
-  if (level === "offline") return WifiOff;
-  if (level === "expired") return AlertTriangle;
-  return Info;
+function BannerIcon({
+  level,
+  className,
+}: {
+  level: FreshnessLevel;
+  className?: string;
+}) {
+  if (level === "offline") {
+    return <WifiOff aria-hidden className={className} />;
+  }
+  if (level === "expired") {
+    return <AlertTriangle aria-hidden className={className} />;
+  }
+  return <Info aria-hidden className={className} />;
 }
 
 function BannerCta({ href, label }: { href: string; label: string }) {
@@ -30,7 +40,6 @@ function BannerCta({ href, label }: { href: string; label: string }) {
 }
 
 function BannerRow({ item }: { item: FreshnessInfo }) {
-  const Icon = rowIcon(item.level);
   const isAlert = item.level === "expired" || item.level === "offline";
   const titleClass = isAlert
     ? "font-medium text-destructive"
@@ -65,7 +74,10 @@ function BannerRow({ item }: { item: FreshnessInfo }) {
           shellClass,
         )}
       >
-        <Icon aria-hidden className={cn(iconClass, "mt-0.5 md:mt-0")} />
+        <BannerIcon
+          level={item.level}
+          className={cn(iconClass, "mt-0.5 md:mt-0")}
+        />
         <div className="min-w-0">
           <p title={item.detail} className={cn("md:hidden", titleClass)}>
             {compactTitle}
@@ -89,7 +101,7 @@ function BannerRow({ item }: { item: FreshnessInfo }) {
         className="flex w-full items-center gap-2 px-3 py-2 text-left md:gap-2.5 md:px-4 md:py-2.5"
         onClick={() => setOpen((current) => !current)}
       >
-        <Icon aria-hidden className={iconClass} />
+        <BannerIcon level={item.level} className={iconClass} />
         <span className="min-w-0 flex-1">
           <span className={cn("block md:hidden", titleClass)}>
             {compactTitle}
