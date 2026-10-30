@@ -1,6 +1,6 @@
 {
   "name": "school-bus",
-  "version": "1.18.17",
+  "version": "1.18.24",
   "private": true,
   "scripts": {
     "dev": "next dev",

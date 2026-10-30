@@ -56,7 +56,10 @@ export function PlaceMultiSelect({
         <span className="truncate">{summaryLabel(value)}</span>
         <ChevronDown aria-hidden className="size-4 shrink-0 opacity-60" />
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[min(100vw-2rem,18rem)] p-2">
+      <PopoverContent
+        align="start"
+        className="w-[var(--anchor-width)] max-w-[var(--anchor-width)] p-2"
+      >
         <button
           type="button"
           className={cn(
