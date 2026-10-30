@@ -155,12 +155,10 @@ export function NotificationsDevicesSection({
     );
   }
 
-  if (devicesCount <= 1) {
+  if (devicesCount <= 1 && isSubscribed) {
     return (
       <p className="text-sm text-muted-foreground">
-        {isSubscribed
-          ? "Masz powiadomienia włączone tylko na tym urządzeniu."
-          : null}
+        Masz powiadomienia włączone tylko na tym urządzeniu.
       </p>
     );
   }

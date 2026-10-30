@@ -54,6 +54,11 @@ import type {
 import type { ScheduleSourceMode } from "@/lib/dowozy/filter-url";
 import { cn } from "cn";
 
+/** Unique ids for desktop vs mobile sheet — board focus uses these. */
+export const LESSON_MATCH_WINDOW_INPUT_ID = "schedule-lesson-match-window";
+export const LESSON_MATCH_WINDOW_SHEET_INPUT_ID =
+  "schedule-sheet-lesson-match-window";
+
 export type ScheduleFilterSelectItem = {
   label: string;
   value: string;
@@ -153,91 +158,103 @@ export function ScheduleFilters({
   activeFilterCount,
   nextMerged,
 }: ScheduleFiltersProps) {
-  const hoursFilterBody = matchActive && dayTimes ? (
-    <div className="flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 max-md:justify-between md:flex-nowrap">
-      <div className="inline-flex items-center gap-x-1.5">
-        <FilterTimeDisplay value={dayTimes.start} emptyLabel="—" />
-        <span className="text-muted-foreground" aria-hidden>
-          –
-        </span>
-        <FilterTimeDisplay value={dayTimes.end} emptyLabel="—" />
-      </div>
-      <span
-        className="hidden h-5 w-px shrink-0 bg-border md:block"
-        aria-hidden
-      />
-      <div className="inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground max-md:min-w-[8rem] max-md:flex-1 md:shrink">
-        <label className="inline-flex shrink-0 cursor-pointer items-center gap-1.5">
-          <input
-            type="checkbox"
-            className="size-3.5 shrink-0 accent-bus"
-            checked={lessonMatchWindowEnabled}
-            aria-label="Ogranicz kursy oknem czasowym"
-            onChange={(event) => {
-              saveLessonMatchWindowEnabled(event.target.checked);
-            }}
+  function renderHoursFilterBody(windowInputId: string) {
+    if (matchActive && dayTimes) {
+      return (
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 max-md:justify-between md:flex-nowrap">
+          <div className="inline-flex items-center gap-x-1.5">
+            <FilterTimeDisplay value={dayTimes.start} emptyLabel="—" />
+            <span className="text-muted-foreground" aria-hidden>
+              –
+            </span>
+            <FilterTimeDisplay value={dayTimes.end} emptyLabel="—" />
+          </div>
+          <span
+            className="hidden h-5 w-px shrink-0 bg-border md:block"
+            aria-hidden
           />
-          <span>okno</span>
-        </label>
-        <input
-          id="schedule-lesson-match-window"
-          type="number"
-          inputMode="numeric"
-          min={MIN_LESSON_MATCH_WINDOW_MIN}
-          max={MAX_LESSON_MATCH_WINDOW_MIN}
-          step={5}
-          value={windowDraftValue}
-          disabled={!lessonMatchWindowEnabled}
-          aria-label="Okno dopasowania do planu w minutach"
-          onChange={(event) => onWindowDraftChange(event.target.value)}
-          onBlur={() => onWindowCommit(windowDraftValue)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.currentTarget.blur();
-            }
-          }}
-          className="h-8 w-12 min-w-0 max-w-full flex-1 rounded-lg border border-border bg-card px-1 text-center text-sm tabular-nums text-foreground outline-hidden focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:flex-none"
-        />
-        <span className="shrink-0">min</span>
-      </div>
-    </div>
-  ) : matchActive && isWeekendView ? (
-    <p className="text-xs text-muted-foreground">
-      Weekend — autobusy szkolne nie kursują.
-    </p>
-  ) : matchActive && target && !dayTimes ? (
-    multiPlanAllActive ? (
-      <p className="text-xs text-muted-foreground">
-        Kilka planów — dopasowanie widać przy kursach.
-      </p>
-    ) : (
-      <p className="text-xs text-muted-foreground">
-        Brak godzin —{" "}
-        <Link
-          href="/lekcje"
-          className="underline underline-offset-2 hover:text-foreground"
-        >
-          uzupełnij
-        </Link>
-      </p>
-    )
-  ) : (
-    <p className="text-xs text-muted-foreground">
-      {planReady ? (
-        <>Wybierz plan lekcji, żeby dopasować kursy.</>
+          <div className="inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground max-md:min-w-[8rem] max-md:flex-1 md:shrink">
+            <label className="inline-flex shrink-0 cursor-pointer items-center gap-1.5">
+              <input
+                type="checkbox"
+                className="size-3.5 shrink-0 accent-bus"
+                checked={lessonMatchWindowEnabled}
+                aria-label="Ogranicz kursy oknem czasowym"
+                onChange={(event) => {
+                  saveLessonMatchWindowEnabled(event.target.checked);
+                }}
+              />
+              <span>okno</span>
+            </label>
+            <input
+              id={windowInputId}
+              type="number"
+              inputMode="numeric"
+              min={MIN_LESSON_MATCH_WINDOW_MIN}
+              max={MAX_LESSON_MATCH_WINDOW_MIN}
+              step={5}
+              value={windowDraftValue}
+              disabled={!lessonMatchWindowEnabled}
+              aria-label="Okno dopasowania do planu w minutach"
+              onChange={(event) => onWindowDraftChange(event.target.value)}
+              onBlur={() => onWindowCommit(windowDraftValue)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.currentTarget.blur();
+                }
+              }}
+              className="h-8 w-12 min-w-0 max-w-full flex-1 rounded-lg border border-border bg-card px-1 text-center text-sm tabular-nums text-foreground outline-hidden focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:flex-none"
+            />
+            <span className="shrink-0">min</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (matchActive && isWeekendView) {
+      return (
+        <p className="text-xs text-muted-foreground">
+          Weekend — autobusy szkolne nie kursują.
+        </p>
+      );
+    }
+
+    if (matchActive && target && !dayTimes) {
+      return multiPlanAllActive ? (
+        <p className="text-xs text-muted-foreground">
+          Kilka planów — dopasowanie widać przy kursach.
+        </p>
       ) : (
-        <>
+        <p className="text-xs text-muted-foreground">
+          Brak godzin —{" "}
           <Link
             href="/lekcje"
             className="underline underline-offset-2 hover:text-foreground"
           >
-            Ustaw plan lekcji
+            uzupełnij
           </Link>
-          , żeby zobaczyć godziny.
-        </>
-      )}
-    </p>
-  );
+        </p>
+      );
+    }
+
+    return (
+      <p className="text-xs text-muted-foreground">
+        {planReady ? (
+          <>Wybierz plan lekcji, żeby dopasować kursy.</>
+        ) : (
+          <>
+            <Link
+              href="/lekcje"
+              className="underline underline-offset-2 hover:text-foreground"
+            >
+              Ustaw plan lekcji
+            </Link>
+            , żeby zobaczyć godziny.
+          </>
+        )}
+      </p>
+    );
+  }
 
   function renderSourceAndPlanFilters(
     idPrefix: string,
@@ -515,7 +532,7 @@ export function ScheduleFilters({
             Godziny lekcyjne
           </FilterFieldLabel>
           <div aria-labelledby="schedule-hours-filter-label">
-            {hoursFilterBody}
+            {renderHoursFilterBody(LESSON_MATCH_WINDOW_INPUT_ID)}
           </div>
         </div>
       </div>
@@ -822,7 +839,7 @@ export function ScheduleFilters({
                     className="w-full"
                     aria-labelledby="schedule-sheet-hours-label"
                   >
-                    {hoursFilterBody}
+                    {renderHoursFilterBody(LESSON_MATCH_WINDOW_SHEET_INPUT_ID)}
                   </div>
                 </div>
 

@@ -13,7 +13,11 @@ import {
   useSyncExternalStore,
 } from "react";
 import { BestTodayWidget } from "@/components/schedule/best-today-widget";
-import { ScheduleFilters } from "@/components/schedule/schedule-filters";
+import {
+  LESSON_MATCH_WINDOW_INPUT_ID,
+  LESSON_MATCH_WINDOW_SHEET_INPUT_ID,
+  ScheduleFilters,
+} from "@/components/schedule/schedule-filters";
 import {
   dateLabel,
   directionLabel,
@@ -822,10 +826,10 @@ export function ScheduleBoard({
     // Wait for the sheet to mount (mobile) before focusing the window input.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        const sheet = document.getElementById("schedule-filters-sheet");
         const input = (
-          sheet?.querySelector("#schedule-lesson-match-window") ??
-          document.getElementById("schedule-lesson-match-window")
+          isDesktop
+            ? document.getElementById(LESSON_MATCH_WINDOW_INPUT_ID)
+            : document.getElementById(LESSON_MATCH_WINDOW_SHEET_INPUT_ID)
         ) as HTMLInputElement | null;
         if (!input || input.disabled) return;
         input.scrollIntoView({ behavior: "smooth", block: "nearest" });
