@@ -83,6 +83,12 @@ import {
   detectBestTodayWindowGaps,
 } from "@/lib/dowozy/best-today";
 import {
+  getSourceModePreferenceSnapshot,
+  parseSourceModePreference,
+  saveSourceModePreference,
+  subscribeSourceModePreference,
+} from "@/lib/dowozy/source-mode-storage";
+import {
   formatDayOptionLabel,
   isAbsoluteDateFilter,
   isSchoolDay,
@@ -99,10 +105,7 @@ import {
   buildMergedTimeline,
   findNextMergedEntry,
 } from "@/lib/mzk/merge-timeline";
-import {
-  hasConfiguredMzkRoute,
-  loadMzkRoutePreference,
-} from "@/lib/mzk/route-storage";
+import { hasConfiguredMzkRoute } from "@/lib/mzk/route-storage";
 import { useMzkOdDepartures } from "@/lib/mzk/use-mzk-od-departures";
 import { useMzkRoutePreference } from "@/lib/mzk/use-mzk-route";
 import { dismissHint } from "@/lib/onboarding-hints";
@@ -189,6 +192,12 @@ export function ScheduleBoard({
     ScheduleSourceMode | undefined
   >(undefined);
   const [showAllMzkConnections, setShowAllMzkConnections] = useState(false);
+  const storedSourceModeRaw = useSyncExternalStore(
+    subscribeSourceModePreference,
+    getSourceModePreferenceSnapshot,
+    () => "",
+  );
+  const storedSourceMode = parseSourceModePreference(storedSourceModeRaw);
   const storedWindowRaw = useSyncExternalStore(
     subscribeLessonMatchWindow,
     getLessonMatchWindowSnapshot,
@@ -226,6 +235,8 @@ export function ScheduleBoard({
     setPlanMatch(parsed.planMatch);
     setPlacesOverride(sanitizeUrlPlaces(parsed.places, places));
     setDirection(parsed.direction ?? "all");
+    // Do not saveSourceModePreference here — adjust-state-during-render
+    // cannot notify useSyncExternalStore (setState-in-render).
     setSourceMode(parsed.sourceMode);
     setDateFilter(parsed.dateFilter);
   }
@@ -242,7 +253,9 @@ export function ScheduleBoard({
       ? "all"
       : planMatchRaw;
   const sourceMode =
-    sourceModeOverride ?? (mzkRouteReady ? "school-mzk" : "school");
+    sourceModeOverride ??
+    storedSourceMode ??
+    (mzkRouteReady ? "school-mzk" : "school");
   const matchActive = planMatch !== "off" && planReady;
   const activeMatchPlans = useMemo(() => {
     if (!matchActive || !accountMatchPlans?.length) return null;
@@ -365,14 +378,10 @@ export function ScheduleBoard({
           (hasConfiguredLessons(loadLessonPlan()) || accountPlans.length > 0
             ? "all"
             : "off");
-        const nextSource =
-          parsed.sourceMode ??
-          (hasConfiguredMzkRoute(loadMzkRoutePreference())
-            ? "school-mzk"
-            : "school");
         setPlanMatch(nextPlanMatch);
         setDirection(parsed.direction ?? "all");
-        setSourceMode(nextSource);
+        // undefined → fall back to localStorage preference / default
+        setSourceMode(parsed.sourceMode);
         setDateFilter(parsed.dateFilter ?? "today");
         setPlacesOverride(sanitizeUrlPlaces(parsed.places, places));
       });
@@ -868,6 +877,11 @@ export function ScheduleBoard({
     });
   }
 
+  function persistSourceMode(next: ScheduleSourceMode) {
+    saveSourceModePreference(next);
+    setSourceMode(next);
+  }
+
   function clearFilters() {
     startTransition(() => {
       setPlacesOverride(null);
@@ -876,7 +890,7 @@ export function ScheduleBoard({
       setDirection("all");
       setPlanMatch("off");
       setShowAllMzkConnections(false);
-      setSourceMode("school");
+      persistSourceMode("school");
     });
   }
 
@@ -968,7 +982,7 @@ export function ScheduleBoard({
       trackEvent(AnalyticsEvent.scheduleSourceModeChanged, {
         mode: next,
       });
-      startTransition(() => setSourceMode(next));
+      startTransition(() => persistSourceMode(next));
     }
   }
 
@@ -1107,7 +1121,10 @@ export function ScheduleBoard({
           dateLabel={dateLabel(deferredDateFilter)}
           sourceMode={sourceMode}
           onSourceModeChange={(next) => {
-            startTransition(() => setSourceMode(next));
+            trackEvent(AnalyticsEvent.scheduleSourceModeChanged, {
+              mode: next,
+            });
+            startTransition(() => persistSourceMode(next));
           }}
           plans={
             accountPlans.length > 1
