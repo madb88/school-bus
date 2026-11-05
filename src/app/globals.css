@@ -151,7 +151,8 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    /* Needed so iOS Safari drawer overlay covers the viewport after scroll. */
+    @apply relative bg-background text-foreground;
   }
   html {
     @apply font-sans;

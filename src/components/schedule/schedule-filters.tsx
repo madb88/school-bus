@@ -12,6 +12,7 @@ import {
   MapPin,
   Printer,
   Settings2,
+  XIcon,
 } from "lucide-react";
 import { startTransition, type ReactNode } from "react";
 import {
@@ -22,6 +23,14 @@ import {
 import { PlaceMultiSelect } from "@/components/schedule/place-multi-select";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import { Label } from "@/components/ui/label";
 import {
   NativeSelect,
@@ -34,13 +43,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { AnalyticsEvent, trackEvent } from "@/lib/analytics/events";
 import {
   MAX_LESSON_MATCH_WINDOW_MIN,
@@ -693,15 +695,30 @@ export function ScheduleFilters({
           </div>
         </div>
 
-        <Sheet open={filtersSheetOpen} onOpenChange={onFiltersSheetOpenChange}>
-          <SheetContent
-            side="bottom"
+        <Drawer
+          open={filtersSheetOpen}
+          onOpenChange={onFiltersSheetOpenChange}
+          showSwipeHandle
+        >
+          <DrawerContent
             id="schedule-filters-sheet"
-            className="max-h-[min(92dvh,100%)] w-full max-w-none gap-0 rounded-t-2xl border-x-0 border-b-0 p-0 data-[side=bottom]:h-auto data-[side=bottom]:max-h-[min(92dvh,100%)]"
+            className="w-full max-w-none rounded-t-2xl border-x-0 border-b-0 [--drawer-content-max-height:min(92dvh,100%)]"
           >
-            <SheetHeader className="shrink-0 border-b border-border/60 py-3">
-              <SheetTitle>Filtry</SheetTitle>
-            </SheetHeader>
+            <DrawerHeader className="relative shrink-0 border-b border-border/60 py-3 pr-12 text-left md:text-left">
+              <DrawerTitle>Filtry</DrawerTitle>
+              <DrawerClose
+                render={
+                  <Button
+                    variant="ghost"
+                    className="absolute top-1/2 right-3 -translate-y-1/2"
+                    size="icon-sm"
+                  />
+                }
+              >
+                <XIcon />
+                <span className="sr-only">Zamknij</span>
+              </DrawerClose>
+            </DrawerHeader>
 
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">
               <div className="flex w-full flex-col gap-3.5">
@@ -900,7 +917,7 @@ export function ScheduleFilters({
               </div>
             </div>
 
-            <SheetFooter className="shrink-0 gap-1.5 border-t border-border/60 bg-popover pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
+            <DrawerFooter className="shrink-0 gap-1.5 border-t border-border/60 bg-popover p-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
               {hasActiveFilters ? (
                 <Button
                   type="button"
@@ -921,9 +938,9 @@ export function ScheduleFilters({
               >
                 Pokaż {tripCountLabel}
               </Button>
-            </SheetFooter>
-          </SheetContent>
-        </Sheet>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
 
         {/* Desktop filters — always expanded */}
         <div className="hidden md:block">
