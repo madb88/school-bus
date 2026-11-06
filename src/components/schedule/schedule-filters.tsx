@@ -704,13 +704,13 @@ export function ScheduleFilters({
             id="schedule-filters-sheet"
             className="w-full max-w-none rounded-t-2xl border-x-0 border-b-0 [--drawer-content-max-height:min(92dvh,100%)]"
           >
-            <DrawerHeader className="relative shrink-0 border-b border-border/60 py-3 pr-12 text-left md:text-left">
-              <DrawerTitle>Filtry</DrawerTitle>
+            <DrawerHeader className="relative shrink-0 px-4 pt-1 pb-0">
+              <DrawerTitle className="sr-only">Filtry</DrawerTitle>
               <DrawerClose
                 render={
                   <Button
                     variant="ghost"
-                    className="absolute top-1/2 right-3 -translate-y-1/2"
+                    className="absolute top-0 right-3"
                     size="icon-sm"
                   />
                 }
