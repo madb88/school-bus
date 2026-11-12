@@ -2,13 +2,22 @@
 
 import { LogOut } from "lucide-react";
 import { HelpContactCard } from "@/components/profile/help-contact-card";
+import { SchoolSettingsSection } from "@/components/profile/school-settings-section";
 import { Button } from "@/components/ui/button";
+import type { BackendUserSettings } from "@/lib/auth/backend";
+import type { City, School } from "@/lib/schools/types";
 
 export function ProfileSection({
   email,
+  settings,
+  cities,
+  schools,
   onRequestLogout,
 }: {
   email: string;
+  settings: BackendUserSettings;
+  cities: City[];
+  schools: School[];
   onRequestLogout: () => void;
 }) {
   return (
@@ -29,6 +38,11 @@ export function ProfileSection({
           {email}
         </p>
       </div>
+      <SchoolSettingsSection
+        initialSettings={settings}
+        cities={cities}
+        initialSchools={schools}
+      />
       <HelpContactCard />
       <Button
         type="button"

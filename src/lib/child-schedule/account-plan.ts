@@ -1,3 +1,5 @@
+import { DEFAULT_SCHOOL_ID } from "@/lib/schools/constants";
+import { parseSchoolEntityId } from "@/lib/schools/storage";
 import { dayHasInvalidTimeRange, formatTimeInput } from "./match";
 import type { ChildLessonPlan, WeekdayKey } from "./types";
 
@@ -11,6 +13,8 @@ export type AccountDayTimes = {
 export type AccountPlan = {
   /** Stable server-minted UUID; omitted for unsaved new plans. */
   id?: string;
+  /** School this plan belongs to (required by backend). */
+  schoolId: string;
   place: string;
   /** Optional display name; omitted when empty (backend + Mongo). */
   name?: string;
@@ -19,6 +23,8 @@ export type AccountPlan = {
 
 export type ToAccountPlanOptions = {
   name?: string | null;
+  /** School for a new/edited plan (defaults to seed school when omitted). */
+  schoolId?: string | null;
   /** When editing, echo the existing plan's id so push links survive. */
   existing?: AccountPlan | null;
 };
@@ -100,7 +106,16 @@ export function parseAccountPlan(value: unknown): AccountPlan | null {
   }
   if (Object.keys(days).length === 0) return null;
 
-  const plan: AccountPlan = { place: record.place.trim(), days };
+  const schoolId =
+    parseSchoolEntityId(
+      typeof record.schoolId === "string" ? record.schoolId : null,
+    ) ?? DEFAULT_SCHOOL_ID;
+
+  const plan: AccountPlan = {
+    schoolId,
+    place: record.place.trim(),
+    days,
+  };
   if (isAccountPlanId(record.id)) plan.id = record.id;
   if (name) plan.name = name;
   return plan;
@@ -130,7 +145,13 @@ export function parseAccountPlans(value: unknown): AccountPlan[] | null {
  */
 export function serializeAccountPlan(plan: AccountPlan): AccountPlan {
   const name = normalizeAccountPlanName(plan.name);
-  const out: AccountPlan = { place: plan.place.trim(), days: plan.days };
+  const schoolId =
+    parseSchoolEntityId(plan.schoolId) ?? DEFAULT_SCHOOL_ID;
+  const out: AccountPlan = {
+    schoolId,
+    place: plan.place.trim(),
+    days: plan.days,
+  };
   if (isAccountPlanId(plan.id)) out.id = plan.id;
   if (name) out.name = name;
   return out;
@@ -185,7 +206,15 @@ export function toAccountPlan(
   }
 
   const normalizedName = normalizeAccountPlanName(options.name ?? null);
-  const account: AccountPlan = { place: plan.place.trim(), days };
+  const schoolId =
+    parseSchoolEntityId(options.schoolId) ??
+    parseSchoolEntityId(options.existing?.schoolId) ??
+    DEFAULT_SCHOOL_ID;
+  const account: AccountPlan = {
+    schoolId,
+    place: plan.place.trim(),
+    days,
+  };
   if (isAccountPlanId(options.existing?.id)) account.id = options.existing.id;
   if (normalizedName) account.name = normalizedName;
 

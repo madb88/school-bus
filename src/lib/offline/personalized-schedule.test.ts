@@ -34,6 +34,7 @@ const schedule: Schedule = {
 };
 
 const plan: AccountPlan = {
+  schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
   id: "550e8400-e29b-41d4-a716-446655440000",
   place: "Zatonie",
   name: "Ania",

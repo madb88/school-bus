@@ -24,8 +24,11 @@ export const siteTagline = "Dojazdy do szkoły";
 /** Default browser / OG title for the site root. */
 export const rootTitle = `${siteName} – ${siteTagline}`;
 
-/** Visible scope note for the school timetable (home + footer). */
-export const schoolScopeLabel = "Szkoła Podstawowa";
+/**
+ * Fallback scope note when the active school name is unknown.
+ * Prefer the selected school's name from the schools API in UI.
+ */
+export const schoolScopeLabel = "Szkoła";
 
 export const rootDescription =
   "Rozkłady autobusów szkolnych i komunikacji miejskiej oraz planowanie dojazdów dziecka do szkoły.";

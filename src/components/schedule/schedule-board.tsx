@@ -109,7 +109,19 @@ import { hasConfiguredMzkRoute } from "@/lib/mzk/route-storage";
 import { useMzkOdDepartures } from "@/lib/mzk/use-mzk-od-departures";
 import { useMzkRoutePreference } from "@/lib/mzk/use-mzk-route";
 import { dismissHint } from "@/lib/onboarding-hints";
-import { schoolScopeLabel, siteName } from "@/lib/site-metadata";
+import { siteName } from "@/lib/site-metadata";
+import { resolveClientSchoolSelection } from "@/lib/schools/resolve-selection";
+import {
+  getHideSchoolFilterSnapshot,
+  getSelectedCitySnapshot,
+  getSelectedSchoolSnapshot,
+  loadSelectedCityId,
+  loadSelectedSchoolId,
+  parseSchoolEntityId,
+  saveSchoolSelection,
+  subscribeSchoolSelection,
+} from "@/lib/schools/storage";
+import type { City, School } from "@/lib/schools/types";
 import { useHintDismissed } from "@/lib/use-hint-dismissed";
 import { cn } from "cn";
 import { toast } from "sonner";
@@ -120,6 +132,14 @@ type ScheduleBoardProps = {
   mzkAvailable?: boolean;
   /** Account plans (Plus) for multi-match + badges on `/`. */
   accountPlans?: AccountPlan[];
+  cities?: City[];
+  schools?: School[];
+  cityId: string;
+  schoolId: string;
+  schoolName?: string | null;
+  accountDefaults?: { cityId: string | null; schoolId: string | null } | null;
+  /** Schedule fetch failed — show pickers + empty state, hide trip list. */
+  emptySchedule?: boolean;
 };
 
 function sanitizeUrlPlaces(
@@ -148,23 +168,58 @@ export function ScheduleBoard({
   schedule,
   mzkAvailable = false,
   accountPlans = [],
+  cities = [],
+  schools = [],
+  cityId,
+  schoolId,
+  schoolName = null,
+  accountDefaults = null,
+  emptySchedule = false,
 }: ScheduleBoardProps) {
   const places = collectPlaces(schedule);
   const lessonPlan = useLessonPlan();
   const preferredPlace = usePreferredPlace();
   const mzkRoute = useMzkRoutePreference();
+  const plansForSchool = useMemo(
+    () =>
+      accountPlans.filter(
+        (plan) => !plan.schoolId || plan.schoolId === schoolId,
+      ),
+    [accountPlans, schoolId],
+  );
   const planReady =
-    hasConfiguredLessons(lessonPlan) || accountPlans.length > 0;
+    hasConfiguredLessons(lessonPlan) || plansForSchool.length > 0;
   const mzkRouteConfigured = hasConfiguredMzkRoute(mzkRoute);
   const mzkRouteReady = mzkAvailable && mzkRouteConfigured;
   const defaultPlace = preferredPlace ?? lessonPlan.place;
   const accountMatchPlans = useMemo(
     () =>
-      accountPlans.length > 0
-        ? lessonMatchPlansFromAccount(accountPlans)
+      plansForSchool.length > 0
+        ? lessonMatchPlansFromAccount(plansForSchool)
         : null,
-    [accountPlans],
+    [plansForSchool],
   );
+  const hideSchoolFilterRaw = useSyncExternalStore(
+    subscribeSchoolSelection,
+    getHideSchoolFilterSnapshot,
+    () => "",
+  );
+  const hideSchoolFilter = hideSchoolFilterRaw === "1";
+  const storedCityRaw = useSyncExternalStore(
+    subscribeSchoolSelection,
+    getSelectedCitySnapshot,
+    () => "",
+  );
+  const storedSchoolRaw = useSyncExternalStore(
+    subscribeSchoolSelection,
+    getSelectedSchoolSnapshot,
+    () => "",
+  );
+  /** City+school already remembered — collapse pickers on `/` until „Zmień”. */
+  const schoolSelectionSaved = Boolean(
+    parseSchoolEntityId(storedCityRaw) && parseSchoolEntityId(storedSchoolRaw),
+  );
+  const schoolScopeLabel = schoolName?.trim() || "Szkoła";
   const router = useRouter();
   const pathname = usePathname();
 
@@ -228,20 +283,38 @@ export function ScheduleBoard({
   const skipUrlWrite = useRef(false);
 
   if (prefsReady && !urlApplied) {
-    const parsed = parseFilterParams(
-      new URLSearchParams(window.location.search),
-    );
+    const search = new URLSearchParams(window.location.search);
+    const parsed = parseFilterParams(search);
     setUrlApplied(true);
     setPlanMatch(parsed.planMatch);
     setPlacesOverride(sanitizeUrlPlaces(parsed.places, places));
     setDirection(parsed.direction ?? "all");
-    // Do not saveSourceModePreference here — adjust-state-during-render
-    // cannot notify useSyncExternalStore (setState-in-render).
+    // Do not saveSchoolSelection / saveSourceModePreference here —
+    // adjust-state-during-render cannot notify useSyncExternalStore.
     setSourceMode(parsed.sourceMode);
     setDateFilter(parsed.dateFilter);
   }
 
   const filtersReady = prefsReady && urlApplied;
+
+  // Seed LS after paint so subscribeSchoolSelection does not re-enter render.
+  useEffect(() => {
+    if (!filtersReady) return;
+    const search = new URLSearchParams(window.location.search);
+    const parsed = parseFilterParams(search);
+    const resolved = resolveClientSchoolSelection({
+      urlCityId: parsed.cityId,
+      urlSchoolId: parsed.schoolId,
+      storedCityId: loadSelectedCityId(),
+      storedSchoolId: loadSelectedSchoolId(),
+      accountCityId: accountDefaults?.cityId,
+      accountSchoolId: accountDefaults?.schoolId,
+    });
+    saveSchoolSelection({
+      cityId: resolved.cityId,
+      schoolId: resolved.schoolId,
+    });
+  }, [filtersReady, accountDefaults?.cityId, accountDefaults?.schoolId]);
 
   const planMatchRaw: PlanMatchFilter =
     planMatchOverride ?? (planReady ? "all" : "off");
@@ -338,6 +411,8 @@ export function ScheduleBoard({
       direction,
       planMatch,
       sourceMode,
+      cityId,
+      schoolId,
       persistMatchOff: planReady && planMatch === "off",
       persistSourceSchool: mzkRouteReady && sourceMode === "school",
     });
@@ -361,6 +436,8 @@ export function ScheduleBoard({
     sourceMode,
     planReady,
     mzkRouteReady,
+    cityId,
+    schoolId,
     pathname,
     router,
   ]);
@@ -488,6 +565,7 @@ export function ScheduleBoard({
     alightStopId: mzkRoute.alightStopId,
     dateFilter: deferredDateFilter,
     route: mzkRoute.route,
+    schoolId,
   });
 
   const rawMzkPickups =
@@ -894,6 +972,51 @@ export function ScheduleBoard({
     });
   }
 
+  function navigateSchoolSelection(nextCityId: string, nextSchoolId: string) {
+    saveSchoolSelection({ cityId: nextCityId, schoolId: nextSchoolId });
+    savePreferredPlace(null);
+    setPlacesOverride(undefined);
+    const qs = serializeFilterParams({
+      places: null,
+      dateFilter,
+      direction,
+      planMatch,
+      sourceMode,
+      cityId: nextCityId,
+      schoolId: nextSchoolId,
+      persistMatchOff: planReady && planMatch === "off",
+      persistSourceSchool: mzkRouteReady && sourceMode === "school",
+    });
+    const next = qs ? `${pathname}?${qs}` : pathname;
+    router.replace(next, { scroll: false });
+  }
+
+  function applyCityChange(nextCityId: string) {
+    if (!nextCityId || nextCityId === cityId) return;
+    // Soft-nav with city only; server picks the first school in that city.
+    saveSchoolSelection({ cityId: nextCityId, schoolId });
+    savePreferredPlace(null);
+    setPlacesOverride(undefined);
+    const qs = serializeFilterParams({
+      places: null,
+      dateFilter,
+      direction,
+      planMatch,
+      sourceMode,
+      cityId: nextCityId,
+      schoolId: null,
+      persistMatchOff: planReady && planMatch === "off",
+      persistSourceSchool: mzkRouteReady && sourceMode === "school",
+    });
+    const next = qs ? `${pathname}?${qs}` : pathname;
+    router.replace(next, { scroll: false });
+  }
+
+  function applySchoolChange(nextSchoolId: string) {
+    if (!nextSchoolId || nextSchoolId === schoolId) return;
+    navigateSchoolSelection(cityId, nextSchoolId);
+  }
+
   async function copyShareLink() {
     const href = filtersHref({
       places: placesFilter,
@@ -901,6 +1024,8 @@ export function ScheduleBoard({
       direction,
       planMatch,
       sourceMode,
+      cityId,
+      schoolId,
     });
     const absolute = new URL(href, window.location.origin).toString();
     const shareNote =
@@ -1044,13 +1169,20 @@ export function ScheduleBoard({
         aria-hidden
         className="pointer-events-none mb-0! h-px w-full print:hidden"
       />
-      <p className="mb-1.5 text-xs font-medium tracking-tight text-foreground/70 print:hidden">
-        {schoolScopeLabel}
-      </p>
       <ScheduleFilters
         filtersStuck={filtersStuck}
         filtersSheetOpen={filtersSheetOpen}
         onFiltersSheetOpenChange={setFiltersSheetOpen}
+        cities={cities}
+        schools={schools}
+        cityId={cityId}
+        schoolId={schoolId}
+        hideSchoolFilter={hideSchoolFilter}
+        schoolSelectionSaved={schoolSelectionSaved}
+        schoolLabel={schoolScopeLabel}
+        cityLabel={cities.find((city) => city.id === cityId)?.name ?? null}
+        onCityChange={applyCityChange}
+        onSchoolChange={applySchoolChange}
         places={places}
         placesFilter={placesFilter ?? null}
         onPlacesChange={(next) => {
@@ -1244,7 +1376,12 @@ export function ScheduleBoard({
         />
       ) : isEmpty ? (
         <p className="border-l-2 border-border bg-muted/30 px-4 py-8 text-center text-muted-foreground">
-          {sourceMode === "school-mzk" && !mzkAvailable ? (
+          {emptySchedule ? (
+            <>
+              Rozkład tej szkoły jest chwilowo niedostępny. Wybierz inną szkołę
+              w filtrach albo spróbuj ponownie później.
+            </>
+          ) : sourceMode === "school-mzk" && !mzkAvailable ? (
             <>Rozkład MZK jest chwilowo niedostępny.</>
           ) : sourceMode === "school-mzk" && mzkLoading ? (
             <>Ładowanie kursów MZK…</>

@@ -64,6 +64,8 @@ import { hasConfiguredMzkRoute } from "@/lib/mzk/route-storage";
 import type { MzkSchedule } from "@/lib/mzk/types";
 import { useMzkRoutePreference } from "@/lib/mzk/use-mzk-route";
 import { disablePush, getPushStatus, setPushPlans } from "@/lib/push/browser";
+import { DEFAULT_SCHOOL_ID } from "@/lib/schools/constants";
+import type { City, School } from "@/lib/schools/types";
 
 type LessonPlanFormProps = {
   places: string[];
@@ -73,6 +75,11 @@ type LessonPlanFormProps = {
   initialPlans?: AccountPlan[];
   loggedIn?: boolean;
   trialEnded?: boolean;
+  cities?: City[];
+  schools?: School[];
+  cityId?: string;
+  schoolId?: string;
+  accountDefaults?: { cityId: string | null; schoolId: string | null } | null;
 };
 
 function mirrorPlanToDevice(plan: ChildLessonPlan) {
@@ -182,6 +189,7 @@ export function LessonPlanForm({
   initialPlans = [],
   loggedIn = false,
   trialEnded = false,
+  schoolId = DEFAULT_SCHOOL_ID,
 }: LessonPlanFormProps) {
   const router = useRouter();
   const stored = useLessonPlan();
@@ -231,7 +239,7 @@ export function LessonPlanForm({
 
     async function bootstrap() {
       if (initialPlans.length === 0) {
-        const { plan: imported } = toAccountPlan(local);
+        const { plan: imported } = toAccountPlan(local, { schoolId });
         if (!imported) {
           setAccountPlans([]);
           setSelectedIndex(0);
@@ -273,7 +281,7 @@ export function LessonPlanForm({
     }
 
     void bootstrap();
-  }, [mode, initialPlans]);
+  }, [mode, initialPlans, schoolId]);
 
   function basePlan(): ChildLessonPlan {
     return draft ?? accountBase ?? stored;
@@ -315,6 +323,7 @@ export function LessonPlanForm({
     const existing = accountPlans[selectedIndex];
     const { plan: asAccount } = toAccountPlan(current, {
       name: planName,
+      schoolId,
       existing,
     });
     const nextPlans = [...accountPlans];
@@ -352,6 +361,7 @@ export function LessonPlanForm({
     const existing = accountPlans[selectedIndex];
     const { plan: asAccount } = toAccountPlan(current, {
       name: planName,
+      schoolId,
       existing,
     });
     const nextPlans = [...accountPlans];
@@ -496,7 +506,7 @@ export function LessonPlanForm({
             : null;
         const { plan: asAccount, droppedDaysWithoutEnd } = toAccountPlan(
           normalized,
-          { name: planName, existing },
+          { name: planName, schoolId, existing },
         );
         if (!asAccount) {
           setHoursSectionInvalid(true);

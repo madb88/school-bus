@@ -9,4 +9,23 @@ export const SCHEDULE_API_TAGS = {
   dowozy: "dowozy-schedule",
   mzk: "mzk-schedule",
   mzkMeta: "mzk-meta",
+  cities: "cities",
+  schools: "schools",
+  places: "school-places",
 } as const;
+
+export function schoolScheduleTag(schoolId: string): string {
+  return `${SCHEDULE_API_TAGS.dowozy}:${schoolId}`;
+}
+
+export function schoolPlacesTag(schoolId: string): string {
+  return `${SCHEDULE_API_TAGS.places}:${schoolId}`;
+}
+
+export function mzkScheduleTag(schoolId: string): string {
+  return `${SCHEDULE_API_TAGS.mzk}:${schoolId}`;
+}
+
+export function mzkMetaTag(schoolId: string): string {
+  return `${SCHEDULE_API_TAGS.mzkMeta}:${schoolId}`;
+}

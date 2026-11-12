@@ -5,18 +5,27 @@ import { PageShell } from "@/components/page-shell";
 import { SiteHeader } from "@/components/site-header";
 import { loadMzkScheduleSnapshot } from "@/lib/mzk/load-schedule";
 import { MZK_DEVELOPER_PAGE_URL } from "@/lib/mzk/types";
+import { resolveServerSchoolContext } from "@/lib/schools/resolve-server";
 import { mzkScheduleFreshness } from "@/lib/schedule-freshness";
 import { buildPageMetadata } from "@/lib/site-metadata";
 
 export const metadata = buildPageMetadata({
   title: "Trasa do szkoły",
   description:
-    "Ustaw wsiadanie i wysiadanie MZK jako alternatywę dla dowozów szkolnych do Szkoły Olimpijczyków.",
+    "Ustaw wsiadanie i wysiadanie MZK jako alternatywę dla dowozów szkolnych.",
   path: "/mzk",
 });
 
-export default async function MzkPage() {
-  const mzkSchedule = await loadMzkScheduleSnapshot();
+type MzkSearchParams = Record<string, string | string[] | undefined>;
+
+export default async function MzkPage({
+  searchParams,
+}: {
+  searchParams: Promise<MzkSearchParams>;
+}) {
+  const params = await searchParams;
+  const { selection } = await resolveServerSchoolContext(params);
+  const mzkSchedule = await loadMzkScheduleSnapshot(selection.schoolId);
   const freshness = mzkSchedule
     ? [mzkScheduleFreshness(mzkSchedule.fetchedAt, mzkSchedule.feedEndDate)]
     : [];

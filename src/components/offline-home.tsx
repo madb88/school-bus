@@ -13,6 +13,17 @@ import type { SchoolOfflineCorrection } from "@/lib/offline/school-cache";
 import { goToStaticOfflineGate } from "@/lib/offline/static-offline-gate";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
 import type { FreshnessInfo } from "@/lib/schedule-freshness";
+import type { City, School } from "@/lib/schools/types";
+
+const EMPTY_SCHEDULE: Schedule = {
+  sourceUrl: "",
+  fetchedAt: new Date(0).toISOString(),
+  title: "Rozkład niedostępny",
+  periodLabel: "",
+  pickups: [],
+  dropoffsByDate: [],
+  dropoffsWeekday: [],
+};
 
 type OfflineHomeProps = {
   schedule: Schedule | null;
@@ -25,6 +36,12 @@ type OfflineHomeProps = {
   correction?: SchoolOfflineCorrection | null;
   /** Auth blip: keep local Plus data until /users/me succeeds again. */
   suspendOfflineSync?: boolean;
+  cities: City[];
+  schools: School[];
+  cityId: string;
+  schoolId: string;
+  schoolName: string | null;
+  accountDefaults?: { cityId: string | null; schoolId: string | null } | null;
 };
 
 const CORRECTION_BANNER: FreshnessInfo = {
@@ -50,6 +67,12 @@ export function OfflineHome({
   plusValidUntil = null,
   correction = undefined,
   suspendOfflineSync = false,
+  cities,
+  schools,
+  cityId,
+  schoolId,
+  schoolName,
+  accountDefaults = null,
 }: OfflineHomeProps) {
   const online = useOnlineStatus();
   const router = useRouter();
@@ -76,6 +99,7 @@ export function OfflineHome({
           mzkAvailable={mzkAvailable}
           correction={correction}
           suspend={suspendOfflineSync}
+          schoolId={schoolId}
         />
         <p className="text-sm text-muted-foreground">
           {entitled
@@ -94,6 +118,24 @@ export function OfflineHome({
       ? [...freshness, CORRECTION_BANNER]
       : freshness;
 
+  if (cities.length === 0 && !schedule) {
+    return (
+      <>
+        <OfflineSync
+          plusAccess={offlinePlusAccess}
+          plusValidUntil={plusValidUntil}
+          schedule={schedule}
+          accountPlans={accountPlans}
+          mzkAvailable={mzkAvailable}
+          correction={correction}
+          suspend={suspendOfflineSync}
+          schoolId={schoolId}
+        />
+        <ScheduleUnavailable />
+      </>
+    );
+  }
+
   return (
     <>
       <OfflineSync
@@ -104,23 +146,27 @@ export function OfflineHome({
         mzkAvailable={mzkAvailable}
         correction={correction}
         suspend={suspendOfflineSync}
+        schoolId={schoolId}
       />
+      <h1 className="sr-only">Rozkład dowozów</h1>
       {schedule ? (
-        <>
-          <h1 className="sr-only">Rozkład dowozów</h1>
-          <ScheduleStatusBanner
-            items={bannerItems}
-            className="mb-4 print:hidden md:mb-6"
-          />
-          <ScheduleBoard
-            schedule={schedule}
-            mzkAvailable={mzkAvailable}
-            accountPlans={accountPlans}
-          />
-        </>
-      ) : (
-        <ScheduleUnavailable />
-      )}
+        <ScheduleStatusBanner
+          items={bannerItems}
+          className="mb-4 print:hidden md:mb-6"
+        />
+      ) : null}
+      <ScheduleBoard
+        schedule={schedule ?? EMPTY_SCHEDULE}
+        mzkAvailable={mzkAvailable}
+        accountPlans={accountPlans}
+        cities={cities}
+        schools={schools}
+        cityId={cityId}
+        schoolId={schoolId}
+        schoolName={schoolName}
+        accountDefaults={accountDefaults}
+        emptySchedule={!schedule}
+      />
     </>
   );
 }

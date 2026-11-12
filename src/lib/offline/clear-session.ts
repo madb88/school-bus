@@ -95,6 +95,7 @@ export function persistOfflinePlusSession(opts: {
   schedule: Schedule | null;
   accountPlans?: AccountPlan[];
   mzkAvailable?: boolean;
+  schoolId?: string | null;
   correction?: SchoolOfflineCorrection | null;
   online: boolean;
 }): Promise<void> {
@@ -115,6 +116,7 @@ export function persistOfflinePlusSession(opts: {
         schedule: opts.schedule,
         accountPlans: opts.accountPlans ?? [],
         mzkAvailable: opts.mzkAvailable === true,
+        schoolId: opts.schoolId,
         correction: opts.correction,
       });
     } catch {

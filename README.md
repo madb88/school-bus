@@ -31,7 +31,7 @@ Otwórz [http://127.0.0.1:43123](http://127.0.0.1:43123).
 | `npm run scrape:dowozy` | Pobiera rozkład ze strony szkoły do JSON          |
 | `npm run fetch:mzk`     | Pobiera rozkład MZK (GTFS) jako alternatywy kursów |
 
-Aplikacja bierze rozkład **tylko z API** (`DOWOZY_API_BASE_URL`): `GET /health`, potem `GET /api/v1/dowozy/schedule`, `GET /api/v1/mzk/schedule`, `GET /api/v1/mzk/meta`. Next cache’uje te odpowiedzi (Data Cache, ~2 min). Bez base URL albo przy niedostępnym API UI pokazuje brak rozkładu — **bez fallbacku** na `data/*.json`.
+Aplikacja bierze rozkład **tylko z API** (`DOWOZY_API_BASE_URL`), per szkoła: `GET /health`, `GET /api/v1/cities`, `GET /api/v1/schools?cityId=`, `GET /api/v1/schools/{id}/schedule`, `GET /api/v1/schools/{id}/places`, `GET /api/v1/mzk/schedule?schoolId=`, `GET /api/v1/mzk/meta?schoolId=`. Backend sam wybiera źródło (`scraper` vs `dashboard`). Next cache’uje odpowiedzi (Data Cache, ~2 min). Bez base URL albo przy niedostępnym API UI pokazuje brak rozkładu — **bez fallbacku** na `data/*.json`.
 
 Skrypty `scrape:dowozy` / `fetch:mzk` i katalog `data/` mogą nadal służyć pipeline’owi backendu / Actions; front Next ich nie czyta. CI na PR uruchamia lint, testy i build.
 

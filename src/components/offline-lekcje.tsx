@@ -11,6 +11,7 @@ import type { MzkSchedule } from "@/lib/mzk/types";
 import { hasOfflineEntitlement } from "@/lib/offline/entitlement";
 import { goToStaticOfflineGate } from "@/lib/offline/static-offline-gate";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
+import type { City, School } from "@/lib/schools/types";
 
 type OfflineLekcjeProps = {
   schedule: Schedule | null;
@@ -27,6 +28,11 @@ type OfflineLekcjeProps = {
   plusValidUntil?: string | null;
   /** Auth blip: keep local Plus data until /users/me succeeds again. */
   suspendOfflineSync?: boolean;
+  cities: City[];
+  schools: School[];
+  cityId: string;
+  schoolId: string;
+  accountDefaults?: { cityId: string | null; schoolId: string | null } | null;
 };
 
 export function OfflineLekcje({
@@ -41,6 +47,11 @@ export function OfflineLekcje({
   offlinePlusAccess,
   plusValidUntil = null,
   suspendOfflineSync = false,
+  cities,
+  schools,
+  cityId,
+  schoolId,
+  accountDefaults = null,
 }: OfflineLekcjeProps) {
   const online = useOnlineStatus();
   const router = useRouter();
@@ -74,6 +85,7 @@ export function OfflineLekcje({
         accountPlans={initialPlans}
         mzkAvailable={Boolean(mzkSchedule)}
         suspend={suspendOfflineSync}
+        schoolId={schoolId}
       />
       {!online ? (
         <p className="text-muted-foreground">
@@ -88,6 +100,11 @@ export function OfflineLekcje({
           initialPlans={initialPlans}
           loggedIn={loggedIn}
           trialEnded={trialEnded}
+          cities={cities}
+          schools={schools}
+          cityId={cityId}
+          schoolId={schoolId}
+          accountDefaults={accountDefaults}
         />
       ) : (
         <p className="text-muted-foreground">

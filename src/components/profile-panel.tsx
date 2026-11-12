@@ -13,7 +13,8 @@ import { NotificationsSection } from "@/components/profile/notifications-section
 import { PlusSection } from "@/components/profile/plus-section";
 import { ProfileSection } from "@/components/profile/profile-section";
 import type { Section } from "@/components/profile/types";
-import type { BackendRole } from "@/lib/auth/backend";
+import type { BackendRole, BackendUserSettings } from "@/lib/auth/backend";
+import type { City, School } from "@/lib/schools/types";
 import {
   getProfileMenuSection,
   setProfileMenuSection,
@@ -60,6 +61,9 @@ export function ProfilePanel({
   createdAt,
   plus,
   plans,
+  settings,
+  cities,
+  schools,
   focusPlus,
   focusNotifications,
   sectionHint,
@@ -71,6 +75,9 @@ export function ProfilePanel({
   createdAt: string;
   plus: PlusPanelState;
   plans: AccountPlan[];
+  settings: BackendUserSettings;
+  cities: City[];
+  schools: School[];
   focusPlus: boolean;
   focusNotifications: boolean;
   /** Deep-link from `?plus=1` / `?powiadomienia=1` — updates on same-route soft nav. */
@@ -215,6 +222,9 @@ export function ProfilePanel({
           {section === "profil" ? (
             <ProfileSection
               email={email}
+              settings={settings}
+              cities={cities}
+              schools={schools}
               onRequestLogout={() => selectSection("logout")}
             />
           ) : null}

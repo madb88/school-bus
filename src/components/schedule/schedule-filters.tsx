@@ -10,11 +10,12 @@ import {
   FilterX,
   Link2,
   MapPin,
+  Pencil,
   Printer,
   Settings2,
   XIcon,
 } from "lucide-react";
-import { startTransition, type ReactNode } from "react";
+import { startTransition, useState, type ReactNode } from "react";
 import {
   FilterFieldLabel,
   FilterTimeDisplay,
@@ -54,6 +55,7 @@ import type {
   ScheduleDirection,
 } from "@/lib/dowozy/filter-schedule";
 import type { ScheduleSourceMode } from "@/lib/dowozy/filter-url";
+import type { City, School } from "@/lib/schools/types";
 import { cn } from "cn";
 
 /** Unique ids for desktop vs mobile sheet — board focus uses these. */
@@ -70,6 +72,17 @@ export type ScheduleFiltersProps = {
   filtersStuck: boolean;
   filtersSheetOpen: boolean;
   onFiltersSheetOpenChange: (open: boolean) => void;
+  cities: City[];
+  schools: School[];
+  cityId: string;
+  schoolId: string;
+  hideSchoolFilter: boolean;
+  /** True when city+school are already in localStorage — start collapsed. */
+  schoolSelectionSaved: boolean;
+  schoolLabel: string;
+  cityLabel: string | null;
+  onCityChange: (cityId: string) => void;
+  onSchoolChange: (schoolId: string) => void;
   places: string[];
   placesFilter: string[] | null;
   onPlacesChange: (next: string[] | null) => void;
@@ -120,6 +133,16 @@ export function ScheduleFilters({
   filtersStuck,
   filtersSheetOpen,
   onFiltersSheetOpenChange,
+  cities,
+  schools,
+  cityId,
+  schoolId,
+  hideSchoolFilter,
+  schoolSelectionSaved,
+  schoolLabel,
+  cityLabel,
+  onCityChange,
+  onSchoolChange,
   places,
   placesFilter,
   onPlacesChange,
@@ -160,6 +183,258 @@ export function ScheduleFilters({
   activeFilterCount,
   nextMerged,
 }: ScheduleFiltersProps) {
+  const cityItems = cities.map((city) => ({
+    label: city.name,
+    value: city.id,
+  }));
+  const schoolItems = schools.map((school) => ({
+    label: school.name,
+    value: school.id,
+  }));
+  const [schoolPickersExpanded, setSchoolPickersExpanded] = useState(
+    () => !schoolSelectionSaved || !schoolId,
+  );
+  // Profile checkbox: fully hide. Otherwise collapse when LS already has a choice.
+  const schoolPickersFullyHidden =
+    hideSchoolFilter && Boolean(schoolId) && cities.length > 0;
+  const showSchoolPickersExpanded =
+    !schoolPickersFullyHidden &&
+    (schoolPickersExpanded || !schoolSelectionSaved || !schoolId);
+  const showSchoolPickersCollapsed =
+    !schoolPickersFullyHidden && !showSchoolPickersExpanded;
+
+  const schoolScopeTitle = cityLabel?.trim()
+    ? `${schoolLabel} · ${cityLabel.trim()}`
+    : schoolLabel;
+
+  function renderSchoolScopeCollapsed(options?: {
+    openSheetOnMobile?: boolean;
+    className?: string;
+    titleClassName?: string;
+  }) {
+    if (!showSchoolPickersCollapsed) return null;
+    return (
+      <div
+        className={cn(
+          "flex min-w-0 items-center gap-2",
+          options?.className,
+        )}
+      >
+        <p
+          className={cn(
+            "min-w-0 truncate text-sm text-foreground",
+            options?.titleClassName,
+          )}
+        >
+          {schoolScopeTitle}
+        </p>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="h-7 shrink-0 gap-1 px-2 text-xs text-bus-deep hover:bg-bus/10 hover:text-bus-deep"
+          onClick={() => {
+            setSchoolPickersExpanded(true);
+            if (
+              options?.openSheetOnMobile &&
+              typeof window !== "undefined" &&
+              !window.matchMedia("(min-width: 768px)").matches
+            ) {
+              onFiltersSheetOpenChange(true);
+            }
+          }}
+        >
+          <Pencil aria-hidden className="size-3" />
+          <span>zmień</span>
+        </Button>
+      </div>
+    );
+  }
+
+  const schoolScopeHeader = schoolPickersFullyHidden ? null : (
+    <div className="mb-1.5 print:hidden md:mb-1.5">
+      {showSchoolPickersCollapsed ? (
+        renderSchoolScopeCollapsed({
+          openSheetOnMobile: true,
+          titleClassName:
+            "text-xs font-medium tracking-tight text-foreground/70",
+        })
+      ) : (
+        <div className="flex min-w-0 items-center gap-2">
+          <p className="min-w-0 truncate text-xs font-medium tracking-tight text-foreground/70">
+            {schoolScopeTitle}
+          </p>
+          {schoolSelectionSaved ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="hidden h-7 shrink-0 px-2 text-xs text-bus-deep hover:bg-bus/10 hover:text-bus-deep md:inline-flex"
+              onClick={() => setSchoolPickersExpanded(false)}
+            >
+              Zwiń
+            </Button>
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+
+  function renderSchoolScopeFilters(
+    idPrefix: string,
+    options?: { stacked?: boolean; largeControls?: boolean },
+  ) {
+    if (!showSchoolPickersExpanded) return null;
+
+    const stacked = options?.stacked ?? false;
+    const largeControls = options?.largeControls ?? false;
+    const cityIdAttr = `${idPrefix}-city`;
+    const schoolIdAttr = `${idPrefix}-school`;
+    const cityLabelId = `${idPrefix}-city-filter-label`;
+    const schoolLabelId = `${idPrefix}-school-filter-label`;
+    const stackedSelectClass = cn(
+      "w-full max-w-full",
+      largeControls && "[&_select]:h-11 [&_select]:text-base",
+    );
+
+    const onCitySelect = (next: string) => {
+      if (!next) return;
+      startTransition(() => onCityChange(next));
+    };
+    const onSchoolSelect = (next: string) => {
+      if (!next) return;
+      startTransition(() => onSchoolChange(next));
+      setSchoolPickersExpanded(false);
+    };
+
+    if (stacked) {
+      return (
+        <div className="flex w-full flex-col gap-3">
+          <div className="flex w-full flex-col gap-1">
+            <Label
+              htmlFor={cityIdAttr}
+              className="text-xs text-muted-foreground"
+            >
+              Miasto
+            </Label>
+            <NativeSelect
+              id={cityIdAttr}
+              size={largeControls ? "default" : "sm"}
+              className={stackedSelectClass}
+              value={cityId}
+              onChange={(event) => onCitySelect(event.target.value)}
+            >
+              {cityItems.length === 0 ? (
+                <NativeSelectOption value="" disabled>
+                  Brak miast
+                </NativeSelectOption>
+              ) : null}
+              {cityItems.map((item) => (
+                <NativeSelectOption key={item.value} value={item.value}>
+                  {item.label}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </div>
+          <div className="flex w-full flex-col gap-1">
+            <Label
+              htmlFor={schoolIdAttr}
+              className="text-xs text-muted-foreground"
+            >
+              Szkoła
+            </Label>
+            <NativeSelect
+              id={schoolIdAttr}
+              size={largeControls ? "default" : "sm"}
+              className={stackedSelectClass}
+              value={schoolId}
+              onChange={(event) => onSchoolSelect(event.target.value)}
+            >
+              {schoolItems.length === 0 ? (
+                <NativeSelectOption value="" disabled>
+                  Brak szkół
+                </NativeSelectOption>
+              ) : null}
+              {schoolItems.map((item) => (
+                <NativeSelectOption key={item.value} value={item.value}>
+                  {item.label}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </div>
+          {schoolSelectionSaved ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-7 self-start px-2 text-xs text-bus-deep hover:bg-bus/10 hover:text-bus-deep"
+              onClick={() => setSchoolPickersExpanded(false)}
+            >
+              Zwiń
+            </Button>
+          ) : null}
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border/70 px-3 py-2.5 sm:px-4">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Label id={cityLabelId} className="text-xs text-muted-foreground">
+            Miasto
+          </Label>
+          <Select
+            items={cityItems}
+            value={cityId}
+            onValueChange={(next) => {
+              if (next != null) onCitySelect(next);
+            }}
+          >
+            <SelectTrigger
+              aria-labelledby={cityLabelId}
+              className="w-auto min-w-[9.5rem] border-border bg-card"
+            >
+              <SelectValue placeholder="Wybierz miasto" />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              {cityItems.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Label id={schoolLabelId} className="text-xs text-muted-foreground">
+            Szkoła
+          </Label>
+          <Select
+            items={schoolItems}
+            value={schoolId}
+            onValueChange={(next) => {
+              if (next != null) onSchoolSelect(next);
+            }}
+          >
+            <SelectTrigger
+              aria-labelledby={schoolLabelId}
+              className="w-auto min-w-[10.5rem] border-border bg-card"
+            >
+              <SelectValue placeholder="Wybierz szkołę" />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              {schoolItems.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    );
+  }
+
   function renderHoursFilterBody(windowInputId: string) {
     if (matchActive && dayTimes) {
       return (
@@ -645,7 +920,9 @@ export function ScheduleFilters({
   }
 
   return (
-    <div className="sticky top-0 z-30 -mx-6 isolate [overflow-anchor:none] pb-2 print:hidden sm:-mx-10 md:py-2.5">
+    <div className="print:hidden">
+      {schoolScopeHeader}
+      <div className="sticky top-0 z-30 -mx-6 isolate [overflow-anchor:none] pb-2 sm:-mx-10 md:py-2.5">
       <div
         className={cn(
           "relative overflow-hidden transition-[border-top-left-radius,border-top-right-radius] duration-300 ease-out motion-reduce:transition-none max-md:overflow-visible max-md:border-0 max-md:bg-transparent max-md:shadow-none max-md:rounded-none md:rounded-b-xl md:border md:border-border/70 md:bg-card md:shadow-[0_10px_28px_-18px_color-mix(in_srgb,var(--foreground)_45%,transparent)] md:dark:shadow-[0_8px_22px_-16px_rgba(0,0,0,0.55)] md:rounded-t-xl",
@@ -722,6 +999,20 @@ export function ScheduleFilters({
 
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">
               <div className="flex w-full flex-col gap-3.5">
+                {!schoolPickersFullyHidden ? (
+                  showSchoolPickersCollapsed ? (
+                    renderSchoolScopeCollapsed({
+                      className: "pt-1 pr-10",
+                    })
+                  ) : (
+                    <div className="pt-1 pr-10">
+                      {renderSchoolScopeFilters("schedule-sheet", {
+                        stacked: true,
+                        largeControls: true,
+                      })}
+                    </div>
+                  )
+                ) : null}
                 <div className="flex w-full flex-col gap-1.5">
                   <FilterFieldLabel
                     id="schedule-sheet-place-label"
@@ -944,10 +1235,14 @@ export function ScheduleFilters({
 
         {/* Desktop filters — always expanded */}
         <div className="hidden md:block">
-          <div id="schedule-filters-panel-desktop">{primaryFilters}</div>
+          <div id="schedule-filters-panel-desktop">
+            {renderSchoolScopeFilters("schedule")}
+            {primaryFilters}
+          </div>
           {renderAdditionalOptions()}
           {renderFilterSummaryFooter()}
         </div>
+      </div>
       </div>
     </div>
   );

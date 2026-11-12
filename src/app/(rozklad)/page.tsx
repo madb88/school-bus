@@ -7,6 +7,7 @@ import { hasPlusAccess } from "@/lib/billing/access";
 import { loadScheduleCorrectionSnapshot } from "@/lib/dowozy/load-schedule";
 import { overrideFreshnessInfo } from "@/lib/dowozy/override-freshness";
 import { loadMzkScheduleMeta } from "@/lib/mzk/load-schedule";
+import { resolveServerSchoolContext } from "@/lib/schools/resolve-server";
 import {
   mzkScheduleFreshness,
   schoolScheduleFreshness,
@@ -22,10 +23,21 @@ export const metadata = buildPageMetadata({
   path: "/",
 });
 
-export default async function Home() {
+type HomeSearchParams = Record<string, string | string[] | undefined>;
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<HomeSearchParams>;
+}) {
+  const params = await searchParams;
+  const { selection, cities, schools, school } =
+    await resolveServerSchoolContext(params);
+  const schoolId = selection.schoolId;
+
   const [correction, mzkMeta, session] = await Promise.all([
-    loadScheduleCorrectionSnapshot(),
-    loadMzkScheduleMeta(),
+    loadScheduleCorrectionSnapshot(schoolId),
+    loadMzkScheduleMeta(schoolId),
     getAuthSession(),
   ]);
   const user = session.status === "authenticated" ? session.user : null;
@@ -60,6 +72,13 @@ export default async function Home() {
       }
     : null;
 
+  const accountDefaults = user?.settings
+    ? {
+        cityId: user.settings.defaultCityId ?? null,
+        schoolId: user.settings.defaultSchoolId ?? null,
+      }
+    : null;
+
   return (
     <PageShell wide roomy header={<SiteHeader current="rozklad" />}>
       <div className="page-enter">
@@ -72,6 +91,12 @@ export default async function Home() {
           plusValidUntil={plusValidUntil}
           correction={offlineCorrection}
           suspendOfflineSync={suspendOfflineSync}
+          cities={cities}
+          schools={schools}
+          cityId={selection.cityId}
+          schoolId={schoolId}
+          schoolName={school?.name ?? null}
+          accountDefaults={accountDefaults}
         />
       </div>
     </PageShell>

@@ -22,6 +22,7 @@ type UseMzkOdDeparturesArgs = {
   alightStopId: string | null;
   dateFilter: ScheduleDateFilter;
   route: string | null;
+  schoolId: string;
 };
 
 type FetchState = {
@@ -37,6 +38,7 @@ export function useMzkOdDepartures({
   alightStopId,
   dateFilter,
   route,
+  schoolId,
 }: UseMzkOdDeparturesArgs): {
   data: MzkOdBundle;
   loading: boolean;
@@ -44,19 +46,20 @@ export function useMzkOdDepartures({
   fromCache: boolean;
 } {
   const requestKey =
-    enabled && boardStopId && alightStopId
-      ? `${boardStopId}\0${alightStopId}\0${dateFilter}\0${route ?? ""}`
+    enabled && boardStopId && alightStopId && schoolId
+      ? `${schoolId}\0${boardStopId}\0${alightStopId}\0${dateFilter}\0${route ?? ""}`
       : null;
 
   const [state, setState] = useState<FetchState | null>(null);
 
   useEffect(() => {
-    if (!requestKey || !boardStopId || !alightStopId) return;
+    if (!requestKey || !boardStopId || !alightStopId || !schoolId) return;
 
     const params = new URLSearchParams({
       board: boardStopId,
       alight: alightStopId,
       date: dateFilter,
+      schoolId,
     });
     if (route) params.set("route", route);
 
@@ -127,7 +130,7 @@ export function useMzkOdDepartures({
       });
 
     return () => controller.abort();
-  }, [requestKey, boardStopId, alightStopId, dateFilter, route]);
+  }, [requestKey, boardStopId, alightStopId, dateFilter, route, schoolId]);
 
   if (!requestKey) {
     return { data: EMPTY, loading: false, error: false, fromCache: false };

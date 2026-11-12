@@ -16,6 +16,8 @@ import {
   loadMzkScheduleSnapshotOnce,
 } from "./load-schedule";
 
+const SCHOOL_ID = "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680";
+
 afterEach(() => {
   vi.clearAllMocks();
 });
@@ -24,7 +26,7 @@ describe("loadMzkScheduleSnapshotOnce", () => {
   it("returns null when API base URL is unset", async () => {
     getMzkApiBaseUrl.mockReturnValue(null);
 
-    const result = await loadMzkScheduleSnapshotOnce();
+    const result = await loadMzkScheduleSnapshotOnce(SCHOOL_ID);
     expect(result).toBeNull();
     expect(fetchMzkScheduleFromApi).not.toHaveBeenCalled();
   });
@@ -45,9 +47,10 @@ describe("loadMzkScheduleSnapshotOnce", () => {
       },
     });
 
-    const result = await loadMzkScheduleSnapshotOnce();
+    const result = await loadMzkScheduleSnapshotOnce(SCHOOL_ID);
     expect(fetchMzkScheduleFromApi).toHaveBeenCalledWith(
       "http://localhost:8000",
+      SCHOOL_ID,
     );
     expect(result?.stops[0]?.name).toBe("Z API");
   });
@@ -59,7 +62,7 @@ describe("loadMzkScheduleSnapshotOnce", () => {
       reason: "unhealthy",
     });
 
-    const result = await loadMzkScheduleSnapshotOnce();
+    const result = await loadMzkScheduleSnapshotOnce(SCHOOL_ID);
     expect(result).toBeNull();
   });
 });
@@ -68,7 +71,7 @@ describe("loadMzkScheduleMetaOnce", () => {
   it("returns null when API base URL is unset", async () => {
     getMzkApiBaseUrl.mockReturnValue(null);
 
-    const result = await loadMzkScheduleMetaOnce();
+    const result = await loadMzkScheduleMetaOnce(SCHOOL_ID);
     expect(result).toBeNull();
     expect(fetchMzkMetaFromApi).not.toHaveBeenCalled();
   });
@@ -88,8 +91,11 @@ describe("loadMzkScheduleMetaOnce", () => {
       },
     });
 
-    const result = await loadMzkScheduleMetaOnce();
-    expect(fetchMzkMetaFromApi).toHaveBeenCalledWith("http://localhost:8000");
+    const result = await loadMzkScheduleMetaOnce(SCHOOL_ID);
+    expect(fetchMzkMetaFromApi).toHaveBeenCalledWith(
+      "http://localhost:8000",
+      SCHOOL_ID,
+    );
     expect(result?.stopCount).toBe(42);
     expect(fetchMzkScheduleFromApi).not.toHaveBeenCalled();
   });
@@ -101,7 +107,7 @@ describe("loadMzkScheduleMetaOnce", () => {
       reason: "http",
     });
 
-    const result = await loadMzkScheduleMetaOnce();
+    const result = await loadMzkScheduleMetaOnce(SCHOOL_ID);
     expect(result).toBeNull();
   });
 });

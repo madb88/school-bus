@@ -20,6 +20,7 @@ function asUser() {
     email: "parent@example.com",
     role: "individual",
     plans: [],
+    settings: {},
     createdAt: "2026-01-01T00:00:00.000Z",
     sessionToken: TOKEN,
   });

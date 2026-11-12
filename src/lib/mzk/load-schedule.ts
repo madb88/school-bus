@@ -13,12 +13,16 @@ export type MzkScheduleMeta = MzkScheduleMetaFile;
 export { mzkMetaFromSchedule };
 
 /**
- * Loads the MZK schedule for the whole app (UI, OD API).
+ * Loads the MZK schedule for a school (city feed filtered by school stops).
  *
- * Requires `DOWOZY_API_BASE_URL`. On failure returns null (unavailable UI).
- * Repo JSON under `data/` is not used by the app.
+ * Requires `DOWOZY_API_BASE_URL` and `schoolId`. On failure returns null.
  */
-export async function loadMzkScheduleSnapshotOnce(): Promise<MzkSchedule | null> {
+export async function loadMzkScheduleSnapshotOnce(
+  schoolId: string,
+): Promise<MzkSchedule | null> {
+  const id = schoolId.trim();
+  if (!id) return null;
+
   const apiBase = getMzkApiBaseUrl();
   if (!apiBase) {
     console.warn(
@@ -27,7 +31,7 @@ export async function loadMzkScheduleSnapshotOnce(): Promise<MzkSchedule | null>
     return null;
   }
 
-  const apiResult = await fetchMzkScheduleFromApi(apiBase);
+  const apiResult = await fetchMzkScheduleFromApi(apiBase, id);
   if (apiResult.ok) return apiResult.data;
 
   console.warn("MZK schedule API unavailable.", apiResult.reason);
@@ -38,9 +42,14 @@ export const loadMzkScheduleSnapshot = cache(loadMzkScheduleSnapshotOnce);
 
 /**
  * Lightweight fields for SSR chrome (fetchedAt / attribution).
- * Requires `DOWOZY_API_BASE_URL` → GET /api/v1/mzk/meta.
+ * Requires `DOWOZY_API_BASE_URL` → GET /api/v1/mzk/meta?schoolId=.
  */
-export async function loadMzkScheduleMetaOnce(): Promise<MzkScheduleMeta | null> {
+export async function loadMzkScheduleMetaOnce(
+  schoolId: string,
+): Promise<MzkScheduleMeta | null> {
+  const id = schoolId.trim();
+  if (!id) return null;
+
   const apiBase = getMzkApiBaseUrl();
   if (!apiBase) {
     console.warn(
@@ -49,7 +58,7 @@ export async function loadMzkScheduleMetaOnce(): Promise<MzkScheduleMeta | null>
     return null;
   }
 
-  const apiResult = await fetchMzkMetaFromApi(apiBase);
+  const apiResult = await fetchMzkMetaFromApi(apiBase, id);
   if (apiResult.ok) return apiResult.data;
 
   console.warn("MZK meta API unavailable.", apiResult.reason);

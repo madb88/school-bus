@@ -24,15 +24,16 @@ export async function GET(request: Request) {
   const alightStopId = searchParams.get("alight");
   const dateFilter = parseDateFilter(searchParams.get("date"));
   const route = searchParams.get("route");
+  const schoolId = searchParams.get("schoolId")?.trim() ?? "";
 
-  if (!boardStopId || !alightStopId || !dateFilter) {
+  if (!boardStopId || !alightStopId || !dateFilter || !schoolId) {
     return NextResponse.json(
-      { error: "Wymagane parametry: board, alight, date." },
+      { error: "Wymagane parametry: board, alight, date, schoolId." },
       { status: 400 },
     );
   }
 
-  const schedule = await loadMzkScheduleSnapshot();
+  const schedule = await loadMzkScheduleSnapshot(schoolId);
   if (!schedule) {
     return NextResponse.json(
       { error: "Brak rozkładu MZK." },

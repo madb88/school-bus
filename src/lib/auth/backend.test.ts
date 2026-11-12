@@ -275,6 +275,7 @@ describe("auth backend client", () => {
       role: "individual",
       createdAt: "2026-01-01T00:00:00.000Z",
       plans: [],
+      settings: {},
     };
     vi.stubGlobal(
       "fetch",

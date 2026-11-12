@@ -23,6 +23,7 @@ export type SchoolOfflineSnapshot = {
   accountPlans: AccountPlan[];
   mzkAvailable: boolean;
   cachedAt: string;
+  schoolId?: string;
   correction?: SchoolOfflineCorrection | null;
 };
 
@@ -67,11 +68,17 @@ export function parseSchoolOfflineSnapshot(
   if (record.correction !== undefined && record.correction !== null && !correction) {
     return null;
   }
+  const schoolId =
+    typeof record.schoolId === "string" && record.schoolId.trim()
+      ? record.schoolId.trim()
+      : undefined;
+
   return {
     schedule: record.schedule,
     accountPlans,
     mzkAvailable: record.mzkAvailable === true,
     cachedAt: record.cachedAt,
+    ...(schoolId ? { schoolId } : {}),
     ...(correction !== undefined ? { correction } : {}),
   };
 }
@@ -80,13 +87,16 @@ export async function saveSchoolOfflineSnapshot(input: {
   schedule: Schedule;
   accountPlans?: AccountPlan[];
   mzkAvailable?: boolean;
+  schoolId?: string | null;
   correction?: SchoolOfflineCorrection | null;
 }): Promise<void> {
+  const schoolId = input.schoolId?.trim() || undefined;
   const snapshot: SchoolOfflineSnapshot = {
     schedule: input.schedule,
     accountPlans: input.accountPlans ?? [],
     mzkAvailable: input.mzkAvailable === true,
     cachedAt: new Date().toISOString(),
+    ...(schoolId ? { schoolId } : {}),
     ...(input.correction !== undefined
       ? { correction: input.correction }
       : {}),

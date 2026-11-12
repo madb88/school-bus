@@ -3,6 +3,7 @@ import { PageEyebrow } from "@/components/page-eyebrow";
 import { PageShell } from "@/components/page-shell";
 import { SiteHeader } from "@/components/site-header";
 import { loadScheduleCorrectionSnapshot } from "@/lib/dowozy/load-schedule";
+import { resolveServerSchoolContext } from "@/lib/schools/resolve-server";
 import { buildPageMetadata } from "@/lib/site-metadata";
 
 export const metadata = buildPageMetadata({
@@ -12,8 +13,16 @@ export const metadata = buildPageMetadata({
   path: "/zmiany-w-rozkladzie",
 });
 
-export default async function ZmianyWRozkladziePage() {
-  const correction = await loadScheduleCorrectionSnapshot();
+type ZmianySearchParams = Record<string, string | string[] | undefined>;
+
+export default async function ZmianyWRozkladziePage({
+  searchParams,
+}: {
+  searchParams: Promise<ZmianySearchParams>;
+}) {
+  const params = await searchParams;
+  const { selection } = await resolveServerSchoolContext(params);
+  const correction = await loadScheduleCorrectionSnapshot(selection.schoolId);
 
   return (
     <PageShell header={<SiteHeader />}>

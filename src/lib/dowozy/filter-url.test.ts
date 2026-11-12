@@ -14,8 +14,18 @@ describe("parseFilterParams", () => {
       planMatch: undefined,
       matchLessonPlan: undefined,
       sourceMode: undefined,
+      cityId: undefined,
+      schoolId: undefined,
       hasExplicit: false,
     });
+  });
+
+  it("parses miasto and szkola UUIDs", () => {
+    const city = "46b30a50-397b-4478-9af7-21cd486e9daa";
+    const school = "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680";
+    expect(
+      parseFilterParams({ miasto: city, szkola: school }),
+    ).toMatchObject({ cityId: city, schoolId: school, hasExplicit: true });
   });
 
   it("parses Polish query aliases", () => {

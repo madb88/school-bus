@@ -32,6 +32,9 @@ Nie loguj treści planów, tokenów transferu, kluczy push ani sekretów.
 | `school-bus.selected-plan.v1` | UUID wybranego planu konta (`AccountPlan.id`) |
 | `school-bus.mzk-route.v1` | trasa MZK |
 | `school-bus.preferred-place.v1` | wybrane miejsce |
+| `school-bus.selected-city.v1` | wybrane miasto (UUID) |
+| `school-bus.selected-school.v1` | wybrana szkoła (UUID) |
+| `school-bus.hide-school-filter.v1` | ukryj select miasta/szkoły na `/` (`1`/`0`) |
 | `school-bus.lesson-match-window.v1` | okno dopasowania (min), domyślnie 240 |
 | `school-bus.lesson-match-window-enabled.v1` | czy okno dopasowania jest włączone (`1`/`0`) |
 | `school-bus.push-kinds.v1` | rodzaje powiadomień |

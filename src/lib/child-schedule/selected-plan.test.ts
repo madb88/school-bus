@@ -15,6 +15,7 @@ const ID_B = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
 function plan(id: string, place = "Zatonie"): AccountPlan {
   return {
     id,
+    schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
     place,
     days: { "1": { start: "08:00", end: "14:00" } },
   };
@@ -41,7 +42,13 @@ describe("resolveSelectedPlanId", () => {
   it("returns null when no plans have ids", () => {
     expect(
       resolveSelectedPlanId(
-        [{ place: "X", days: { "1": { start: "08:00", end: "14:00" } } }],
+        [
+          {
+            schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
+            place: "X",
+            days: { "1": { start: "08:00", end: "14:00" } },
+          },
+        ],
         "0",
       ),
     ).toBeNull();
