@@ -3,8 +3,10 @@
 import Link from "next/link";
 import {
   ArrowLeftRight,
+  Building2,
   CalendarDays,
   Check,
+  ChevronUp,
   Clock,
   Filter,
   FilterX,
@@ -12,6 +14,7 @@ import {
   MapPin,
   Pencil,
   Printer,
+  School as SchoolIcon,
   Settings2,
   XIcon,
 } from "lucide-react";
@@ -251,35 +254,6 @@ export function ScheduleFilters({
     );
   }
 
-  const schoolScopeHeader = schoolPickersFullyHidden ? null : (
-    <div className="mb-1.5 print:hidden md:mb-1.5">
-      {showSchoolPickersCollapsed ? (
-        renderSchoolScopeCollapsed({
-          openSheetOnMobile: true,
-          titleClassName:
-            "text-xs font-medium tracking-tight text-foreground/70",
-        })
-      ) : (
-        <div className="flex min-w-0 items-center gap-2">
-          <p className="min-w-0 truncate text-xs font-medium tracking-tight text-foreground/70">
-            {schoolScopeTitle}
-          </p>
-          {schoolSelectionSaved ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              className="hidden h-7 shrink-0 px-2 text-xs text-bus-deep hover:bg-bus/10 hover:text-bus-deep md:inline-flex"
-              onClick={() => setSchoolPickersExpanded(false)}
-            >
-              Zwiń
-            </Button>
-          ) : null}
-        </div>
-      )}
-    </div>
-  );
-
   function renderSchoolScopeFilters(
     idPrefix: string,
     options?: { stacked?: boolean; largeControls?: boolean },
@@ -309,16 +283,14 @@ export function ScheduleFilters({
 
     if (stacked) {
       return (
-        <div className="flex w-full flex-col gap-3">
-          <div className="flex w-full flex-col gap-1">
-            <Label
-              htmlFor={cityIdAttr}
-              className="text-xs text-muted-foreground"
-            >
+        <div className="flex w-full items-end gap-2">
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <FilterFieldLabel id={cityLabelId} icon={Building2}>
               Miasto
-            </Label>
+            </FilterFieldLabel>
             <NativeSelect
               id={cityIdAttr}
+              aria-labelledby={cityLabelId}
               size={largeControls ? "default" : "sm"}
               className={stackedSelectClass}
               value={cityId}
@@ -336,15 +308,13 @@ export function ScheduleFilters({
               ))}
             </NativeSelect>
           </div>
-          <div className="flex w-full flex-col gap-1">
-            <Label
-              htmlFor={schoolIdAttr}
-              className="text-xs text-muted-foreground"
-            >
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <FilterFieldLabel id={schoolLabelId} icon={SchoolIcon}>
               Szkoła
-            </Label>
+            </FilterFieldLabel>
             <NativeSelect
               id={schoolIdAttr}
+              aria-labelledby={schoolLabelId}
               size={largeControls ? "default" : "sm"}
               className={stackedSelectClass}
               value={schoolId}
@@ -365,12 +335,16 @@ export function ScheduleFilters({
           {schoolSelectionSaved ? (
             <Button
               type="button"
-              size="sm"
-              variant="ghost"
-              className="h-7 self-start px-2 text-xs text-bus-deep hover:bg-bus/10 hover:text-bus-deep"
+              size="icon"
+              variant="outline"
+              className={cn(
+                "shrink-0 border-border bg-card text-bus-deep hover:bg-bus/10 hover:text-bus-deep",
+                largeControls ? "size-11" : "size-8",
+              )}
+              aria-label="Zwiń"
               onClick={() => setSchoolPickersExpanded(false)}
             >
-              Zwiń
+              <ChevronUp aria-hidden className="size-4" />
             </Button>
           ) : null}
         </div>
@@ -378,7 +352,7 @@ export function ScheduleFilters({
     }
 
     return (
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border/70 px-3 py-2.5 sm:px-4">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <div className="flex min-w-0 items-center gap-1.5">
           <Label id={cityLabelId} className="text-xs text-muted-foreground">
             Miasto
@@ -431,9 +405,41 @@ export function ScheduleFilters({
             </SelectContent>
           </Select>
         </div>
+        {schoolSelectionSaved ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-7 shrink-0 px-2 text-xs text-bus-deep hover:bg-bus/10 hover:text-bus-deep"
+            onClick={() => setSchoolPickersExpanded(false)}
+          >
+            Zwiń
+          </Button>
+        ) : null}
       </div>
     );
   }
+
+  const schoolScopeHeader = schoolPickersFullyHidden ? null : (
+    <div className="mb-1.5 print:hidden">
+      {showSchoolPickersCollapsed ? (
+        renderSchoolScopeCollapsed({
+          openSheetOnMobile: true,
+          titleClassName:
+            "text-xs font-medium tracking-tight text-foreground/70",
+        })
+      ) : (
+        <>
+          <div className="hidden md:block">
+            {renderSchoolScopeFilters("schedule")}
+          </div>
+          <p className="min-w-0 truncate text-xs font-medium tracking-tight text-foreground/70 md:hidden">
+            {schoolScopeTitle}
+          </p>
+        </>
+      )}
+    </div>
+  );
 
   function renderHoursFilterBody(windowInputId: string) {
     if (matchActive && dayTimes) {
@@ -1005,7 +1011,7 @@ export function ScheduleFilters({
                       className: "pt-1 pr-10",
                     })
                   ) : (
-                    <div className="pt-1 pr-10">
+                    <div className="w-full pt-1">
                       {renderSchoolScopeFilters("schedule-sheet", {
                         stacked: true,
                         largeControls: true,
@@ -1235,10 +1241,7 @@ export function ScheduleFilters({
 
         {/* Desktop filters — always expanded */}
         <div className="hidden md:block">
-          <div id="schedule-filters-panel-desktop">
-            {renderSchoolScopeFilters("schedule")}
-            {primaryFilters}
-          </div>
+          <div id="schedule-filters-panel-desktop">{primaryFilters}</div>
           {renderAdditionalOptions()}
           {renderFilterSummaryFooter()}
         </div>
