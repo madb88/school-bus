@@ -526,11 +526,10 @@ export function ScheduleBoard({
 
   const target = resolveTargetDay(deferredDateFilter, now);
   const targetYmd = target ? toAbsoluteYmd(target) : null;
-  const activeDayClosure = useMemo(() => {
-    if (!targetYmd) return null;
-    return findActiveBlockingNoticeForDate(notices, targetYmd);
-  }, [notices, targetYmd]);
-  const activeDayBanners = useMemo(() => {
+  const activeDayClosure = targetYmd
+    ? findActiveBlockingNoticeForDate(notices, targetYmd)
+    : null;
+  const activeDayBanners = (() => {
     if (!targetYmd) {
       // „Wszystkie dni” — show non-blocking notices covering today as banners.
       const todayYmd = toAbsoluteYmd(getWarsawParts(now));
@@ -540,7 +539,7 @@ export function ScheduleBoard({
     }
     if (activeDayClosure) return [] as PublicNotice[];
     return findBannerNoticesForDate(notices, targetYmd);
-  }, [activeDayClosure, notices, now, targetYmd]);
+  })();
   const dayTimes = (() => {
     if (!deferredMatch || !target) return undefined;
     if (typeof planMatch === "number" && accountMatchPlans?.[planMatch]) {
