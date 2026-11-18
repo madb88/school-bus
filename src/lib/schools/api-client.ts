@@ -7,14 +7,17 @@ import type { Schedule } from "@/lib/dowozy/types";
 import {
   SCHEDULE_API_REVALIDATE_SEC,
   SCHEDULE_API_TAGS,
+  schoolNoticesTag,
   schoolScheduleTag,
   schoolPlacesTag,
 } from "@/lib/schedule-api-cache";
 import {
   SCHOOLS_API_CITIES_PATH,
+  SCHOOLS_API_NOTICES_PATH,
   SCHOOLS_API_SCHOOLS_PATH,
 } from "./constants";
-import type { City, School } from "./types";
+import { parsePublicNotices } from "./notices";
+import type { City, PublicNotice, School } from "./types";
 import { parseCities, parsePlacesList, parseSchools } from "./validate";
 
 const LIST_TIMEOUT_MS = 8_000;
@@ -202,6 +205,56 @@ export async function fetchSchoolPlacesFromApi(
     return { ok: true, data: places };
   } catch (error) {
     console.warn("School places API fetch failed:", url, error);
+    return { ok: false, reason: "network" };
+  }
+}
+
+export async function fetchNoticesFromApi(
+  baseUrl: string,
+  schoolIds: string[],
+): Promise<FetchSchoolsApiResult<PublicNotice[]>> {
+  const uniqueIds = [
+    ...new Set(
+      schoolIds.map((id) => id.trim()).filter((id) => id.length > 0),
+    ),
+  ].slice(0, 10);
+  if (uniqueIds.length === 0) return { ok: false, reason: "invalid" };
+
+  const healthy = await isDowozyApiHealthy(baseUrl);
+  if (!healthy) return { ok: false, reason: "unhealthy" };
+
+  const params = new URLSearchParams();
+  for (const id of uniqueIds) {
+    params.append("schoolId", id);
+  }
+  const url = `${baseUrl}${SCHOOLS_API_NOTICES_PATH}?${params.toString()}`;
+  try {
+    const res = await fetchWithTimeout(url, LIST_TIMEOUT_MS, {
+      revalidate: SCHEDULE_API_REVALIDATE_SEC,
+      tags: [
+        SCHEDULE_API_TAGS.notices,
+        ...uniqueIds.map((id) => schoolNoticesTag(id)),
+      ],
+    });
+    if (!res.ok) {
+      console.warn("Notices API returned non-OK status:", url, res.status);
+      return { ok: false, reason: "http" };
+    }
+    let parsed: unknown;
+    try {
+      parsed = await res.json();
+    } catch {
+      console.warn("Notices API returned invalid JSON:", url);
+      return { ok: false, reason: "invalid" };
+    }
+    const notices = parsePublicNotices(parsed);
+    if (!notices) {
+      console.warn("Notices API response has unexpected shape:", url);
+      return { ok: false, reason: "invalid" };
+    }
+    return { ok: true, data: notices };
+  } catch (error) {
+    console.warn("Notices API fetch failed:", url, error);
     return { ok: false, reason: "network" };
   }
 }

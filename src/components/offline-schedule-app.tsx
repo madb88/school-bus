@@ -187,7 +187,10 @@ export function OfflineScheduleApp() {
         <span className="text-bus">szkolny.pl</span>
       </p>
 
-      <OfflinePersonalizedSchedule view={phase.view} />
+      <OfflinePersonalizedSchedule
+        view={phase.view}
+        notices={phase.cached.notices ?? []}
+      />
     </div>
   );
 }

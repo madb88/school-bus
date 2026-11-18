@@ -13,7 +13,9 @@ import type { SchoolOfflineCorrection } from "@/lib/offline/school-cache";
 import { goToStaticOfflineGate } from "@/lib/offline/static-offline-gate";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
 import type { FreshnessInfo } from "@/lib/schedule-freshness";
-import type { City, School } from "@/lib/schools/types";
+import type { City, PublicNotice, School } from "@/lib/schools/types";
+
+const EMPTY_NOTICES: PublicNotice[] = [];
 
 const EMPTY_SCHEDULE: Schedule = {
   sourceUrl: "",
@@ -42,6 +44,7 @@ type OfflineHomeProps = {
   schoolId: string;
   schoolName: string | null;
   accountDefaults?: { cityId: string | null; schoolId: string | null } | null;
+  notices?: PublicNotice[];
 };
 
 const CORRECTION_BANNER: FreshnessInfo = {
@@ -73,6 +76,7 @@ export function OfflineHome({
   schoolId,
   schoolName,
   accountDefaults = null,
+  notices = EMPTY_NOTICES,
 }: OfflineHomeProps) {
   const online = useOnlineStatus();
   const router = useRouter();
@@ -100,6 +104,7 @@ export function OfflineHome({
           correction={correction}
           suspend={suspendOfflineSync}
           schoolId={schoolId}
+          notices={notices}
         />
         <p className="text-sm text-muted-foreground">
           {entitled
@@ -130,6 +135,7 @@ export function OfflineHome({
           correction={correction}
           suspend={suspendOfflineSync}
           schoolId={schoolId}
+          notices={notices}
         />
         <ScheduleUnavailable />
       </>
@@ -147,6 +153,7 @@ export function OfflineHome({
         correction={correction}
         suspend={suspendOfflineSync}
         schoolId={schoolId}
+        notices={notices}
       />
       <h1 className="sr-only">Rozkład dowozów</h1>
       {schedule ? (
@@ -166,6 +173,7 @@ export function OfflineHome({
         schoolName={schoolName}
         accountDefaults={accountDefaults}
         emptySchedule={!schedule}
+        notices={notices}
       />
     </>
   );

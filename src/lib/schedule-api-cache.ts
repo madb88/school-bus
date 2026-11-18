@@ -12,6 +12,7 @@ export const SCHEDULE_API_TAGS = {
   cities: "cities",
   schools: "schools",
   places: "school-places",
+  notices: "school-notices",
 } as const;
 
 export function schoolScheduleTag(schoolId: string): string {
@@ -20,6 +21,10 @@ export function schoolScheduleTag(schoolId: string): string {
 
 export function schoolPlacesTag(schoolId: string): string {
   return `${SCHEDULE_API_TAGS.places}:${schoolId}`;
+}
+
+export function schoolNoticesTag(schoolId: string): string {
+  return `${SCHEDULE_API_TAGS.notices}:${schoolId}`;
 }
 
 export function mzkScheduleTag(schoolId: string): string {

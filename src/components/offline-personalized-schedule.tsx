@@ -1,11 +1,23 @@
 "use client";
 
 import { Bus, Moon, Sun } from "lucide-react";
+import {
+  ScheduleClosureCard,
+  ScheduleNoticeBanner,
+} from "@/components/schedule/schedule-notice-card";
 import type { OfflinePersonalizedSchedule as OfflinePersonalizedView } from "@/lib/offline/personalized-schedule";
+import {
+  findActiveBlockingNoticeForDate,
+  findBannerNoticesForDate,
+} from "@/lib/schools/notices";
+import type { PublicNotice } from "@/lib/schools/types";
 import { cn } from "cn";
+
+const EMPTY_NOTICES: PublicNotice[] = [];
 
 type OfflinePersonalizedScheduleProps = {
   view: OfflinePersonalizedView;
+  notices?: PublicNotice[];
   className?: string;
 };
 
@@ -100,8 +112,14 @@ function BestCard({
  */
 export function OfflinePersonalizedSchedule({
   view,
+  notices = EMPTY_NOTICES,
   className,
 }: OfflinePersonalizedScheduleProps) {
+  const closure = findActiveBlockingNoticeForDate(notices, view.dayYmd);
+  const banners = closure
+    ? []
+    : findBannerNoticesForDate(notices, view.dayYmd);
+
   return (
     <div className={cn("mx-auto w-full max-w-lg space-y-6", className)}>
       <header className="space-y-1">
@@ -134,66 +152,80 @@ export function OfflinePersonalizedSchedule({
         )}
       </header>
 
-      <section className="space-y-2" aria-label="Najlepsze połączenie">
-        <div className="flex items-center gap-2">
-          <Bus aria-hidden className="size-4 text-bus" />
-          <h2 className="text-sm font-semibold text-foreground">
-            Najlepsze połączenie
-          </h2>
+      {banners.length > 0 ? (
+        <div className="grid gap-2">
+          {banners.map((notice) => (
+            <ScheduleNoticeBanner key={notice.id} notice={notice} />
+          ))}
         </div>
-        <div className="flex gap-2">
-          <BestCard
-            title="Do szkoły"
-            direction="pickup"
-            time={view.best?.pickup?.time ?? null}
-            label={view.best?.pickup?.label ?? null}
-          />
-          <BestCard
-            title="Do domu"
-            direction="dropoff"
-            time={view.best?.dropoff?.time ?? null}
-            label={view.best?.dropoff?.label ?? null}
-          />
-        </div>
-      </section>
+      ) : null}
 
-      <section className="space-y-2" aria-label="Dowozy">
-        <h2 className="text-sm font-semibold text-foreground">Dowozy</h2>
-        {view.pickups.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-border/70 px-3.5 py-4 text-sm text-muted-foreground">
-            Brak pasujących dowozów na ten dzień.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {view.pickups.map((trip) => (
-              <TripCard
-                key={`p-${trip.time}-${trip.places}-${trip.context}`}
-                {...trip}
+      {closure ? (
+        <ScheduleClosureCard notice={closure} />
+      ) : (
+        <>
+          <section className="space-y-2" aria-label="Najlepsze połączenie">
+            <div className="flex items-center gap-2">
+              <Bus aria-hidden className="size-4 text-bus" />
+              <h2 className="text-sm font-semibold text-foreground">
+                Najlepsze połączenie
+              </h2>
+            </div>
+            <div className="flex gap-2">
+              <BestCard
+                title="Do szkoły"
                 direction="pickup"
+                time={view.best?.pickup?.time ?? null}
+                label={view.best?.pickup?.label ?? null}
               />
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="space-y-2" aria-label="Odwozy">
-        <h2 className="text-sm font-semibold text-foreground">Odwozy</h2>
-        {view.dropoffs.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-border/70 px-3.5 py-4 text-sm text-muted-foreground">
-            Brak pasujących odwozów na ten dzień.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {view.dropoffs.map((trip) => (
-              <TripCard
-                key={`d-${trip.time}-${trip.places}-${trip.context}`}
-                {...trip}
+              <BestCard
+                title="Do domu"
                 direction="dropoff"
+                time={view.best?.dropoff?.time ?? null}
+                label={view.best?.dropoff?.label ?? null}
               />
-            ))}
-          </div>
-        )}
-      </section>
+            </div>
+          </section>
+
+          <section className="space-y-2" aria-label="Dowozy">
+            <h2 className="text-sm font-semibold text-foreground">Dowozy</h2>
+            {view.pickups.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-border/70 px-3.5 py-4 text-sm text-muted-foreground">
+                Brak pasujących dowozów na ten dzień.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {view.pickups.map((trip) => (
+                  <TripCard
+                    key={`p-${trip.time}-${trip.places}-${trip.context}`}
+                    {...trip}
+                    direction="pickup"
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="space-y-2" aria-label="Odwozy">
+            <h2 className="text-sm font-semibold text-foreground">Odwozy</h2>
+            {view.dropoffs.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-border/70 px-3.5 py-4 text-sm text-muted-foreground">
+                Brak pasujących odwozów na ten dzień.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {view.dropoffs.map((trip) => (
+                  <TripCard
+                    key={`d-${trip.time}-${trip.places}-${trip.context}`}
+                    {...trip}
+                    direction="dropoff"
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        </>
+      )}
     </div>
   );
 }

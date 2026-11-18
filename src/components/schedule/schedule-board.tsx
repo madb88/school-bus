@@ -25,6 +25,10 @@ import {
   sourceModeLabel,
 } from "@/components/schedule/labels";
 import {
+  ScheduleClosureCard,
+  ScheduleNoticeBanner,
+} from "@/components/schedule/schedule-notice-card";
+import {
   DirectionEmptyState,
   DirectionSection,
   type DirectionEmptyKind,
@@ -90,13 +94,21 @@ import {
 } from "@/lib/dowozy/source-mode-storage";
 import {
   formatDayOptionLabel,
+  getWarsawParts,
   isAbsoluteDateFilter,
   isSchoolDay,
   listUpcomingSchoolDays,
   partsFromYmd,
   resolveTargetDay,
+  toAbsoluteYmd,
 } from "@/lib/dowozy/schedule-dates";
 import type { Schedule } from "@/lib/dowozy/types";
+import {
+  findActiveBlockingNoticeForDate,
+  findBannerNoticesForDate,
+  findNoticesForDate,
+  publicNoticeBlocksSchedule,
+} from "@/lib/schools/notices";
 import {
   buildNextMondayPreview,
   listNextMondayPreviews,
@@ -121,10 +133,12 @@ import {
   saveSchoolSelection,
   subscribeSchoolSelection,
 } from "@/lib/schools/storage";
-import type { City, School } from "@/lib/schools/types";
+import type { City, PublicNotice, School } from "@/lib/schools/types";
 import { useHintDismissed } from "@/lib/use-hint-dismissed";
 import { cn } from "cn";
 import { toast } from "sonner";
+
+const EMPTY_NOTICES: PublicNotice[] = [];
 
 type ScheduleBoardProps = {
   schedule: Schedule;
@@ -140,6 +154,8 @@ type ScheduleBoardProps = {
   accountDefaults?: { cityId: string | null; schoolId: string | null } | null;
   /** Schedule fetch failed — show pickers + empty state, hide trip list. */
   emptySchedule?: boolean;
+  /** Current/upcoming school notices from GET /api/v1/notices. */
+  notices?: PublicNotice[];
 };
 
 function sanitizeUrlPlaces(
@@ -175,6 +191,7 @@ export function ScheduleBoard({
   schoolName = null,
   accountDefaults = null,
   emptySchedule = false,
+  notices = EMPTY_NOTICES,
 }: ScheduleBoardProps) {
   const places = collectPlaces(schedule);
   const lessonPlan = useLessonPlan();
@@ -508,6 +525,22 @@ export function ScheduleBoard({
       : null;
 
   const target = resolveTargetDay(deferredDateFilter, now);
+  const targetYmd = target ? toAbsoluteYmd(target) : null;
+  const activeDayClosure = useMemo(() => {
+    if (!targetYmd) return null;
+    return findActiveBlockingNoticeForDate(notices, targetYmd);
+  }, [notices, targetYmd]);
+  const activeDayBanners = useMemo(() => {
+    if (!targetYmd) {
+      // „Wszystkie dni” — show non-blocking notices covering today as banners.
+      const todayYmd = toAbsoluteYmd(getWarsawParts(now));
+      return findNoticesForDate(notices, todayYmd).filter(
+        (notice) => !publicNoticeBlocksSchedule(notice),
+      );
+    }
+    if (activeDayClosure) return [] as PublicNotice[];
+    return findBannerNoticesForDate(notices, targetYmd);
+  }, [activeDayClosure, notices, now, targetYmd]);
   const dayTimes = (() => {
     if (!deferredMatch || !target) return undefined;
     if (typeof planMatch === "number" && accountMatchPlans?.[planMatch]) {
@@ -1348,6 +1381,14 @@ export function ScheduleBoard({
         </div>
       ) : null}
 
+      {activeDayBanners.length > 0 ? (
+        <div className="grid gap-2 print:hidden">
+          {activeDayBanners.map((notice) => (
+            <ScheduleNoticeBanner key={notice.id} notice={notice} />
+          ))}
+        </div>
+      ) : null}
+
       {!filtersReady ? (
         <div
           className="flex min-h-[14rem] flex-col items-center justify-center gap-2.5 print:hidden"
@@ -1360,6 +1401,8 @@ export function ScheduleBoard({
             Ładowanie rozkładu…
           </span>
         </div>
+      ) : activeDayClosure ? (
+        <ScheduleClosureCard notice={activeDayClosure} />
       ) : isWeekendView ? (
         <WeekendPlaceholder
           mondayPlans={mondayPlans}

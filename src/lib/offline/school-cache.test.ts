@@ -71,4 +71,39 @@ describe("parseSchoolOfflineSnapshot", () => {
     });
     expect(parsed?.correction?.modified).toBeNull();
   });
+
+  it("parses optional school notices", () => {
+    const parsed = parseSchoolOfflineSnapshot({
+      schedule,
+      accountPlans: [],
+      mzkAvailable: false,
+      cachedAt: "2026-10-28T09:00:00.000Z",
+      notices: [
+        {
+          id: "schedule_notice_1",
+          schoolId: "sp1",
+          dateFrom: "2026-11-16",
+          dateTo: "2026-11-20",
+          kind: "urgent",
+          title: "Dzień wolny",
+          message: "Brak kursów",
+          blocksSchedule: true,
+        },
+      ],
+    });
+    expect(parsed?.notices).toHaveLength(1);
+    expect(parsed?.notices?.[0]?.title).toBe("Dzień wolny");
+  });
+
+  it("rejects invalid notices payload", () => {
+    expect(
+      parseSchoolOfflineSnapshot({
+        schedule,
+        accountPlans: [],
+        mzkAvailable: false,
+        cachedAt: "2026-10-28T09:00:00.000Z",
+        notices: [{ id: "bad" }],
+      }),
+    ).toBeNull();
+  });
 });

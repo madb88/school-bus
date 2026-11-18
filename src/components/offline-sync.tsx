@@ -9,6 +9,9 @@ import {
 } from "@/lib/offline/clear-session";
 import type { SchoolOfflineCorrection } from "@/lib/offline/school-cache";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
+import type { PublicNotice } from "@/lib/schools/types";
+
+const EMPTY_NOTICES: PublicNotice[] = [];
 
 type OfflineSyncProps = {
   plusAccess: boolean;
@@ -18,6 +21,7 @@ type OfflineSyncProps = {
   mzkAvailable?: boolean;
   correction?: SchoolOfflineCorrection | null;
   schoolId?: string | null;
+  notices?: PublicNotice[];
   /**
    * Session cookie present but /users/me failed — do not clear or renew
    * offline Plus data based on a transient auth blip.
@@ -37,6 +41,7 @@ export function OfflineSync({
   mzkAvailable = false,
   correction = undefined,
   schoolId = null,
+  notices = EMPTY_NOTICES,
   suspend = false,
 }: OfflineSyncProps) {
   const online = useOnlineStatus();
@@ -56,6 +61,7 @@ export function OfflineSync({
       mzkAvailable,
       correction,
       schoolId,
+      notices,
       online,
     });
   }, [
@@ -67,6 +73,7 @@ export function OfflineSync({
     mzkAvailable,
     correction,
     schoolId,
+    notices,
     online,
   ]);
 

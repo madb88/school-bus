@@ -7,6 +7,7 @@ import { hasPlusAccess } from "@/lib/billing/access";
 import { loadScheduleCorrectionSnapshot } from "@/lib/dowozy/load-schedule";
 import { overrideFreshnessInfo } from "@/lib/dowozy/override-freshness";
 import { loadMzkScheduleMeta } from "@/lib/mzk/load-schedule";
+import { loadSchoolNotices } from "@/lib/schools/load";
 import { resolveServerSchoolContext } from "@/lib/schools/resolve-server";
 import {
   mzkScheduleFreshness,
@@ -35,10 +36,11 @@ export default async function Home({
     await resolveServerSchoolContext(params);
   const schoolId = selection.schoolId;
 
-  const [correction, mzkMeta, session] = await Promise.all([
+  const [correction, mzkMeta, session, notices] = await Promise.all([
     loadScheduleCorrectionSnapshot(schoolId),
     loadMzkScheduleMeta(schoolId),
     getAuthSession(),
+    loadSchoolNotices(schoolId),
   ]);
   const user = session.status === "authenticated" ? session.user : null;
   const suspendOfflineSync = session.status === "unavailable";
@@ -97,6 +99,7 @@ export default async function Home({
           schoolId={schoolId}
           schoolName={school?.name ?? null}
           accountDefaults={accountDefaults}
+          notices={notices}
         />
       </div>
     </PageShell>

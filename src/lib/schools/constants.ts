@@ -9,3 +9,4 @@ export const DEFAULT_SCHOOL_ID =
 
 export const SCHOOLS_API_CITIES_PATH = "/api/v1/cities" as const;
 export const SCHOOLS_API_SCHOOLS_PATH = "/api/v1/schools" as const;
+export const SCHOOLS_API_NOTICES_PATH = "/api/v1/notices" as const;

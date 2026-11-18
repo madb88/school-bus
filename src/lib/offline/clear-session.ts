@@ -3,6 +3,7 @@ import { SELECTED_PLAN_STORAGE_KEY } from "@/lib/child-schedule/selected-plan";
 import { LESSON_PLAN_STORAGE_KEY } from "@/lib/child-schedule/types";
 import type { Schedule } from "@/lib/dowozy/types";
 import { MZK_ROUTE_STORAGE_KEY } from "@/lib/mzk/route-preference";
+import type { PublicNotice } from "@/lib/schools/types";
 import {
   clearOfflineEntitlement,
   syncOfflineEntitlement,
@@ -97,6 +98,7 @@ export function persistOfflinePlusSession(opts: {
   mzkAvailable?: boolean;
   schoolId?: string | null;
   correction?: SchoolOfflineCorrection | null;
+  notices?: PublicNotice[];
   online: boolean;
 }): Promise<void> {
   return enqueueSessionOp(async () => {
@@ -118,6 +120,7 @@ export function persistOfflinePlusSession(opts: {
         mzkAvailable: opts.mzkAvailable === true,
         schoolId: opts.schoolId,
         correction: opts.correction,
+        notices: opts.notices,
       });
     } catch {
       // ignore quota / private mode
