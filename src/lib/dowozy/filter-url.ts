@@ -1,3 +1,4 @@
+import { parseSchoolEntityId } from "@/lib/schools/storage";
 import type {
   ScheduleDateFilter,
   ScheduleDirection,
@@ -16,6 +17,8 @@ export type ScheduleFilterParams = {
   direction: ScheduleDirection;
   planMatch: PlanMatchFilter;
   sourceMode: ScheduleSourceMode;
+  cityId?: string;
+  schoolId?: string;
 };
 
 export type ParsedFilterParams = {
@@ -30,6 +33,8 @@ export type ParsedFilterParams = {
   /** @deprecated Use planMatch. true ↔ all, false ↔ off. */
   matchLessonPlan: boolean | undefined;
   sourceMode: ScheduleSourceMode | undefined;
+  cityId: string | undefined;
+  schoolId: string | undefined;
   /** True when at least one filter query key is present */
   hasExplicit: boolean;
 };
@@ -117,7 +122,11 @@ export function parseFilterParams(
     hasKey(source, "kierunek") ||
     hasKey(source, "dir") ||
     hasKey(source, "zrodlo") ||
-    hasKey(source, "source");
+    hasKey(source, "source") ||
+    hasKey(source, "szkola") ||
+    hasKey(source, "school") ||
+    hasKey(source, "miasto") ||
+    hasKey(source, "city");
 
   const dopasuj = readParam(source, "dopasuj");
   const planRaw = readParam(source, "plan");
@@ -205,6 +214,15 @@ export function parseFilterParams(
     sourceMode = PARAM_TO_SOURCE[normalized] ?? "school";
   }
 
+  const schoolId =
+    parseSchoolEntityId(
+      readParam(source, "szkola") ?? readParam(source, "school"),
+    ) ?? undefined;
+  const cityId =
+    parseSchoolEntityId(
+      readParam(source, "miasto") ?? readParam(source, "city"),
+    ) ?? undefined;
+
   return {
     places,
     dateFilter,
@@ -212,6 +230,8 @@ export function parseFilterParams(
     planMatch,
     matchLessonPlan,
     sourceMode,
+    cityId,
+    schoolId,
     hasExplicit,
   };
 }
@@ -225,6 +245,8 @@ export function serializeFilterParams(filters: {
   /** @deprecated Prefer planMatch. */
   matchLessonPlan?: boolean;
   sourceMode?: ScheduleSourceMode;
+  cityId?: string | null;
+  schoolId?: string | null;
   /** Persist dopasuj=0 when match is off (needed when plan exists and default is on). */
   persistMatchOff?: boolean;
   /** Persist zrodlo=szkolny when school-only is chosen but MZK route exists (default would be school-mzk). */
@@ -275,6 +297,11 @@ export function serializeFilterParams(filters: {
     params.set("zrodlo", "szkolny");
   }
 
+  const cityId = parseSchoolEntityId(filters.cityId);
+  const schoolId = parseSchoolEntityId(filters.schoolId);
+  if (cityId) params.set("miasto", cityId);
+  if (schoolId) params.set("szkola", schoolId);
+
   return params.toString();
 }
 
@@ -287,6 +314,8 @@ export function filtersHref(filters: {
   planMatch?: PlanMatchFilter;
   matchLessonPlan?: boolean;
   sourceMode?: ScheduleSourceMode;
+  cityId?: string | null;
+  schoolId?: string | null;
 }): string {
   const places =
     filters.places !== undefined
@@ -308,6 +337,8 @@ export function filtersHref(filters: {
     direction: filters.direction,
     planMatch: explicitPlanMatch ?? "off",
     sourceMode: filters.sourceMode,
+    cityId: filters.cityId,
+    schoolId: filters.schoolId,
     persistMatchOff: explicitPlanMatch === "off",
     persistSourceSchool: filters.sourceMode === "school",
   });

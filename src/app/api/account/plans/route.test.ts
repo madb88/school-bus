@@ -13,6 +13,7 @@ vi.mock("@/lib/auth/backend", () => ({
 
 const TOKEN = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG";
 const PLAN = {
+  schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
   place: "Zatonie",
   days: { "1": { start: "08:00", end: "14:00" } },
 };
@@ -23,6 +24,7 @@ function asUser() {
     email: "parent@example.com",
     role: "individual",
     plans: [],
+    settings: {},
     createdAt: "2026-10-01T00:00:00.000Z",
     sessionToken: TOKEN,
   });
@@ -99,6 +101,7 @@ describe("PUT /api/account/plans", () => {
         role: "individual",
         createdAt: "2026-10-01T00:00:00.000Z",
         plans: [PLAN],
+        settings: {},
       },
     });
     const response = await put({ plans: [PLAN] });

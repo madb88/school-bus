@@ -38,7 +38,7 @@ Rozszerzaj te ścieżki zamiast mnożyć równoległe API.
 
 ### Zewnętrzny schedule API (`DOWOZY_API_BASE_URL`)
 
-Wymagany (server-only): `GET /health`, `GET /api/v1/dowozy/schedule`, `GET /api/v1/mzk/schedule`, `GET /api/v1/mzk/meta`. Front **nie** czyta `data/*.json`. Fetch używa Next Data Cache (`revalidate` ~120 s, tagi w `src/lib/schedule-api-cache.ts`).
+Wymagany (server-only): `GET /health`, `GET /api/v1/cities`, `GET /api/v1/schools?cityId=`, `GET /api/v1/schools/{id}/schedule`, `GET /api/v1/schools/{id}/places`, `GET /api/v1/mzk/schedule?schoolId=`, `GET /api/v1/mzk/meta?schoolId=`. Front **nie** czyta `data/*.json`. Fetch używa Next Data Cache (`revalidate` ~120 s, tagi w `src/lib/schedule-api-cache.ts`).
 
 ### Auth / billing / push backend (`BACKEND_API_URL` + `BACKEND_SERVICE_KEY`)
 

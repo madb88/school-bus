@@ -2,6 +2,7 @@ import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { DOWOZY_SOURCE_URL } from "@/lib/dowozy/types";
 import { loadMzkScheduleMeta } from "@/lib/mzk/load-schedule";
 import { MZK_DEVELOPER_PAGE_URL } from "@/lib/mzk/types";
+import { DEFAULT_SCHOOL_ID } from "@/lib/schools/constants";
 import { schoolScopeLabel } from "@/lib/site-metadata";
 
 function formatFetchedAt(iso: string): string {
@@ -28,8 +29,8 @@ function formatFetchedAt(iso: string): string {
 /** Last-updated / source lines for school + MZK schedules (O projekcie). */
 export async function ScheduleDataSources() {
   const [loaded, mzkMeta] = await Promise.all([
-    loadScheduleSnapshot(),
-    loadMzkScheduleMeta(),
+    loadScheduleSnapshot(DEFAULT_SCHOOL_ID),
+    loadMzkScheduleMeta(DEFAULT_SCHOOL_ID),
   ]);
   const schoolSchedule = loaded?.schedule ?? null;
 

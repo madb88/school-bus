@@ -10,6 +10,11 @@ import {
 
 export type BackendRole = "admin" | "school" | "individual";
 
+export type BackendUserSettings = {
+  defaultCityId?: string;
+  defaultSchoolId?: string;
+};
+
 export type BackendUser = {
   id: string;
   email: string;
@@ -17,6 +22,7 @@ export type BackendUser = {
   createdAt: string;
   lastLoginAt?: string;
   plans: AccountPlan[];
+  settings: BackendUserSettings;
 };
 
 export type BackendAuthError = {
@@ -68,6 +74,22 @@ function parseRetryAfter(header: string | null): number | undefined {
   return sec;
 }
 
+function parseUserSettings(value: unknown): BackendUserSettings {
+  const record = asRecord(value);
+  if (!record) return {};
+  const settings: BackendUserSettings = {};
+  if (typeof record.defaultCityId === "string" && record.defaultCityId.trim()) {
+    settings.defaultCityId = record.defaultCityId.trim();
+  }
+  if (
+    typeof record.defaultSchoolId === "string" &&
+    record.defaultSchoolId.trim()
+  ) {
+    settings.defaultSchoolId = record.defaultSchoolId.trim();
+  }
+  return settings;
+}
+
 function parseUser(value: unknown): BackendUser | null {
   const record = asRecord(value);
   if (!record) return null;
@@ -89,6 +111,7 @@ function parseUser(value: unknown): BackendUser | null {
     role: record.role,
     createdAt: record.createdAt,
     plans,
+    settings: parseUserSettings(record.settings),
   };
   if (typeof record.lastLoginAt === "string" && record.lastLoginAt) {
     user.lastLoginAt = record.lastLoginAt;
@@ -405,6 +428,36 @@ export async function updateMyPlans(
     method: "PATCH",
     sessionToken,
     body: { plans },
+  });
+  if (!result.ok) {
+    return { ok: false, status: result.status, error: result.error };
+  }
+  const user = parseUser(result.data);
+  if (!user) {
+    return { ok: false, status: 503, error: AUTH_UNAVAILABLE };
+  }
+  return { ok: true, user };
+}
+
+/**
+ * Replace account default city/school. Omitted/empty fields clear that setting.
+ * Passes backend Polish `detail` as `error`.
+ */
+export async function updateMySettings(
+  sessionToken: string,
+  settings: { defaultCityId?: string | null; defaultSchoolId?: string | null },
+): Promise<
+  | { ok: true; user: BackendUser }
+  | { ok: false; status: number; error: string }
+> {
+  const body: Record<string, string> = {
+    defaultCityId: settings.defaultCityId?.trim() ?? "",
+    defaultSchoolId: settings.defaultSchoolId?.trim() ?? "",
+  };
+  const result = await backendFetch("/api/v1/users/me/settings", {
+    method: "PATCH",
+    sessionToken,
+    body,
   });
   if (!result.ok) {
     return { ok: false, status: result.status, error: result.error };

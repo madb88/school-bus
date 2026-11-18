@@ -1,11 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const fetchDowozyScheduleFromApi = vi.fn();
+const fetchSchoolScheduleFromApi = vi.fn();
 const getDowozyApiBaseUrl = vi.fn();
 
+vi.mock("@/lib/schools/api-client", () => ({
+  fetchSchoolScheduleFromApi: (...args: unknown[]) =>
+    fetchSchoolScheduleFromApi(...args),
+}));
+
 vi.mock("./api-client", () => ({
-  fetchDowozyScheduleFromApi: (...args: unknown[]) =>
-    fetchDowozyScheduleFromApi(...args),
   getDowozyApiBaseUrl: (...args: unknown[]) => getDowozyApiBaseUrl(...args),
 }));
 
@@ -14,6 +17,8 @@ import {
   loadScheduleSnapshotOnce,
 } from "./load-schedule";
 import type { Schedule } from "./types";
+
+const SCHOOL_ID = "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680";
 
 const baseSchedule: Schedule = {
   sourceUrl: "https://example.test/dowozy/",
@@ -44,24 +49,22 @@ describe("loadScheduleSnapshotOnce", () => {
   it("returns null when API base URL is unset", async () => {
     getDowozyApiBaseUrl.mockReturnValue(null);
 
-    const result = await loadScheduleSnapshotOnce();
+    const result = await loadScheduleSnapshotOnce(SCHOOL_ID);
     expect(result).toBeNull();
-    expect(fetchDowozyScheduleFromApi).not.toHaveBeenCalled();
+    expect(fetchSchoolScheduleFromApi).not.toHaveBeenCalled();
   });
 
-  it("uses API payload when health+schedule succeed", async () => {
+  it("uses school schedule when health+schedule succeed", async () => {
     getDowozyApiBaseUrl.mockReturnValue("http://localhost:8000");
-    fetchDowozyScheduleFromApi.mockResolvedValue({
+    fetchSchoolScheduleFromApi.mockResolvedValue({
       ok: true,
-      data: {
-        original: baseSchedule,
-        modified: { active: false },
-      },
+      data: baseSchedule,
     });
 
-    const result = await loadScheduleSnapshotOnce();
-    expect(fetchDowozyScheduleFromApi).toHaveBeenCalledWith(
+    const result = await loadScheduleSnapshotOnce(SCHOOL_ID);
+    expect(fetchSchoolScheduleFromApi).toHaveBeenCalledWith(
       "http://localhost:8000",
+      SCHOOL_ID,
     );
     expect(result?.schedule.title).toBe("Z API");
     expect(result?.source).toBe("scrape");
@@ -69,69 +72,28 @@ describe("loadScheduleSnapshotOnce", () => {
 
   it("returns null when API is configured but unavailable", async () => {
     getDowozyApiBaseUrl.mockReturnValue("http://localhost:8000");
-    fetchDowozyScheduleFromApi.mockResolvedValue({
+    fetchSchoolScheduleFromApi.mockResolvedValue({
       ok: false,
       reason: "unhealthy",
     });
 
-    const result = await loadScheduleSnapshotOnce();
+    const result = await loadScheduleSnapshotOnce(SCHOOL_ID);
     expect(result).toBeNull();
   });
 });
 
 describe("loadScheduleCorrectionOnce", () => {
-  it("returns original with null modified when correction inactive", async () => {
+  it("returns shown schedule with null modified", async () => {
     getDowozyApiBaseUrl.mockReturnValue("http://localhost:8000");
-    fetchDowozyScheduleFromApi.mockResolvedValue({
+    fetchSchoolScheduleFromApi.mockResolvedValue({
       ok: true,
-      data: {
-        original: baseSchedule,
-        modified: { active: false },
-      },
+      data: baseSchedule,
     });
 
-    const result = await loadScheduleCorrectionOnce();
+    const result = await loadScheduleCorrectionOnce(SCHOOL_ID);
     expect(result?.original.title).toBe("Z API");
     expect(result?.modified).toBeNull();
     expect(result?.activeUntil).toBeUndefined();
     expect(result?.resolved.source).toBe("scrape");
-  });
-
-  it("exposes modified + activeUntil while override is in effect", async () => {
-    const corrected: Schedule = {
-      ...baseSchedule,
-      title: "Korekta",
-      pickups: [
-        {
-          name: "API kierowca",
-          kind: "driver",
-          courses: [
-            {
-              label: "I kurs",
-              stops: [{ time: "7:15", places: ["Sucha"] }],
-            },
-          ],
-        },
-      ],
-    };
-
-    getDowozyApiBaseUrl.mockReturnValue("http://localhost:8000");
-    fetchDowozyScheduleFromApi.mockResolvedValue({
-      ok: true,
-      data: {
-        original: baseSchedule,
-        modified: {
-          active: true,
-          activeUntil: "2099-12-31",
-          schedule: corrected,
-        },
-      },
-    });
-
-    const result = await loadScheduleCorrectionOnce();
-    expect(result?.modified?.title).toBe("Korekta");
-    expect(result?.activeUntil).toBe("2099-12-31");
-    expect(result?.resolved.source).toBe("override");
-    expect(result?.resolved.overrideStatus).toBe("override_active_conflict");
   });
 });

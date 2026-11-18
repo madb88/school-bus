@@ -4,6 +4,8 @@ import {
 } from "@/lib/child-schedule/account-plan";
 import { isScheduleSnapshot } from "@/lib/dowozy/validate-schedule";
 import type { Schedule } from "@/lib/dowozy/types";
+import { parsePublicNotices } from "@/lib/schools/notices";
+import type { PublicNotice } from "@/lib/schools/types";
 import {
   OFFLINE_SCHOOL_KEY,
   OFFLINE_STORE_MZK_OD,
@@ -23,7 +25,9 @@ export type SchoolOfflineSnapshot = {
   accountPlans: AccountPlan[];
   mzkAvailable: boolean;
   cachedAt: string;
+  schoolId?: string;
   correction?: SchoolOfflineCorrection | null;
+  notices?: PublicNotice[];
 };
 
 function parseOfflineCorrection(raw: unknown): SchoolOfflineCorrection | null {
@@ -67,12 +71,26 @@ export function parseSchoolOfflineSnapshot(
   if (record.correction !== undefined && record.correction !== null && !correction) {
     return null;
   }
+  const schoolId =
+    typeof record.schoolId === "string" && record.schoolId.trim()
+      ? record.schoolId.trim()
+      : undefined;
+  const notices =
+    record.notices === undefined
+      ? undefined
+      : parsePublicNotices(record.notices);
+  if (record.notices !== undefined && notices == null) {
+    return null;
+  }
+
   return {
     schedule: record.schedule,
     accountPlans,
     mzkAvailable: record.mzkAvailable === true,
     cachedAt: record.cachedAt,
+    ...(schoolId ? { schoolId } : {}),
     ...(correction !== undefined ? { correction } : {}),
+    ...(notices ? { notices } : {}),
   };
 }
 
@@ -80,15 +98,22 @@ export async function saveSchoolOfflineSnapshot(input: {
   schedule: Schedule;
   accountPlans?: AccountPlan[];
   mzkAvailable?: boolean;
+  schoolId?: string | null;
   correction?: SchoolOfflineCorrection | null;
+  notices?: PublicNotice[];
 }): Promise<void> {
+  const schoolId = input.schoolId?.trim() || undefined;
   const snapshot: SchoolOfflineSnapshot = {
     schedule: input.schedule,
     accountPlans: input.accountPlans ?? [],
     mzkAvailable: input.mzkAvailable === true,
     cachedAt: new Date().toISOString(),
+    ...(schoolId ? { schoolId } : {}),
     ...(input.correction !== undefined
       ? { correction: input.correction }
+      : {}),
+    ...(input.notices && input.notices.length > 0
+      ? { notices: input.notices }
       : {}),
   };
   await idbSet(OFFLINE_STORE_SCHOOL, OFFLINE_SCHOOL_KEY, snapshot);

@@ -8,6 +8,8 @@ import { hasPlusAccess, isPastTrialWindow } from "@/lib/billing/access";
 import { collectPlaces } from "@/lib/dowozy/filter-schedule";
 import { loadScheduleSnapshot } from "@/lib/dowozy/load-schedule";
 import { loadMzkScheduleSnapshot } from "@/lib/mzk/load-schedule";
+import { loadSchoolPlaces } from "@/lib/schools/load";
+import { resolveServerSchoolContext } from "@/lib/schools/resolve-server";
 import { buildPageMetadata } from "@/lib/site-metadata";
 
 export const metadata = buildPageMetadata({
@@ -17,16 +19,33 @@ export const metadata = buildPageMetadata({
   path: "/lekcje",
 });
 
-export default async function LekcjePage() {
-  const [loaded, mzkSchedule, session] = await Promise.all([
-    loadScheduleSnapshot(),
-    loadMzkScheduleSnapshot(),
+type LekcjeSearchParams = Record<string, string | string[] | undefined>;
+
+export default async function LekcjePage({
+  searchParams,
+}: {
+  searchParams: Promise<LekcjeSearchParams>;
+}) {
+  const params = await searchParams;
+  const { selection, cities, schools } =
+    await resolveServerSchoolContext(params);
+  const schoolId = selection.schoolId;
+
+  const [loaded, mzkSchedule, session, apiPlaces] = await Promise.all([
+    loadScheduleSnapshot(schoolId),
+    loadMzkScheduleSnapshot(schoolId),
     getAuthSession(),
+    loadSchoolPlaces(schoolId),
   ]);
   const user = session.status === "authenticated" ? session.user : null;
   const suspendOfflineSync = session.status === "unavailable";
   const schedule = loaded?.schedule ?? null;
-  const places = schedule ? collectPlaces(schedule) : [];
+  const places =
+    apiPlaces.length > 0
+      ? apiPlaces
+      : schedule
+        ? collectPlaces(schedule)
+        : [];
 
   const plus = user ? await fetchPlus(user.sessionToken) : "unavailable";
   const offlinePlusAccess = user != null && hasPlusAccess(user.role, plus);
@@ -40,6 +59,13 @@ export default async function LekcjePage() {
     (plus.state === "active" || plus.state === "trial")
       ? (plus.validUntil ?? null)
       : null;
+
+  const accountDefaults = user?.settings
+    ? {
+        cityId: user.settings.defaultCityId ?? null,
+        schoolId: user.settings.defaultSchoolId ?? null,
+      }
+    : null;
 
   return (
     <PageShell header={<SiteHeader current="lekcje" />}>
@@ -67,6 +93,11 @@ export default async function LekcjePage() {
           offlinePlusAccess={offlinePlusAccess}
           plusValidUntil={plusValidUntil}
           suspendOfflineSync={suspendOfflineSync}
+          cities={cities}
+          schools={schools}
+          cityId={selection.cityId}
+          schoolId={schoolId}
+          accountDefaults={accountDefaults}
         />
       </div>
     </PageShell>

@@ -6,6 +6,8 @@ import {
 } from "./api-client";
 import type { MzkSchedule, MzkScheduleMetaFile } from "./types";
 
+const SCHOOL_ID = "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680";
+
 const schedule: MzkSchedule = {
   sourceUrl: "https://example.test/mzk",
   attribution: "MZK Zielona Góra",
@@ -50,7 +52,10 @@ describe("fetchMzkScheduleFromApi", () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 503 });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await fetchMzkScheduleFromApi("http://localhost:8000");
+    const result = await fetchMzkScheduleFromApi(
+      "http://localhost:8000",
+      SCHOOL_ID,
+    );
     expect(result).toEqual({ ok: false, reason: "unhealthy" });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
@@ -69,11 +74,14 @@ describe("fetchMzkScheduleFromApi", () => {
       });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await fetchMzkScheduleFromApi("http://localhost:8000");
+    const result = await fetchMzkScheduleFromApi(
+      "http://localhost:8000",
+      SCHOOL_ID,
+    );
     expect(result).toEqual({ ok: true, data: schedule });
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(String(fetchMock.mock.calls[1]?.[0])).toBe(
-      "http://localhost:8000/api/v1/mzk/schedule",
+      `http://localhost:8000/api/v1/mzk/schedule?schoolId=${SCHOOL_ID}`,
     );
   });
 
@@ -88,7 +96,10 @@ describe("fetchMzkScheduleFromApi", () => {
       });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await fetchMzkScheduleFromApi("http://localhost:8000");
+    const result = await fetchMzkScheduleFromApi(
+      "http://localhost:8000",
+      SCHOOL_ID,
+    );
     expect(result).toEqual({ ok: false, reason: "invalid" });
   });
 });
@@ -105,10 +116,13 @@ describe("fetchMzkMetaFromApi", () => {
       });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await fetchMzkMetaFromApi("http://localhost:8000");
+    const result = await fetchMzkMetaFromApi(
+      "http://localhost:8000",
+      SCHOOL_ID,
+    );
     expect(result).toEqual({ ok: true, data: meta });
     expect(String(fetchMock.mock.calls[1]?.[0])).toBe(
-      "http://localhost:8000/api/v1/mzk/meta",
+      `http://localhost:8000/api/v1/mzk/meta?schoolId=${SCHOOL_ID}`,
     );
   });
 
@@ -123,7 +137,10 @@ describe("fetchMzkMetaFromApi", () => {
       });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await fetchMzkMetaFromApi("http://localhost:8000");
+    const result = await fetchMzkMetaFromApi(
+      "http://localhost:8000",
+      SCHOOL_ID,
+    );
     expect(result).toEqual({ ok: false, reason: "invalid" });
   });
 });

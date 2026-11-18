@@ -37,7 +37,7 @@ Nawigacja: `NAV_ITEMS` w `src/components/site-nav.tsx`. Layout stron: `PageShell
 
 ## Źródła danych
 
-1. Backend schedule API (`DOWOZY_API_BASE_URL`) — jedyne źródło rozkładu dla Next (Data Cache ~2 min)
+1. Backend schedule API (`DOWOZY_API_BASE_URL`) — rozkład per szkoła: `GET /api/v1/schools/{id}/schedule` (+ cities/schools/places); MZK z `?schoolId=` (Data Cache ~2 min). Legacy `/api/v1/dowozy/schedule` nie jest używany przez front.
 2. Skrypty `scrape:dowozy` / `fetch:mzk` (+ Actions) mogą zasilać backend / artefakty; **front nie czyta** `data/*.json`
 3. Korekty godzin po stronie API (pole `modified` w odpowiedzi), nie ręcznie w scrapowanym JSON w Next
 

@@ -34,6 +34,7 @@ describe("toAccountPlan", () => {
     });
     expect(result.droppedDaysWithoutEnd).toEqual([2]);
     expect(result.plan).toEqual({
+      schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
       place: "Zatonie",
       days: {
         "1": { start: "08:00", end: "14:00" },
@@ -54,6 +55,7 @@ describe("toAccountPlan", () => {
       }),
     ).toEqual({
       plan: {
+        schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
         place: "Zatonie",
         days: { "3": { start: "08:00", end: "14:00" } },
       },
@@ -73,6 +75,7 @@ describe("toAccountPlan", () => {
       { name: " Ania " },
     );
     expect(plan).toEqual({
+      schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
       place: "Złote Piaski",
       name: "Ania",
       days: { "1": { start: "08:00", end: "14:00" } },
@@ -82,6 +85,7 @@ describe("toAccountPlan", () => {
   it("preserves existing id and omits id for a new plan", () => {
     const existing: AccountPlan = {
       id: "550e8400-e29b-41d4-a716-446655440000",
+      schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
       place: "Zatonie",
       days: { "1": { start: "08:00", end: "14:00" } },
     };
@@ -91,6 +95,7 @@ describe("toAccountPlan", () => {
     );
     expect(edited).toEqual({
       id: "550e8400-e29b-41d4-a716-446655440000",
+      schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
       place: "Ochla",
       name: "Ania",
       days: { "1": { start: "09:00", end: "15:00" } },
@@ -101,6 +106,7 @@ describe("toAccountPlan", () => {
       days: { 1: { start: "09:00", end: "15:00" } },
     });
     expect(created).toEqual({
+      schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
       place: "Ochla",
       days: { "1": { start: "09:00", end: "15:00" } },
     });
@@ -111,6 +117,7 @@ describe("toAccountPlan", () => {
 describe("fromAccountPlan", () => {
   it("uses numeric weekday keys and ignores name", () => {
     const account: AccountPlan = {
+      schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
       place: "Zatonie",
       name: "Ania",
       days: { "1": { start: "08:00", end: "14:00" } },
@@ -133,6 +140,7 @@ describe("account plan round trip", () => {
     };
     const { plan } = toAccountPlan(local);
     expect(plan).not.toBeNull();
+    expect(plan?.schoolId).toBe("2d6cdca6-4dc0-4cfc-b5a0-8286ac813680");
     expect(fromAccountPlan(plan!)).toEqual({
       place: "Ochla",
       days: {
@@ -147,22 +155,26 @@ describe("parseAccountPlan name", () => {
   it("keeps a trimmed name and omits empty", () => {
     expect(
       parseAccountPlan({
+        schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
         place: "Złote Piaski",
         name: " Ania ",
         days: { "1": { start: "08:00", end: "14:00" } },
       }),
     ).toEqual({
+      schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
       place: "Złote Piaski",
       name: "Ania",
       days: { "1": { start: "08:00", end: "14:00" } },
     });
     expect(
       parseAccountPlan({
+        schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
         place: "Złote Piaski",
         name: "   ",
         days: { "1": { start: "08:00", end: "14:00" } },
       }),
     ).toEqual({
+      schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
       place: "Złote Piaski",
       days: { "1": { start: "08:00", end: "14:00" } },
     });
@@ -171,6 +183,7 @@ describe("parseAccountPlan name", () => {
   it("rejects names longer than 80", () => {
     expect(
       parseAccountPlan({
+        schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
         place: "Zatonie",
         name: "x".repeat(ACCOUNT_PLAN_NAME_MAX + 1),
         days: { "1": { start: "08:00", end: "14:00" } },
@@ -182,17 +195,20 @@ describe("parseAccountPlan name", () => {
     expect(
       parseAccountPlan({
         id: "550e8400-e29b-41d4-a716-446655440000",
+        schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
         place: "Zatonie",
         days: { "1": { start: "08:00", end: "14:00" } },
       }),
     ).toEqual({
       id: "550e8400-e29b-41d4-a716-446655440000",
+      schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
       place: "Zatonie",
       days: { "1": { start: "08:00", end: "14:00" } },
     });
     expect(
       parseAccountPlan({
         id: "not-a-uuid",
+        schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
         place: "Zatonie",
         days: { "1": { start: "08:00", end: "14:00" } },
       }),
@@ -204,22 +220,26 @@ describe("serializeAccountPlan", () => {
   it("omits empty name and echoes id when present", () => {
     expect(
       serializeAccountPlan({
+        schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
         place: "Zatonie",
         name: "  ",
         days: { "1": { start: "08:00", end: "14:00" } },
       }),
     ).toEqual({
+      schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
       place: "Zatonie",
       days: { "1": { start: "08:00", end: "14:00" } },
     });
     expect(
       serializeAccountPlan({
         id: "550e8400-e29b-41d4-a716-446655440000",
+        schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
         place: "Zatonie",
         days: { "1": { start: "08:00", end: "14:00" } },
       }),
     ).toEqual({
       id: "550e8400-e29b-41d4-a716-446655440000",
+      schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
       place: "Zatonie",
       days: { "1": { start: "08:00", end: "14:00" } },
     });
@@ -230,17 +250,26 @@ describe("accountPlanLabel", () => {
   it("prefers name, then place, then Plan N", () => {
     expect(
       accountPlanLabel(
-        { place: "Zatonie", name: "Ania", days: { "1": { start: "08:00", end: "14:00" } } },
+        {
+          schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
+          place: "Zatonie",
+          name: "Ania",
+          days: { "1": { start: "08:00", end: "14:00" } },
+        },
         0,
       ),
     ).toBe("Ania");
     expect(
       accountPlanLabel(
-        { place: "Zatonie", days: { "1": { start: "08:00", end: "14:00" } } },
+        {
+          schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
+          place: "Zatonie",
+          days: { "1": { start: "08:00", end: "14:00" } },
+        },
         1,
       ),
     ).toBe("Zatonie");
-    expect(accountPlanLabel({ place: "", days: { "1": { start: "08:00", end: "14:00" } } }, 2)).toBe(
+    expect(accountPlanLabel({ schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680", place: "", days: { "1": { start: "08:00", end: "14:00" } } }, 2)).toBe(
       "Plan 3",
     );
   });
@@ -262,6 +291,7 @@ describe("parseAccountPlans", () => {
   it("keeps valid plans when one sibling is invalid", () => {
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const valid = {
+      schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
       place: "Zatonie",
       days: { "1": { start: "08:00", end: "14:00" } },
     };

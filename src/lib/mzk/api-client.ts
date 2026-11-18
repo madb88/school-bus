@@ -5,6 +5,8 @@ import {
 import {
   SCHEDULE_API_REVALIDATE_SEC,
   SCHEDULE_API_TAGS,
+  mzkMetaTag,
+  mzkScheduleTag,
 } from "@/lib/schedule-api-cache";
 import {
   MZK_API_META_PATH,
@@ -37,25 +39,33 @@ async function fetchWithTimeout(
   }
 }
 
+function schoolQuery(schoolId: string): string {
+  return `?schoolId=${encodeURIComponent(schoolId.trim())}`;
+}
+
 export type FetchMzkApiResult<T> =
   | { ok: true; data: T }
   | { ok: false; reason: "unhealthy" | "http" | "invalid" | "network" };
 
 /**
- * Probe /health, then GET /api/v1/mzk/schedule.
+ * Probe /health, then GET /api/v1/mzk/schedule?schoolId=.
  * Uses Next.js Data Cache (`revalidate`) across navigations.
  */
 export async function fetchMzkScheduleFromApi(
   baseUrl: string,
+  schoolId: string,
 ): Promise<FetchMzkApiResult<MzkSchedule>> {
+  const id = schoolId.trim();
+  if (!id) return { ok: false, reason: "invalid" };
+
   const healthy = await isDowozyApiHealthy(baseUrl);
   if (!healthy) return { ok: false, reason: "unhealthy" };
 
-  const url = `${baseUrl}${MZK_API_SCHEDULE_PATH}`;
+  const url = `${baseUrl}${MZK_API_SCHEDULE_PATH}${schoolQuery(id)}`;
   try {
     const res = await fetchWithTimeout(url, SCHEDULE_TIMEOUT_MS, {
       revalidate: SCHEDULE_API_REVALIDATE_SEC,
-      tags: [SCHEDULE_API_TAGS.mzk],
+      tags: [SCHEDULE_API_TAGS.mzk, mzkScheduleTag(id)],
     });
     if (!res.ok) {
       console.warn("MZK schedule API returned non-OK status:", url, res.status);
@@ -80,20 +90,24 @@ export async function fetchMzkScheduleFromApi(
 }
 
 /**
- * Probe /health, then GET /api/v1/mzk/meta.
+ * Probe /health, then GET /api/v1/mzk/meta?schoolId=.
  * Uses Next.js Data Cache (`revalidate`) across navigations.
  */
 export async function fetchMzkMetaFromApi(
   baseUrl: string,
+  schoolId: string,
 ): Promise<FetchMzkApiResult<MzkScheduleMetaFile>> {
+  const id = schoolId.trim();
+  if (!id) return { ok: false, reason: "invalid" };
+
   const healthy = await isDowozyApiHealthy(baseUrl);
   if (!healthy) return { ok: false, reason: "unhealthy" };
 
-  const url = `${baseUrl}${MZK_API_META_PATH}`;
+  const url = `${baseUrl}${MZK_API_META_PATH}${schoolQuery(id)}`;
   try {
     const res = await fetchWithTimeout(url, META_TIMEOUT_MS, {
       revalidate: SCHEDULE_API_REVALIDATE_SEC,
-      tags: [SCHEDULE_API_TAGS.mzkMeta],
+      tags: [SCHEDULE_API_TAGS.mzkMeta, mzkMetaTag(id)],
     });
     if (!res.ok) {
       console.warn("MZK meta API returned non-OK status:", url, res.status);
