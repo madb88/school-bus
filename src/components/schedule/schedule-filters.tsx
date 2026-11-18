@@ -194,15 +194,15 @@ export function ScheduleFilters({
     label: school.name,
     value: school.id,
   }));
-  const [schoolPickersExpanded, setSchoolPickersExpanded] = useState(
-    () => !schoolSelectionSaved || !schoolId,
-  );
+  // Explicit user expand only — don't seed from schoolSelectionSaved (false on SSR/hydration).
+  const [schoolPickersUserExpanded, setSchoolPickersUserExpanded] =
+    useState(false);
   // Profile checkbox: fully hide. Otherwise collapse when LS already has a choice.
   const schoolPickersFullyHidden =
     hideSchoolFilter && Boolean(schoolId) && cities.length > 0;
   const showSchoolPickersExpanded =
     !schoolPickersFullyHidden &&
-    (schoolPickersExpanded || !schoolSelectionSaved || !schoolId);
+    (schoolPickersUserExpanded || !schoolSelectionSaved || !schoolId);
   const showSchoolPickersCollapsed =
     !schoolPickersFullyHidden && !showSchoolPickersExpanded;
 
@@ -237,7 +237,7 @@ export function ScheduleFilters({
           variant="ghost"
           className="h-7 shrink-0 gap-1 px-2 text-xs text-bus-deep hover:bg-bus/10 hover:text-bus-deep"
           onClick={() => {
-            setSchoolPickersExpanded(true);
+            setSchoolPickersUserExpanded(true);
             if (
               options?.openSheetOnMobile &&
               typeof window !== "undefined" &&
@@ -278,7 +278,7 @@ export function ScheduleFilters({
     const onSchoolSelect = (next: string) => {
       if (!next) return;
       startTransition(() => onSchoolChange(next));
-      setSchoolPickersExpanded(false);
+      setSchoolPickersUserExpanded(false);
     };
 
     if (stacked) {
@@ -342,7 +342,7 @@ export function ScheduleFilters({
                 largeControls ? "size-11" : "size-8",
               )}
               aria-label="Zwiń"
-              onClick={() => setSchoolPickersExpanded(false)}
+              onClick={() => setSchoolPickersUserExpanded(false)}
             >
               <ChevronUp aria-hidden className="size-4" />
             </Button>
@@ -411,7 +411,7 @@ export function ScheduleFilters({
             size="sm"
             variant="ghost"
             className="h-7 shrink-0 px-2 text-xs text-bus-deep hover:bg-bus/10 hover:text-bus-deep"
-            onClick={() => setSchoolPickersExpanded(false)}
+            onClick={() => setSchoolPickersUserExpanded(false)}
           >
             Zwiń
           </Button>
