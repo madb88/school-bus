@@ -6,6 +6,7 @@ import {
   Building2,
   CalendarDays,
   Check,
+  ChevronDown,
   ChevronUp,
   Clock,
   Filter,
@@ -937,36 +938,33 @@ export function ScheduleFilters({
       >
         {/* Mobile: compact summary + filters sheet trigger */}
         <div className="md:hidden">
-          <div
+          <button
+            type="button"
             className={cn(
-              "flex items-center gap-2 rounded-xl border border-[#DCE4F2] bg-white px-3 py-2 shadow-[0_2px_8px_rgba(40,60,100,0.06)] dark:border-[#2A3548] dark:bg-[#19222d] dark:shadow-[0_2px_8px_rgba(0,0,0,0.25)]",
+              "flex w-full items-center gap-2 rounded-xl border border-[#DCE4F2] bg-white px-3 py-2 text-left shadow-[0_2px_8px_rgba(40,60,100,0.06)] transition-[transform,opacity,background-color,border-color] hover:border-[#C7D2FE] hover:bg-[#F4F7FC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#334A9B]/35 active:scale-[0.99] active:bg-[#EEF2FA] dark:border-[#2A3548] dark:bg-[#19222d] dark:shadow-[0_2px_8px_rgba(0,0,0,0.25)] dark:hover:border-[#3A4A6E] dark:hover:bg-[#1E2835] dark:focus-visible:ring-[#A8B6E8]/35 dark:active:bg-[#243040] motion-reduce:transition-none motion-reduce:active:scale-100",
               filtersStuck && "rounded-t-none",
             )}
+            aria-label="Otwórz filtry"
+            aria-expanded={filtersSheetOpen}
+            aria-controls="schedule-filters-sheet"
+            onClick={() => onFiltersSheetOpenChange(true)}
           >
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm text-foreground">
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm text-foreground">
                 {filterSummaryPrimary}
-              </p>
+              </span>
               {filterSummarySecondaryParts.length > 0 ? (
-                <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                <span className="mt-0.5 block truncate text-xs text-muted-foreground">
                   {filterSummarySecondaryParts.join(" · ")}
-                </p>
+                </span>
               ) : null}
-            </div>
+            </span>
             {isWeekendView ? null : (
               <span className="inline-flex shrink-0 items-center rounded-full bg-[#E8EDFF] px-2 py-0.5 text-[0.7rem] font-semibold text-[#334A9B] tabular-nums dark:bg-[#243152] dark:text-[#A8B6E8]">
                 {tripCountLabel}
               </span>
             )}
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="border-[#C7D2FE] bg-[#E8EDFF] text-[#334A9B] hover:bg-[#E8EDFF] hover:text-[#334A9B] dark:border-[#3A4A6E] dark:bg-[#243152] dark:text-[#A8B6E8] dark:hover:bg-[#243152] dark:hover:text-[#A8B6E8]"
-              aria-expanded={filtersSheetOpen}
-              aria-controls="schedule-filters-sheet"
-              onClick={() => onFiltersSheetOpenChange(true)}
-            >
+            <span className="inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg border border-[#C7D2FE] bg-[#E8EDFF] px-2.5 text-sm font-medium text-[#334A9B] dark:border-[#3A4A6E] dark:bg-[#243152] dark:text-[#A8B6E8]">
               <Filter aria-hidden className="size-3.5" />
               Filtry
               {activeFilterCount > 0 ? (
@@ -974,8 +972,9 @@ export function ScheduleFilters({
                   {activeFilterCount}
                 </span>
               ) : null}
-            </Button>
-          </div>
+              <ChevronDown aria-hidden className="size-3.5 opacity-70" />
+            </span>
+          </button>
         </div>
 
         <Drawer
