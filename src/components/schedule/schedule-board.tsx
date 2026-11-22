@@ -1161,8 +1161,18 @@ export function ScheduleBoard({
     </>
   );
 
+  const planSummaryLabel = (() => {
+    if (!matchActive) return null;
+    const start = dayTimes?.start ? formatTimeInput(dayTimes.start) : null;
+    const end = dayTimes?.end ? formatTimeInput(dayTimes.end) : null;
+    if (start && end) return `Wg. planu ${start}–${end}`;
+    if (start) return `Wg. planu od ${start}`;
+    if (end) return `Wg. planu do ${end}`;
+    return "Wg. planu";
+  })();
+
   const filterSummarySecondaryParts = [
-    matchActive ? "plan" : null,
+    planSummaryLabel,
     sourceMode !== "school" ? sourceModeLabel(sourceMode) : null,
   ].filter((part): part is string => Boolean(part));
 
