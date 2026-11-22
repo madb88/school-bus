@@ -26,10 +26,19 @@ import { formatTransferCode } from "@/lib/settings-transfer/token";
 type CreateResponse = {
   token: string;
   code: string;
+  path?: string;
   url: string;
   expiresInSec: number;
   error?: string;
 };
+
+/** Absolute restore URL for QR — prefer the browser origin (proxy-safe). */
+function transferQrUrl(data: CreateResponse): string {
+  if (data.path?.startsWith("/")) {
+    return new URL(data.path, window.location.origin).toString();
+  }
+  return data.url;
+}
 
 type SettingsTransferSheetProps = {
   /** When false, trigger stays disabled with a hint. */
@@ -91,7 +100,7 @@ export function SettingsTransferSheet({
         }
 
         const QRCode = (await import("qrcode")).default;
-        const dataUrl = await QRCode.toDataURL(data.url, {
+        const dataUrl = await QRCode.toDataURL(transferQrUrl(data), {
           margin: 1,
           width: 240,
           errorCorrectionLevel: "M",

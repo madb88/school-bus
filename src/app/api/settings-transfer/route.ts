@@ -24,6 +24,7 @@ import {
   normalizeTransferToken,
 } from "@/lib/settings-transfer/token";
 import { SETTINGS_TRANSFER_PATH } from "@/lib/settings-transfer/types";
+import { getSiteUrl } from "@/lib/site-metadata";
 
 export const runtime = "nodejs";
 
@@ -117,14 +118,15 @@ export async function POST(request: Request) {
     return jsonError(saved.error, 503);
   }
 
-  const origin = new URL(request.url).origin;
+  // Public site URL — request.url is often localhost behind Railway/Docker proxy.
   const path = `${SETTINGS_TRANSFER_PATH}?t=${token}`;
+  const url = `${getSiteUrl()}${path}`;
 
   return NextResponse.json({
     token,
     code: formatTransferCode(token),
     path,
-    url: `${origin}${path}`,
+    url,
     expiresInSec: saved.ttlSec,
     summary: summarizeTransferPayload(built, saved.ttlSec),
   });
