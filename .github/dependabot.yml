@@ -1,0 +1,28 @@
+# Dependabot version updates for the school bus next app.
+# Security updates are enabled separately in GitHub repo settings.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Warsaw"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    groups:
+      # One PR for routine production bumps
+      production-minor-patch:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      # One PR for routine tool/lint bumps
+      development-minor-patch:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+    # Majors (next, react, etc.) stay ungrouped → separate PRs
