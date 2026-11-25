@@ -64,6 +64,7 @@ export function ProfilePanel({
   settings,
   cities,
   schools,
+  allSchools,
   focusPlus,
   focusNotifications,
   sectionHint,
@@ -78,6 +79,7 @@ export function ProfilePanel({
   settings: BackendUserSettings;
   cities: City[];
   schools: School[];
+  allSchools: School[];
   focusPlus: boolean;
   focusNotifications: boolean;
   /** Deep-link from `?plus=1` / `?powiadomienia=1` — updates on same-route soft nav. */
@@ -225,6 +227,7 @@ export function ProfilePanel({
               settings={settings}
               cities={cities}
               schools={schools}
+              allSchools={allSchools}
               onRequestLogout={() => selectSection("logout")}
             />
           ) : null}

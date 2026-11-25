@@ -3,10 +3,6 @@ import {
   routesForOd,
   uniqueStopsByName,
 } from "./filter-departures";
-import {
-  mzkStopIdsForPlace,
-  SCHOOL_AREA_MZK_STOP_IDS,
-} from "./place-map";
 import type { MzkSchedule, MzkStop } from "./types";
 
 export type MzkRouteSuggestion = {
@@ -17,12 +13,18 @@ export type MzkRouteSuggestion = {
   label: string;
 };
 
-const PREFERRED_SCHOOL_ALIGHT_IDS = [
-  "307", // Drzonków - WOSiR
-  "914", // Drzonków - WOSiR (other side)
-  "299", // Drzonków Olimpijska
-  "303", // DRZONKÓW
-] as const;
+/** Per-place board stops + optional nearest-stop note (from school detail). */
+export type SuggestPlaceStops = {
+  stopIds: readonly string[];
+  note?: string;
+};
+
+export type SuggestMzkRoutesOptions = {
+  /** Alight candidates near the school; order is suggestion preference. */
+  schoolStopIds: readonly string[];
+  /** Board stops keyed by dowozy place name. */
+  placeStops: Readonly<Record<string, SuggestPlaceStops>>;
+};
 
 function stopById(schedule: MzkSchedule, id: string): MzkStop | undefined {
   return schedule.stops.find((s) => s.id === id);
@@ -48,12 +50,13 @@ function uniqueStopsFromIds(
 function boardStopsForPlace(
   schedule: MzkSchedule,
   schoolPlace: string | null,
+  placeStops: Readonly<Record<string, SuggestPlaceStops>>,
 ): MzkStop[] {
   if (!schoolPlace) return [];
 
   const mapped = uniqueStopsFromIds(
     schedule,
-    mzkStopIdsForPlace(schoolPlace),
+    placeStops[schoolPlace]?.stopIds ?? [],
   );
   if (mapped.length > 0) return mapped;
 
@@ -69,20 +72,19 @@ function boardStopsForPlace(
 }
 
 /**
- * Suggested board→school pairs based on lesson-plan / preferred place.
- * Only returns pairs that have at least one direct weekday MZK trip.
+ * Suggested board→school pairs based on lesson-plan / preferred place and
+ * school-configured stop lists. Only returns pairs with a direct weekday MZK trip.
  */
 export function suggestMzkRoutes(
   schedule: MzkSchedule,
   schoolPlace: string | null,
+  options: SuggestMzkRoutesOptions,
 ): MzkRouteSuggestion[] {
-  const boards = boardStopsForPlace(schedule, schoolPlace);
+  const boards = boardStopsForPlace(schedule, schoolPlace, options.placeStops);
   if (boards.length === 0) return [];
 
-  const alights = uniqueStopsFromIds(schedule, [
-    ...PREFERRED_SCHOOL_ALIGHT_IDS,
-    ...SCHOOL_AREA_MZK_STOP_IDS,
-  ]);
+  const alights = uniqueStopsFromIds(schedule, options.schoolStopIds);
+  if (alights.length === 0) return [];
 
   const suggestions: MzkRouteSuggestion[] = [];
   const seen = new Set<string>();
@@ -114,4 +116,26 @@ export function suggestMzkRoutes(
   }
 
   return suggestions.slice(0, 4);
+}
+
+/** Build the placeStops map for suggestions from school detail entries. */
+export function placeStopsMapFromEntries(
+  entries: readonly { place: string; stopIds: string[]; note?: string }[],
+): Record<string, SuggestPlaceStops> {
+  const out: Record<string, SuggestPlaceStops> = {};
+  for (const entry of entries) {
+    out[entry.place] = {
+      stopIds: entry.stopIds,
+      ...(entry.note ? { note: entry.note } : {}),
+    };
+  }
+  return out;
+}
+
+export function nearestPlaceNote(
+  schoolPlace: string | null,
+  placeStops: Readonly<Record<string, SuggestPlaceStops>>,
+): string | null {
+  if (!schoolPlace) return null;
+  return placeStops[schoolPlace]?.note ?? null;
 }

@@ -2,8 +2,9 @@
 
 import { ArrowDown, ArrowRight, Bus, ChevronRight, Home, School } from "lucide-react";
 import Link from "next/link";
-import { useState, useSyncExternalStore, useTransition } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { cn } from "cn";
 import { StopCombobox } from "@/components/stop-combobox";
@@ -15,6 +16,7 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from "@/components/ui/native-select";
+import type { BackendMzkRoute } from "@/lib/auth/backend";
 import { hasConfiguredLessons } from "@/lib/child-schedule/storage";
 import { useLessonPlan } from "@/lib/child-schedule/use-lesson-plan";
 import { usePreferredPlace } from "@/lib/child-schedule/use-preferred-place";
@@ -23,6 +25,7 @@ import {
   canonicalUniqueStopId,
   findOdDepartures,
   routesForOd,
+  stopById,
   uniqueStopsByName,
 } from "@/lib/mzk/filter-departures";
 import type { MzkSchedule } from "@/lib/mzk/types";
@@ -30,23 +33,49 @@ import {
   EMPTY_MZK_ROUTE,
   type MzkRoutePreference,
 } from "@/lib/mzk/route-preference";
-import { suggestMzkRoutes } from "@/lib/mzk/route-suggestions";
-import { mzkNearestPlaceNote } from "@/lib/mzk/place-map";
+import {
+  nearestPlaceNote,
+  placeStopsMapFromEntries,
+  suggestMzkRoutes,
+} from "@/lib/mzk/route-suggestions";
 import { AnalyticsEvent, trackEvent } from "@/lib/analytics/events";
 import {
-  clearMzkRoutePreference,
   hasConfiguredMzkRoute,
+  loadMzkRoutePreference,
   saveMzkRoutePreference,
 } from "@/lib/mzk/route-storage";
-import { useMzkRoutePreference } from "@/lib/mzk/use-mzk-route";
+import { useSchoolMzkRoute } from "@/lib/mzk/use-school-mzk-route";
+import type { MzkPlaceStops } from "@/lib/schools/types";
 
 type MzkRouteFormProps = {
   schedule: MzkSchedule;
+  schoolId: string;
+  signedIn?: boolean;
+  accountMzkRoute?: BackendMzkRoute | null;
+  schoolStopIds?: string[];
+  placeStops?: MzkPlaceStops[];
 };
 
-export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
+export function MzkRouteForm({
+  schedule,
+  schoolId,
+  signedIn = false,
+  accountMzkRoute = null,
+  schoolStopIds = [],
+  placeStops = [],
+}: MzkRouteFormProps) {
+  const router = useRouter();
   const stopOptions = uniqueStopsByName(schedule.stops);
-  const stored = useMzkRoutePreference();
+  const {
+    route: stored,
+    save: saveRoute,
+    clear: clearRoute,
+    saving: accountSaving,
+  } = useSchoolMzkRoute({
+    signedIn,
+    schoolId,
+    accountRoute: accountMzkRoute,
+  });
   const lessonPlan = useLessonPlan();
   const preferredPlace = usePreferredPlace();
   const [draft, setDraft] = useState<MzkRoutePreference | null>(null);
@@ -57,6 +86,7 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
     alightStopId: canonicalUniqueStopId(schedule, rawPref.alightStopId),
   };
   const [pending, startTransition] = useTransition();
+  const accountBootstrapped = useRef(false);
   // Server=false, client=true — avoids setState-in-effect for the sticky portal.
   const stickySaveMounted = useSyncExternalStore(
     () => () => {},
@@ -64,9 +94,53 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
     () => false,
   );
 
+  const placeStopsMap = placeStopsMapFromEntries(placeStops);
   const hintPlace = lessonPlan.place ?? preferredPlace;
-  const suggestions = suggestMzkRoutes(schedule, hintPlace);
-  const nearestNote = mzkNearestPlaceNote(hintPlace);
+  const suggestions = suggestMzkRoutes(schedule, hintPlace, {
+    schoolStopIds,
+    placeStops: placeStopsMap,
+  });
+  const nearestNote = nearestPlaceNote(hintPlace, placeStopsMap);
+
+  // One-time upload of a local route when the account has none for this school.
+  useEffect(() => {
+    if (!signedIn || accountBootstrapped.current) return;
+    accountBootstrapped.current = true;
+    if (accountMzkRoute) return;
+
+    const local = loadMzkRoutePreference();
+    if (!hasConfiguredMzkRoute(local)) return;
+    const board = canonicalUniqueStopId(schedule, local.boardStopId);
+    const alight = canonicalUniqueStopId(schedule, local.alightStopId);
+    if (!board || !alight) return;
+    if (!stopById(schedule, board) || !stopById(schedule, alight)) return;
+    if (board === alight) return;
+
+    const normalized: MzkRoutePreference = {
+      boardStopId: board,
+      alightStopId: alight,
+      route: local.route,
+    };
+
+    void (async () => {
+      const response = await fetch(
+        `/api/account/mzk-route?schoolId=${encodeURIComponent(schoolId)}`,
+        {
+          method: "PUT",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            boardStopId: normalized.boardStopId,
+            alightStopId: normalized.alightStopId,
+            ...(normalized.route ? { route: normalized.route } : {}),
+          }),
+        },
+      );
+      if (!response.ok) return;
+      saveMzkRoutePreference(normalized);
+      toast.success("Trasa MZK została zapisana na koncie");
+      router.refresh();
+    })();
+  }, [signedIn, accountMzkRoute, schedule, schoolId, router]);
 
   const availableRoutes = routesForOd(
     schedule,
@@ -144,38 +218,55 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
 
   function handleSave() {
     startTransition(() => {
-      const source = draft ?? stored;
-      const boardStopId = canonicalUniqueStopId(schedule, source.boardStopId);
-      const alightStopId = canonicalUniqueStopId(schedule, source.alightStopId);
-      const routes = routesForOd(schedule, boardStopId, alightStopId);
-      const route =
-        source.route && routes.includes(source.route)
-          ? source.route
-          : routes.length === 1
-            ? routes[0]
-            : null;
+      void (async () => {
+        const source = draft ?? stored;
+        const boardStopId = canonicalUniqueStopId(schedule, source.boardStopId);
+        const alightStopId = canonicalUniqueStopId(schedule, source.alightStopId);
+        const routes = routesForOd(schedule, boardStopId, alightStopId);
+        const route =
+          source.route && routes.includes(source.route)
+            ? source.route
+            : routes.length === 1
+              ? routes[0]
+              : null;
 
-      const normalized: MzkRoutePreference = {
-        boardStopId,
-        alightStopId,
-        route,
-      };
-      saveMzkRoutePreference(normalized);
-      trackEvent(AnalyticsEvent.mzkRouteSaved, {
-        has_route: Boolean(normalized.route),
-      });
-      setDraft(null);
-      toast.success("Trasa MZK zapisana");
+        const normalized: MzkRoutePreference = {
+          boardStopId,
+          alightStopId,
+          route,
+        };
+        const ok = await saveRoute(normalized);
+        if (!ok) {
+          toast.error("Nie udało się zapisać trasy MZK.");
+          return;
+        }
+        trackEvent(AnalyticsEvent.mzkRouteSaved, {
+          has_route: Boolean(normalized.route),
+        });
+        setDraft(null);
+        toast.success(
+          signedIn ? "Trasa MZK zapisana na koncie" : "Trasa MZK zapisana",
+        );
+      })();
     });
   }
 
   function handleClear() {
-    clearMzkRoutePreference();
-    setDraft({ ...EMPTY_MZK_ROUTE });
+    startTransition(() => {
+      void (async () => {
+        const ok = await clearRoute();
+        if (!ok) {
+          toast.error("Nie udało się wyczyścić trasy MZK.");
+          return;
+        }
+        setDraft({ ...EMPTY_MZK_ROUTE });
+      })();
+    });
   }
 
   const routeReady = Boolean(boardName) && Boolean(alightName);
-  const saveDisabled = pending || sameStop;
+  const busy = pending || accountSaving;
+  const saveDisabled = busy || sameStop;
 
   return (
     <div className="space-y-8 pb-24 md:pb-0">
@@ -427,11 +518,11 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
           size="lg"
           className="hidden md:inline-flex"
           disabled={saveDisabled}
-          aria-busy={pending}
+          aria-busy={busy}
           onClick={handleSave}
         >
           <span className="relative inline-flex items-center justify-center">
-            {pending ? (
+            {busy ? (
               <span
                 className="absolute right-full mr-2 inline-flex size-4 items-center justify-center"
                 aria-hidden
@@ -446,7 +537,7 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
           type="button"
           size="lg"
           variant="outline"
-          disabled={pending}
+          disabled={busy}
           onClick={handleClear}
         >
           Wyczyść
@@ -482,11 +573,11 @@ export function MzkRouteForm({ schedule }: MzkRouteFormProps) {
                 size="lg"
                 className="h-11 w-full max-w-none px-4"
                 disabled={saveDisabled}
-                aria-busy={pending}
+                aria-busy={busy}
                 onClick={handleSave}
               >
                 <span className="relative flex w-full items-center justify-center">
-                  {pending ? (
+                  {busy ? (
                     <span
                       className="absolute left-0 inline-flex size-4 items-center justify-center"
                       aria-hidden

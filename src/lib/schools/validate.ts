@@ -1,4 +1,4 @@
-import type { City, School } from "./types";
+import type { City, MzkPlaceStops, School, SchoolDetail } from "./types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -74,4 +74,68 @@ export function parsePlacesList(value: unknown): string[] | null {
     out.push(item.trim());
   }
   return out;
+}
+
+function parseStopIdList(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  const out: string[] = [];
+  for (const item of value) {
+    if (typeof item !== "string" || !item.trim()) return null;
+    out.push(item.trim());
+  }
+  return out;
+}
+
+function parseMzkPlaceStops(value: unknown): MzkPlaceStops[] | null {
+  if (!Array.isArray(value)) return null;
+  const out: MzkPlaceStops[] = [];
+  for (const item of value) {
+    if (!isRecord(item)) return null;
+    if (typeof item.place !== "string" || !item.place.trim()) return null;
+    const stopIds = parseStopIdList(item.stopIds);
+    if (!stopIds || stopIds.length === 0) return null;
+    const entry: MzkPlaceStops = {
+      place: item.place.trim(),
+      stopIds,
+    };
+    if (typeof item.note === "string" && item.note.trim()) {
+      entry.note = item.note.trim();
+    }
+    out.push(entry);
+  }
+  return out;
+}
+
+/** Strict parse of GET /api/v1/schools/{id} (SchoolDetailOut). */
+export function parseSchoolDetail(value: unknown): SchoolDetail | null {
+  if (!isRecord(value) || !isSchool(value)) return null;
+  const record = value as Record<string, unknown> & School;
+  const mzkStopIds = parseStopIdList(record.mzkStopIds);
+  if (!mzkStopIds) return null;
+  const mzkPlaceStops = parseMzkPlaceStops(record.mzkPlaceStops ?? []);
+  if (!mzkPlaceStops) return null;
+
+  const detail: SchoolDetail = {
+    id: value.id.trim(),
+    name: value.name.trim(),
+    city: {
+      id: value.city.id.trim(),
+      name: value.city.name.trim(),
+    },
+    mzkStopIds,
+    mzkPlaceStops,
+  };
+  if (typeof value.address === "string" && value.address.trim()) {
+    detail.address = value.address.trim();
+  }
+  if (typeof value.phone === "string" && value.phone.trim()) {
+    detail.phone = value.phone.trim();
+  }
+  if (typeof value.email === "string" && value.email.trim()) {
+    detail.email = value.email.trim();
+  }
+  if (typeof value.website === "string" && value.website.trim()) {
+    detail.website = value.website.trim();
+  }
+  return detail;
 }

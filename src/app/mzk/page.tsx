@@ -3,8 +3,10 @@ import { MzkRouteForm } from "@/components/mzk-route-form";
 import { PageEyebrow } from "@/components/page-eyebrow";
 import { PageShell } from "@/components/page-shell";
 import { SiteHeader } from "@/components/site-header";
+import { getAuthSession } from "@/lib/auth/current-user";
 import { loadMzkScheduleSnapshot } from "@/lib/mzk/load-schedule";
 import { MZK_DEVELOPER_PAGE_URL } from "@/lib/mzk/types";
+import { loadSchoolDetail } from "@/lib/schools/load";
 import { resolveServerSchoolContext } from "@/lib/schools/resolve-server";
 import { mzkScheduleFreshness } from "@/lib/schedule-freshness";
 import { buildPageMetadata } from "@/lib/site-metadata";
@@ -25,7 +27,16 @@ export default async function MzkPage({
 }) {
   const params = await searchParams;
   const { selection } = await resolveServerSchoolContext(params);
-  const mzkSchedule = await loadMzkScheduleSnapshot(selection.schoolId);
+  const schoolId = selection.schoolId;
+
+  const [mzkSchedule, session, schoolDetail] = await Promise.all([
+    loadMzkScheduleSnapshot(schoolId),
+    getAuthSession(),
+    loadSchoolDetail(schoolId),
+  ]);
+  const user = session.status === "authenticated" ? session.user : null;
+  const signedIn = user != null;
+  const accountMzkRoute = user?.mzkRoutes?.[schoolId] ?? null;
   const freshness = mzkSchedule
     ? [mzkScheduleFreshness(mzkSchedule.fetchedAt, mzkSchedule.feedEndDate)]
     : [];
@@ -57,7 +68,14 @@ export default async function MzkPage({
         <div className="space-y-6">
           <MzkOfflineNotice items={freshness} />
           {mzkSchedule && mzkSchedule.stops.length > 0 ? (
-            <MzkRouteForm schedule={mzkSchedule} />
+            <MzkRouteForm
+              schedule={mzkSchedule}
+              schoolId={schoolId}
+              signedIn={signedIn}
+              accountMzkRoute={accountMzkRoute}
+              schoolStopIds={schoolDetail?.mzkStopIds ?? []}
+              placeStops={schoolDetail?.mzkPlaceStops ?? []}
+            />
           ) : (
             <p className="text-muted-foreground">
               Rozkład MZK jest chwilowo niedostępny. Spróbuj ponownie później

@@ -11,12 +11,17 @@ export const SCHEDULE_API_TAGS = {
   mzkMeta: "mzk-meta",
   cities: "cities",
   schools: "schools",
+  schoolDetail: "school-detail",
   places: "school-places",
   notices: "school-notices",
 } as const;
 
 export function schoolScheduleTag(schoolId: string): string {
   return `${SCHEDULE_API_TAGS.dowozy}:${schoolId}`;
+}
+
+export function schoolDetailTag(schoolId: string): string {
+  return `${SCHEDULE_API_TAGS.schoolDetail}:${schoolId}`;
 }
 
 export function schoolPlacesTag(schoolId: string): string {

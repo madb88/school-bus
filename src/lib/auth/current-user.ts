@@ -3,6 +3,7 @@ import { cache } from "react";
 import type { AccountPlan } from "@/lib/child-schedule/account-plan";
 import {
   fetchMe,
+  type BackendMzkRoute,
   type BackendRole,
   type BackendUserSettings,
 } from "./backend";
@@ -15,6 +16,7 @@ export type CurrentUser = {
   role: BackendRole;
   plans: AccountPlan[];
   settings: BackendUserSettings;
+  mzkRoutes: Record<string, BackendMzkRoute>;
   createdAt: string;
   sessionToken: string;
 };
@@ -52,6 +54,7 @@ async function loadAuthSession(): Promise<AuthSession> {
       role: user.role,
       plans: user.plans,
       settings: user.settings,
+      mzkRoutes: user.mzkRoutes,
       createdAt: user.createdAt,
       sessionToken: token,
     },

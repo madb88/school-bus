@@ -1,5 +1,6 @@
 import type { AccountPlan } from "@/lib/child-schedule/account-plan";
 import { parseAccountPlans } from "@/lib/child-schedule/account-plan";
+import type { MzkRoutePreference } from "@/lib/mzk/route-preference";
 import {
   AUTH_BAD_CODE,
   AUTH_BAD_DATA,
@@ -10,9 +11,18 @@ import {
 
 export type BackendRole = "admin" | "school" | "individual";
 
+/** Persisted MZK board/alight preference for one school (account). */
+export type BackendMzkRoute = {
+  boardStopId: string;
+  alightStopId: string;
+  route?: string;
+};
+
 export type BackendUserSettings = {
   defaultCityId?: string;
   defaultSchoolId?: string;
+  /** Empty / omitted means all schools are visible in the board picker. */
+  visibleSchoolIds?: string[];
 };
 
 export type BackendUser = {
@@ -23,6 +33,8 @@ export type BackendUser = {
   lastLoginAt?: string;
   plans: AccountPlan[];
   settings: BackendUserSettings;
+  /** Per-school MZK route; school ids are UUIDs. */
+  mzkRoutes: Record<string, BackendMzkRoute>;
 };
 
 export type BackendAuthError = {
@@ -87,7 +99,47 @@ function parseUserSettings(value: unknown): BackendUserSettings {
   ) {
     settings.defaultSchoolId = record.defaultSchoolId.trim();
   }
+  if (Array.isArray(record.visibleSchoolIds)) {
+    const ids: string[] = [];
+    for (const item of record.visibleSchoolIds) {
+      if (typeof item !== "string" || !item.trim()) continue;
+      const id = item.trim();
+      if (!ids.includes(id)) ids.push(id);
+    }
+    if (ids.length > 0) settings.visibleSchoolIds = ids;
+  }
   return settings;
+}
+
+function parseMzkRoute(value: unknown): BackendMzkRoute | null {
+  const record = asRecord(value);
+  if (!record) return null;
+  if (typeof record.boardStopId !== "string" || !record.boardStopId.trim()) {
+    return null;
+  }
+  if (typeof record.alightStopId !== "string" || !record.alightStopId.trim()) {
+    return null;
+  }
+  const route: BackendMzkRoute = {
+    boardStopId: record.boardStopId.trim(),
+    alightStopId: record.alightStopId.trim(),
+  };
+  if (typeof record.route === "string" && record.route.trim()) {
+    route.route = record.route.trim();
+  }
+  return route;
+}
+
+function parseMzkRoutes(value: unknown): Record<string, BackendMzkRoute> {
+  const record = asRecord(value);
+  if (!record) return {};
+  const out: Record<string, BackendMzkRoute> = {};
+  for (const [schoolId, raw] of Object.entries(record)) {
+    if (!schoolId.trim()) continue;
+    const route = parseMzkRoute(raw);
+    if (route) out[schoolId.trim()] = route;
+  }
+  return out;
 }
 
 function parseUser(value: unknown): BackendUser | null {
@@ -112,6 +164,7 @@ function parseUser(value: unknown): BackendUser | null {
     createdAt: record.createdAt,
     plans,
     settings: parseUserSettings(record.settings),
+    mzkRoutes: parseMzkRoutes(record.mzkRoutes),
   };
   if (typeof record.lastLoginAt === "string" && record.lastLoginAt) {
     user.lastLoginAt = record.lastLoginAt;
@@ -439,26 +492,119 @@ export async function updateMyPlans(
   return { ok: true, user };
 }
 
+export type UpdateMySettingsInput = {
+  defaultCityId?: string | null;
+  defaultSchoolId?: string | null;
+  visibleSchoolIds?: string[];
+};
+
 /**
- * Replace account default city/school. Omitted/empty fields clear that setting.
- * Passes backend Polish `detail` as `error`.
+ * Partial update of account settings. Only fields present on `settings` are sent
+ * (backend merges). Empty string clears a default id; empty `visibleSchoolIds`
+ * clears the filter. Passes backend Polish `detail` as `error`.
  */
 export async function updateMySettings(
   sessionToken: string,
-  settings: { defaultCityId?: string | null; defaultSchoolId?: string | null },
+  settings: UpdateMySettingsInput,
 ): Promise<
   | { ok: true; user: BackendUser }
   | { ok: false; status: number; error: string }
 > {
-  const body: Record<string, string> = {
-    defaultCityId: settings.defaultCityId?.trim() ?? "",
-    defaultSchoolId: settings.defaultSchoolId?.trim() ?? "",
-  };
+  const body: Record<string, string | string[]> = {};
+  if ("defaultCityId" in settings) {
+    body.defaultCityId = settings.defaultCityId?.trim() ?? "";
+  }
+  if ("defaultSchoolId" in settings) {
+    body.defaultSchoolId = settings.defaultSchoolId?.trim() ?? "";
+  }
+  if ("visibleSchoolIds" in settings) {
+    body.visibleSchoolIds = settings.visibleSchoolIds ?? [];
+  }
   const result = await backendFetch("/api/v1/users/me/settings", {
     method: "PATCH",
     sessionToken,
     body,
   });
+  if (!result.ok) {
+    return { ok: false, status: result.status, error: result.error };
+  }
+  const user = parseUser(result.data);
+  if (!user) {
+    return { ok: false, status: 503, error: AUTH_UNAVAILABLE };
+  }
+  return { ok: true, user };
+}
+
+function accountRouteBody(route: MzkRoutePreference | BackendMzkRoute): {
+  boardStopId: string;
+  alightStopId: string;
+  route?: string;
+} | null {
+  const board =
+    "boardStopId" in route && typeof route.boardStopId === "string"
+      ? route.boardStopId.trim()
+      : "";
+  const alight =
+    "alightStopId" in route && typeof route.alightStopId === "string"
+      ? route.alightStopId.trim()
+      : "";
+  if (!board || !alight) return null;
+  const body: { boardStopId: string; alightStopId: string; route?: string } = {
+    boardStopId: board,
+    alightStopId: alight,
+  };
+  const line =
+    "route" in route && typeof route.route === "string" && route.route.trim()
+      ? route.route.trim()
+      : null;
+  if (line) body.route = line;
+  return body;
+}
+
+/** Save the MZK route for one school on the account. */
+export async function putMyMzkRoute(
+  sessionToken: string,
+  schoolId: string,
+  route: MzkRoutePreference | BackendMzkRoute,
+): Promise<
+  | { ok: true; user: BackendUser }
+  | { ok: false; status: number; error: string }
+> {
+  const id = schoolId.trim();
+  const body = accountRouteBody(route);
+  if (!id || !body) {
+    return { ok: false, status: 400, error: AUTH_BAD_DATA };
+  }
+  const result = await backendFetch(
+    `/api/v1/users/me/mzk-routes/${encodeURIComponent(id)}`,
+    { method: "PUT", sessionToken, body },
+  );
+  if (!result.ok) {
+    return { ok: false, status: result.status, error: result.error };
+  }
+  const user = parseUser(result.data);
+  if (!user) {
+    return { ok: false, status: 503, error: AUTH_UNAVAILABLE };
+  }
+  return { ok: true, user };
+}
+
+/** Remove the MZK route for one school (idempotent). */
+export async function deleteMyMzkRoute(
+  sessionToken: string,
+  schoolId: string,
+): Promise<
+  | { ok: true; user: BackendUser }
+  | { ok: false; status: number; error: string }
+> {
+  const id = schoolId.trim();
+  if (!id) {
+    return { ok: false, status: 400, error: AUTH_BAD_DATA };
+  }
+  const result = await backendFetch(
+    `/api/v1/users/me/mzk-routes/${encodeURIComponent(id)}`,
+    { method: "DELETE", sessionToken },
+  );
   if (!result.ok) {
     return { ok: false, status: result.status, error: result.error };
   }
