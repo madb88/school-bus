@@ -38,7 +38,10 @@ describe("fetchDowozyScheduleFromApi", () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 503 });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await fetchDowozyScheduleFromApi("http://localhost:8000");
+    const result = await fetchDowozyScheduleFromApi(
+      "http://localhost:8000",
+      "school-1",
+    );
     expect(result).toEqual({ ok: false, reason: "unhealthy" });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
@@ -61,15 +64,29 @@ describe("fetchDowozyScheduleFromApi", () => {
       });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await fetchDowozyScheduleFromApi("http://localhost:8000");
+    const result = await fetchDowozyScheduleFromApi(
+      "http://localhost:8000",
+      "school-1",
+    );
     expect(result).toEqual({ ok: true, data: payload });
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(String(fetchMock.mock.calls[1]?.[0])).toBe(
-      "http://localhost:8000/api/v1/dowozy/schedule",
+      "http://localhost:8000/api/v1/dowozy/schedule?schoolId=school-1",
     );
     expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({
-      next: { revalidate: 120, tags: ["dowozy-schedule"] },
+      next: {
+        revalidate: 120,
+        tags: ["dowozy-schedule", "dowozy-schedule:school-1"],
+      },
     });
+  });
+
+  it("returns invalid when schoolId is blank", async () => {
+    const result = await fetchDowozyScheduleFromApi(
+      "http://localhost:8000",
+      "  ",
+    );
+    expect(result).toEqual({ ok: false, reason: "invalid" });
   });
 
   it("returns invalid when schedule JSON shape is wrong", async () => {
@@ -83,7 +100,10 @@ describe("fetchDowozyScheduleFromApi", () => {
       });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await fetchDowozyScheduleFromApi("http://localhost:8000");
+    const result = await fetchDowozyScheduleFromApi(
+      "http://localhost:8000",
+      "school-1",
+    );
     expect(result).toEqual({ ok: false, reason: "invalid" });
   });
 });
