@@ -2,6 +2,7 @@ import {
   SCHEDULE_API_HEALTH_REVALIDATE_SEC,
   SCHEDULE_API_REVALIDATE_SEC,
   SCHEDULE_API_TAGS,
+  schoolScheduleTag,
 } from "@/lib/schedule-api-cache";
 import {
   DOWOZY_API_HEALTH_PATH,
@@ -57,24 +58,29 @@ export type FetchScheduleApiResult =
   | { ok: false; reason: "unhealthy" | "http" | "invalid" | "network" };
 
 /**
- * Probe /health, then GET /api/v1/dowozy/schedule.
+ * Probe /health, then GET /api/v1/dowozy/schedule?schoolId= (scraper schools).
+ * Returns `{ original, modified? }` so the UI can show the correction banner/diff.
  * Uses Next.js Data Cache (`revalidate`) across navigations.
  */
 export async function fetchDowozyScheduleFromApi(
   baseUrl: string,
+  schoolId: string,
 ): Promise<FetchScheduleApiResult> {
+  const id = schoolId.trim();
+  if (!id) return { ok: false, reason: "invalid" };
+
   const healthy = await isDowozyApiHealthy(baseUrl);
   if (!healthy) return { ok: false, reason: "unhealthy" };
 
-  const url = `${baseUrl}${DOWOZY_API_SCHEDULE_PATH}`;
+  const url = `${baseUrl}${DOWOZY_API_SCHEDULE_PATH}?schoolId=${encodeURIComponent(id)}`;
   try {
     const res = await fetchWithTimeout(url, SCHEDULE_TIMEOUT_MS, {
       revalidate: SCHEDULE_API_REVALIDATE_SEC,
-      tags: [SCHEDULE_API_TAGS.dowozy],
+      tags: [SCHEDULE_API_TAGS.dowozy, schoolScheduleTag(id)],
     });
     if (!res.ok) {
       console.warn(
-        "School schedule API returned non-OK status:",
+        "Dowozy schedule API returned non-OK status:",
         url,
         res.status,
       );
@@ -84,16 +90,16 @@ export async function fetchDowozyScheduleFromApi(
     try {
       parsed = await res.json();
     } catch {
-      console.warn("School schedule API returned invalid JSON:", url);
+      console.warn("Dowozy schedule API returned invalid JSON:", url);
       return { ok: false, reason: "invalid" };
     }
     if (!isDowozyApiScheduleResponse(parsed)) {
-      console.warn("School schedule API response has unexpected shape:", url);
+      console.warn("Dowozy schedule API response has unexpected shape:", url);
       return { ok: false, reason: "invalid" };
     }
     return { ok: true, data: parsed };
   } catch (error) {
-    console.warn("School schedule API fetch failed:", url, error);
+    console.warn("Dowozy schedule API fetch failed:", url, error);
     return { ok: false, reason: "network" };
   }
 }
