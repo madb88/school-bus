@@ -7,6 +7,7 @@ import type { Schedule } from "@/lib/dowozy/types";
 import {
   SCHEDULE_API_REVALIDATE_SEC,
   SCHEDULE_API_TAGS,
+  schoolDetailTag,
   schoolNoticesTag,
   schoolScheduleTag,
   schoolPlacesTag,
@@ -17,8 +18,13 @@ import {
   SCHOOLS_API_SCHOOLS_PATH,
 } from "./constants";
 import { parsePublicNotices } from "./notices";
-import type { City, PublicNotice, School } from "./types";
-import { parseCities, parsePlacesList, parseSchools } from "./validate";
+import type { City, PublicNotice, School, SchoolDetail } from "./types";
+import {
+  parseCities,
+  parsePlacesList,
+  parseSchoolDetail,
+  parseSchools,
+} from "./validate";
 
 const LIST_TIMEOUT_MS = 8_000;
 const SCHEDULE_TIMEOUT_MS = 10_000;
@@ -124,6 +130,45 @@ export async function fetchSchoolsFromApi(
     return { ok: true, data: schools };
   } catch (error) {
     console.warn("Schools API fetch failed:", url, error);
+    return { ok: false, reason: "network" };
+  }
+}
+
+export async function fetchSchoolDetailFromApi(
+  baseUrl: string,
+  schoolId: string,
+): Promise<FetchSchoolsApiResult<SchoolDetail>> {
+  const id = schoolId.trim();
+  if (!id) return { ok: false, reason: "invalid" };
+
+  const healthy = await isDowozyApiHealthy(baseUrl);
+  if (!healthy) return { ok: false, reason: "unhealthy" };
+
+  const url = `${baseUrl}${SCHOOLS_API_SCHOOLS_PATH}/${encodeURIComponent(id)}`;
+  try {
+    const res = await fetchWithTimeout(url, LIST_TIMEOUT_MS, {
+      revalidate: SCHEDULE_API_REVALIDATE_SEC,
+      tags: [SCHEDULE_API_TAGS.schoolDetail, schoolDetailTag(id)],
+    });
+    if (!res.ok) {
+      console.warn("School detail API returned non-OK status:", url, res.status);
+      return { ok: false, reason: "http" };
+    }
+    let parsed: unknown;
+    try {
+      parsed = await res.json();
+    } catch {
+      console.warn("School detail API returned invalid JSON:", url);
+      return { ok: false, reason: "invalid" };
+    }
+    const detail = parseSchoolDetail(parsed);
+    if (!detail) {
+      console.warn("School detail API response has unexpected shape:", url);
+      return { ok: false, reason: "invalid" };
+    }
+    return { ok: true, data: detail };
+  } catch (error) {
+    console.warn("School detail API fetch failed:", url, error);
     return { ok: false, reason: "network" };
   }
 }

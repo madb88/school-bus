@@ -25,6 +25,7 @@ function asUser() {
     role: "individual",
     plans: [],
     settings: {},
+    mzkRoutes: {},
     createdAt: "2026-10-01T00:00:00.000Z",
     sessionToken: TOKEN,
   });
@@ -102,6 +103,7 @@ describe("PUT /api/account/plans", () => {
         createdAt: "2026-10-01T00:00:00.000Z",
         plans: [PLAN],
         settings: {},
+        mzkRoutes: {},
       },
     });
     const response = await put({ plans: [PLAN] });

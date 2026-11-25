@@ -18,6 +18,19 @@ export type School = {
   website?: string;
 };
 
+/** Place → nearby MZK stop ids for route suggestions (from school detail). */
+export type MzkPlaceStops = {
+  place: string;
+  stopIds: string[];
+  note?: string;
+};
+
+/** GET /api/v1/schools/{id} — list payload plus MZK suggestion config. */
+export type SchoolDetail = School & {
+  mzkStopIds: string[];
+  mzkPlaceStops: MzkPlaceStops[];
+};
+
 export type SchoolSelection = {
   cityId: string;
   schoolId: string;

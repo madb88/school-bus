@@ -9,6 +9,7 @@ import { rememberPaymentReturn } from "@/lib/auth/backend";
 import { getAuthSession } from "@/lib/auth/current-user";
 import { loadPlusPanel } from "@/lib/billing/status";
 import { isPushNotificationsUiEnabled } from "@/lib/push/feature";
+import { loadSchools } from "@/lib/schools/load";
 import { resolveServerSchoolContext } from "@/lib/schools/resolve-server";
 import { buildPageMetadata } from "@/lib/site-metadata";
 
@@ -55,12 +56,13 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
     redirect("/profil");
   }
 
-  const [plus, schoolContext] = await Promise.all([
+  const [plus, schoolContext, allSchools] = await Promise.all([
     loadPlusPanel(user.sessionToken),
     resolveServerSchoolContext({
       miasto: user.settings.defaultCityId,
       szkola: user.settings.defaultSchoolId,
     }),
+    loadSchools(),
   ]);
 
   const focusNotifications = params.powiadomienia === "1";
@@ -89,6 +91,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
           settings={user.settings}
           cities={schoolContext.cities}
           schools={schoolContext.schools}
+          allSchools={allSchools}
           focusPlus={focusPlus}
           focusNotifications={focusNotifications}
           sectionHint={sectionHint}

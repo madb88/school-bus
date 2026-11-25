@@ -6,6 +6,7 @@ import { OfflineSync } from "@/components/offline-sync";
 import { ScheduleBoard } from "@/components/schedule-board";
 import { ScheduleStatusBanner } from "@/components/schedule-status-banner";
 import { ScheduleUnavailable } from "@/components/schedule-unavailable";
+import type { BackendMzkRoute } from "@/lib/auth/backend";
 import type { AccountPlan } from "@/lib/child-schedule/account-plan";
 import type { Schedule } from "@/lib/dowozy/types";
 import { hasOfflineEntitlement } from "@/lib/offline/entitlement";
@@ -40,10 +41,14 @@ type OfflineHomeProps = {
   suspendOfflineSync?: boolean;
   cities: City[];
   schools: School[];
+  allSchools?: School[];
   cityId: string;
   schoolId: string;
   schoolName: string | null;
   accountDefaults?: { cityId: string | null; schoolId: string | null } | null;
+  signedIn?: boolean;
+  accountMzkRoute?: BackendMzkRoute | null;
+  visibleSchoolIds?: string[] | null;
   notices?: PublicNotice[];
 };
 
@@ -72,10 +77,14 @@ export function OfflineHome({
   suspendOfflineSync = false,
   cities,
   schools,
+  allSchools = [],
   cityId,
   schoolId,
   schoolName,
   accountDefaults = null,
+  signedIn = false,
+  accountMzkRoute = null,
+  visibleSchoolIds = null,
   notices = EMPTY_NOTICES,
 }: OfflineHomeProps) {
   const online = useOnlineStatus();
@@ -168,10 +177,14 @@ export function OfflineHome({
         accountPlans={accountPlans}
         cities={cities}
         schools={schools}
+        allSchools={allSchools}
         cityId={cityId}
         schoolId={schoolId}
         schoolName={schoolName}
         accountDefaults={accountDefaults}
+        signedIn={signedIn}
+        accountMzkRoute={accountMzkRoute}
+        visibleSchoolIds={visibleSchoolIds}
         emptySchedule={!schedule}
         notices={notices}
       />

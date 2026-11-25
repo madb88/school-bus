@@ -68,6 +68,8 @@ describe("getAuthSession / getCurrentUser", () => {
       role: "individual",
       createdAt: "2026-01-01T00:00:00.000Z",
       plans: [],
+      settings: {},
+      mzkRoutes: {},
     });
     const { getAuthSession, getCurrentUser } = await load();
     const user = {
@@ -75,6 +77,8 @@ describe("getAuthSession / getCurrentUser", () => {
       email: "parent@example.com",
       role: "individual",
       plans: [],
+      settings: {},
+      mzkRoutes: {},
       createdAt: "2026-01-01T00:00:00.000Z",
       sessionToken: TOKEN,
     };

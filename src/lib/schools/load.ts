@@ -2,11 +2,12 @@ import { cache } from "react";
 import {
   fetchCitiesFromApi,
   fetchNoticesFromApi,
+  fetchSchoolDetailFromApi,
   fetchSchoolPlacesFromApi,
   fetchSchoolsFromApi,
   getSchoolsApiBaseUrl,
 } from "./api-client";
-import type { City, PublicNotice, School } from "./types";
+import type { City, PublicNotice, School, SchoolDetail } from "./types";
 
 export async function loadCitiesOnce(): Promise<City[]> {
   const apiBase = getSchoolsApiBaseUrl();
@@ -49,6 +50,19 @@ export async function loadSchoolByIdOnce(
 }
 
 export const loadSchoolById = cache(loadSchoolByIdOnce);
+
+export async function loadSchoolDetailOnce(
+  schoolId: string,
+): Promise<SchoolDetail | null> {
+  const id = schoolId.trim();
+  if (!id) return null;
+  const apiBase = getSchoolsApiBaseUrl();
+  if (!apiBase) return null;
+  const result = await fetchSchoolDetailFromApi(apiBase, id);
+  return result.ok ? result.data : null;
+}
+
+export const loadSchoolDetail = cache(loadSchoolDetailOnce);
 
 export async function loadSchoolNoticesOnce(
   schoolId: string,

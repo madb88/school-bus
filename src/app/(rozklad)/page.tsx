@@ -7,7 +7,7 @@ import { hasPlusAccess } from "@/lib/billing/access";
 import { loadScheduleCorrectionSnapshot } from "@/lib/dowozy/load-schedule";
 import { overrideFreshnessInfo } from "@/lib/dowozy/override-freshness";
 import { loadMzkScheduleMeta } from "@/lib/mzk/load-schedule";
-import { loadSchoolNotices } from "@/lib/schools/load";
+import { loadSchoolNotices, loadSchools } from "@/lib/schools/load";
 import { resolveServerSchoolContext } from "@/lib/schools/resolve-server";
 import {
   mzkScheduleFreshness,
@@ -36,11 +36,12 @@ export default async function Home({
     await resolveServerSchoolContext(params);
   const schoolId = selection.schoolId;
 
-  const [correction, mzkMeta, session, notices] = await Promise.all([
+  const [correction, mzkMeta, session, notices, allSchools] = await Promise.all([
     loadScheduleCorrectionSnapshot(schoolId),
     loadMzkScheduleMeta(schoolId),
     getAuthSession(),
     loadSchoolNotices(schoolId),
+    loadSchools(),
   ]);
   const user = session.status === "authenticated" ? session.user : null;
   const suspendOfflineSync = session.status === "unavailable";
@@ -80,6 +81,9 @@ export default async function Home({
         schoolId: user.settings.defaultSchoolId ?? null,
       }
     : null;
+  const signedIn = user != null;
+  const accountMzkRoute = user?.mzkRoutes?.[schoolId] ?? null;
+  const visibleSchoolIds = user?.settings.visibleSchoolIds ?? null;
 
   return (
     <PageShell wide roomy header={<SiteHeader current="rozklad" />}>
@@ -95,10 +99,14 @@ export default async function Home({
           suspendOfflineSync={suspendOfflineSync}
           cities={cities}
           schools={schools}
+          allSchools={allSchools}
           cityId={selection.cityId}
           schoolId={schoolId}
           schoolName={school?.name ?? null}
           accountDefaults={accountDefaults}
+          signedIn={signedIn}
+          accountMzkRoute={accountMzkRoute}
+          visibleSchoolIds={visibleSchoolIds}
           notices={notices}
         />
       </div>

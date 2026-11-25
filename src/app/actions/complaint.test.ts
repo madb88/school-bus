@@ -42,6 +42,7 @@ describe("sendComplaint", () => {
       role: "individual",
       plans: [],
       settings: {},
+      mzkRoutes: {},
       createdAt: "2026-01-01T00:00:00.000Z",
       sessionToken: TOKEN,
     });

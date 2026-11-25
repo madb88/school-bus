@@ -103,6 +103,7 @@ import {
   toAbsoluteYmd,
 } from "@/lib/dowozy/schedule-dates";
 import type { Schedule } from "@/lib/dowozy/types";
+import type { BackendMzkRoute } from "@/lib/auth/backend";
 import {
   findActiveBlockingNoticeForDate,
   findBannerNoticesForDate,
@@ -119,7 +120,7 @@ import {
 } from "@/lib/mzk/merge-timeline";
 import { hasConfiguredMzkRoute } from "@/lib/mzk/route-storage";
 import { useMzkOdDepartures } from "@/lib/mzk/use-mzk-od-departures";
-import { useMzkRoutePreference } from "@/lib/mzk/use-mzk-route";
+import { useSchoolMzkRoute } from "@/lib/mzk/use-school-mzk-route";
 import { dismissHint } from "@/lib/onboarding-hints";
 import { siteName } from "@/lib/site-metadata";
 import { resolveClientSchoolSelection } from "@/lib/schools/resolve-selection";
@@ -134,6 +135,10 @@ import {
   subscribeSchoolSelection,
 } from "@/lib/schools/storage";
 import type { City, PublicNotice, School } from "@/lib/schools/types";
+import {
+  filterVisibleCities,
+  filterVisibleSchools,
+} from "@/lib/schools/visible-schools";
 import { useHintDismissed } from "@/lib/use-hint-dismissed";
 import { cn } from "cn";
 import { toast } from "sonner";
@@ -147,11 +152,19 @@ type ScheduleBoardProps = {
   /** Account plans (Plus) for multi-match + badges on `/`. */
   accountPlans?: AccountPlan[];
   cities?: City[];
+  /** Schools for the current city (school select). */
   schools?: School[];
+  /** Full school catalog — used to hide cities with no visible school. */
+  allSchools?: School[];
   cityId: string;
   schoolId: string;
   schoolName?: string | null;
   accountDefaults?: { cityId: string | null; schoolId: string | null } | null;
+  /** Signed-in: account MZK route for this school (null = none saved). */
+  signedIn?: boolean;
+  accountMzkRoute?: BackendMzkRoute | null;
+  /** Signed-in: schools pinned in the board picker (empty = all). */
+  visibleSchoolIds?: string[] | null;
   /** Schedule fetch failed — show pickers + empty state, hide trip list. */
   emptySchedule?: boolean;
   /** Current/upcoming school notices from GET /api/v1/notices. */
@@ -186,17 +199,35 @@ export function ScheduleBoard({
   accountPlans = [],
   cities = [],
   schools = [],
+  allSchools = [],
   cityId,
   schoolId,
   schoolName = null,
   accountDefaults = null,
+  signedIn = false,
+  accountMzkRoute = null,
+  visibleSchoolIds = null,
   emptySchedule = false,
   notices = EMPTY_NOTICES,
 }: ScheduleBoardProps) {
   const places = collectPlaces(schedule);
   const lessonPlan = useLessonPlan();
   const preferredPlace = usePreferredPlace();
-  const mzkRoute = useMzkRoutePreference();
+  const { route: mzkRoute } = useSchoolMzkRoute({
+    signedIn,
+    schoolId,
+    accountRoute: accountMzkRoute,
+  });
+  const schoolsForCities = allSchools.length > 0 ? allSchools : schools;
+  const pickerCities = useMemo(
+    () =>
+      filterVisibleCities(cities, schoolsForCities, visibleSchoolIds, schoolId),
+    [cities, schoolsForCities, visibleSchoolIds, schoolId],
+  );
+  const pickerSchools = useMemo(
+    () => filterVisibleSchools(schools, visibleSchoolIds, schoolId),
+    [schools, visibleSchoolIds, schoolId],
+  );
   const plansForSchool = useMemo(
     () =>
       accountPlans.filter(
@@ -1215,14 +1246,14 @@ export function ScheduleBoard({
         filtersStuck={filtersStuck}
         filtersSheetOpen={filtersSheetOpen}
         onFiltersSheetOpenChange={setFiltersSheetOpen}
-        cities={cities}
-        schools={schools}
+        cities={pickerCities}
+        schools={pickerSchools}
         cityId={cityId}
         schoolId={schoolId}
         hideSchoolFilter={hideSchoolFilter}
         schoolSelectionSaved={schoolSelectionSaved}
         schoolLabel={schoolScopeLabel}
-        cityLabel={cities.find((city) => city.id === cityId)?.name ?? null}
+        cityLabel={pickerCities.find((city) => city.id === cityId)?.name ?? null}
         onCityChange={applyCityChange}
         onSchoolChange={applySchoolChange}
         places={places}

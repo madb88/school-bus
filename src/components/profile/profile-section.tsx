@@ -12,12 +12,14 @@ export function ProfileSection({
   settings,
   cities,
   schools,
+  allSchools,
   onRequestLogout,
 }: {
   email: string;
   settings: BackendUserSettings;
   cities: City[];
   schools: School[];
+  allSchools: School[];
   onRequestLogout: () => void;
 }) {
   return (
@@ -42,6 +44,7 @@ export function ProfileSection({
         initialSettings={settings}
         cities={cities}
         initialSchools={schools}
+        allSchools={allSchools}
       />
       <HelpContactCard />
       <Button
