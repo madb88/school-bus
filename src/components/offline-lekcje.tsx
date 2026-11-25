@@ -19,9 +19,13 @@ type OfflineLekcjeProps = {
   places: string[];
   mode: "account" | "local";
   initialPlans: AccountPlan[];
+  /** Plans the account may keep: 1 without Plus, 5 with Plus. */
+  maxPlans: number;
+  /** `?plan=` — open this plan in the editor. */
+  urlPlanId?: string | null;
   loggedIn: boolean;
   trialEnded: boolean;
-  /** Account UI / lesson mode (may include expired Plus with leftover plans). */
+  /** Plus (admin/active/trial): several plans. */
   plusAccess: boolean;
   /** True Plus (admin/active/trial) — drives offline entitlement sync. */
   offlinePlusAccess: boolean;
@@ -30,6 +34,7 @@ type OfflineLekcjeProps = {
   suspendOfflineSync?: boolean;
   cities: City[];
   schools: School[];
+  allSchools: School[];
   cityId: string;
   schoolId: string;
   accountDefaults?: { cityId: string | null; schoolId: string | null } | null;
@@ -41,6 +46,8 @@ export function OfflineLekcje({
   places,
   mode,
   initialPlans,
+  maxPlans,
+  urlPlanId = null,
   loggedIn,
   trialEnded,
   plusAccess,
@@ -49,6 +56,7 @@ export function OfflineLekcje({
   suspendOfflineSync = false,
   cities,
   schools,
+  allSchools,
   cityId,
   schoolId,
   accountDefaults = null,
@@ -73,8 +81,6 @@ export function OfflineLekcje({
       : schedule
         ? collectPlaces(schedule)
         : [];
-  const effectiveMode =
-    plusAccess || initialPlans.length > 0 ? mode : "local";
 
   return (
     <>
@@ -96,12 +102,15 @@ export function OfflineLekcje({
           places={effectivePlaces}
           schedule={schedule}
           mzkSchedule={mzkSchedule}
-          mode={effectiveMode}
+          mode={mode}
           initialPlans={initialPlans}
+          maxPlans={maxPlans}
+          urlPlanId={urlPlanId}
+          plusAccess={plusAccess}
           loggedIn={loggedIn}
           trialEnded={trialEnded}
           cities={cities}
-          schools={schools}
+          schools={allSchools.length > 0 ? allSchools : schools}
           cityId={cityId}
           schoolId={schoolId}
           accountDefaults={accountDefaults}

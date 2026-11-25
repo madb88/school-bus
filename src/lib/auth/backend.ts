@@ -1,5 +1,8 @@
 import type { AccountPlan } from "@/lib/child-schedule/account-plan";
-import { parseAccountPlans } from "@/lib/child-schedule/account-plan";
+import {
+  isAccountPlanId,
+  parseAccountPlans,
+} from "@/lib/child-schedule/account-plan";
 import type { MzkRoutePreference } from "@/lib/mzk/route-preference";
 import {
   AUTH_BAD_CODE,
@@ -11,7 +14,7 @@ import {
 
 export type BackendRole = "admin" | "school" | "individual";
 
-/** Persisted MZK board/alight preference for one school (account). */
+/** Persisted MZK board/alight route (on a plan, or per school — deprecated). */
 export type BackendMzkRoute = {
   boardStopId: string;
   alightStopId: string;
@@ -33,7 +36,7 @@ export type BackendUser = {
   lastLoginAt?: string;
   plans: AccountPlan[];
   settings: BackendUserSettings;
-  /** Per-school MZK route; school ids are UUIDs. */
+  /** Deprecated per-school MZK routes; the UI uses `plans[].mzkRoute`. */
   mzkRoutes: Record<string, BackendMzkRoute>;
 };
 
@@ -603,6 +606,58 @@ export async function deleteMyMzkRoute(
   }
   const result = await backendFetch(
     `/api/v1/users/me/mzk-routes/${encodeURIComponent(id)}`,
+    { method: "DELETE", sessionToken },
+  );
+  if (!result.ok) {
+    return { ok: false, status: result.status, error: result.error };
+  }
+  const user = parseUser(result.data);
+  if (!user) {
+    return { ok: false, status: 503, error: AUTH_UNAVAILABLE };
+  }
+  return { ok: true, user };
+}
+
+/** Save the MZK route of one of the caller's plans (by plan UUID). */
+export async function putMyPlanMzkRoute(
+  sessionToken: string,
+  planId: string,
+  route: BackendMzkRoute,
+): Promise<
+  | { ok: true; user: BackendUser }
+  | { ok: false; status: number; error: string }
+> {
+  const body = accountRouteBody(route);
+  if (!isAccountPlanId(planId) || !body) {
+    return { ok: false, status: 400, error: AUTH_BAD_DATA };
+  }
+  const result = await backendFetch(
+    `/api/v1/users/me/plans/${encodeURIComponent(planId)}/mzk-route`,
+    { method: "PUT", sessionToken, body },
+  );
+  if (!result.ok) {
+    return { ok: false, status: result.status, error: result.error };
+  }
+  const user = parseUser(result.data);
+  if (!user) {
+    return { ok: false, status: 503, error: AUTH_UNAVAILABLE };
+  }
+  return { ok: true, user };
+}
+
+/** Remove the MZK route of one of the caller's plans (idempotent). */
+export async function deleteMyPlanMzkRoute(
+  sessionToken: string,
+  planId: string,
+): Promise<
+  | { ok: true; user: BackendUser }
+  | { ok: false; status: number; error: string }
+> {
+  if (!isAccountPlanId(planId)) {
+    return { ok: false, status: 400, error: AUTH_BAD_DATA };
+  }
+  const result = await backendFetch(
+    `/api/v1/users/me/plans/${encodeURIComponent(planId)}/mzk-route`,
     { method: "DELETE", sessionToken },
   );
   if (!result.ok) {

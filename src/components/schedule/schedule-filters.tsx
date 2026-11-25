@@ -85,6 +85,11 @@ export type ScheduleFiltersProps = {
   schoolSelectionSaved: boolean;
   schoolLabel: string;
   cityLabel: string | null;
+  /**
+   * Set while a plan is active: the plan picks the school, so the bar shows
+   * city + school read-only with a link to edit the plan instead of pickers.
+   */
+  schoolLock?: { planLabel: string; editHref: string } | null;
   onCityChange: (cityId: string) => void;
   onSchoolChange: (schoolId: string) => void;
   places: string[];
@@ -145,6 +150,7 @@ export function ScheduleFilters({
   schoolSelectionSaved,
   schoolLabel,
   cityLabel,
+  schoolLock = null,
   onCityChange,
   onSchoolChange,
   places,
@@ -199,9 +205,11 @@ export function ScheduleFilters({
   const [schoolPickersUserExpanded, setSchoolPickersUserExpanded] =
     useState(false);
   // Profile checkbox: fully hide. Otherwise collapse when LS already has a choice.
+  // A plan's school is always shown (read-only), even with the picker hidden.
   const schoolPickersFullyHidden =
-    hideSchoolFilter && Boolean(schoolId) && cities.length > 0;
+    !schoolLock && hideSchoolFilter && Boolean(schoolId) && cities.length > 0;
   const showSchoolPickersExpanded =
+    !schoolLock &&
     !schoolPickersFullyHidden &&
     (schoolPickersUserExpanded || !schoolSelectionSaved || !schoolId);
   const showSchoolPickersCollapsed =
@@ -231,26 +239,42 @@ export function ScheduleFilters({
           )}
         >
           {schoolScopeTitle}
+          {schoolLock ? (
+            <span className="font-normal text-muted-foreground">
+              {" "}
+              · z planu „{schoolLock.planLabel}”
+            </span>
+          ) : null}
         </p>
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          className="h-7 shrink-0 gap-1 px-2 text-xs text-bus-deep hover:bg-bus/10 hover:text-bus-deep"
-          onClick={() => {
-            setSchoolPickersUserExpanded(true);
-            if (
-              options?.openSheetOnMobile &&
-              typeof window !== "undefined" &&
-              !window.matchMedia("(min-width: 768px)").matches
-            ) {
-              onFiltersSheetOpenChange(true);
-            }
-          }}
-        >
-          <Pencil aria-hidden className="size-3" />
-          <span>zmień</span>
-        </Button>
+        {schoolLock ? (
+          <Link
+            href={schoolLock.editHref}
+            className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-xs text-bus-deep hover:bg-bus/10"
+          >
+            <Pencil aria-hidden className="size-3" />
+            <span>edytuj plan</span>
+          </Link>
+        ) : (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-7 shrink-0 gap-1 px-2 text-xs text-bus-deep hover:bg-bus/10 hover:text-bus-deep"
+            onClick={() => {
+              setSchoolPickersUserExpanded(true);
+              if (
+                options?.openSheetOnMobile &&
+                typeof window !== "undefined" &&
+                !window.matchMedia("(min-width: 768px)").matches
+              ) {
+                onFiltersSheetOpenChange(true);
+              }
+            }}
+          >
+            <Pencil aria-hidden className="size-3" />
+            <span>zmień</span>
+          </Button>
+        )}
       </div>
     );
   }
@@ -628,7 +652,7 @@ export function ScheduleFilters({
                   largeControls ? "h-11" : "h-8",
                 )}
               >
-                Ustaw plan
+                Dodaj plan
               </Link>
             )}
             {mzkPlanToggle}
@@ -698,7 +722,7 @@ export function ScheduleFilters({
               href="/lekcje"
               className="inline-flex h-8 items-center rounded-lg border border-border bg-card px-2.5 text-sm font-medium hover:bg-muted"
             >
-              Ustaw plan
+              Dodaj plan
             </Link>
           )}
           {mzkPlanToggle}

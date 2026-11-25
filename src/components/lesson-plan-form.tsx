@@ -24,9 +24,10 @@ import {
 } from "@/components/lesson-plan/form-actions";
 import { HoursSection } from "@/components/lesson-plan/hours-section";
 import { PlaceSection } from "@/components/lesson-plan/place-section";
+import { SchoolSection } from "@/components/lesson-plan/school-section";
 import type { LessonPlanPrintMode } from "@/components/lesson-plan-print";
 import { AnalyticsEvent, trackEvent } from "@/lib/analytics/events";
-import { MAX_ACCOUNT_PLANS } from "@/lib/billing/constants";
+import { accountMzkRouteToPreference } from "@/lib/child-schedule/active-plan";
 import {
   accountPlanLabel,
   fromAccountPlan,
@@ -60,11 +61,15 @@ import {
 } from "@/lib/child-schedule/types";
 import type { Schedule } from "@/lib/dowozy/types";
 import { useLessonPlan } from "@/lib/child-schedule/use-lesson-plan";
-import { hasConfiguredMzkRoute } from "@/lib/mzk/route-storage";
+import {
+  hasConfiguredMzkRoute,
+  mzkRouteForSchool,
+} from "@/lib/mzk/route-storage";
 import type { MzkSchedule } from "@/lib/mzk/types";
 import { useMzkRoutePreference } from "@/lib/mzk/use-mzk-route";
 import { disablePush, getPushStatus, setPushPlans } from "@/lib/push/browser";
 import { DEFAULT_SCHOOL_ID } from "@/lib/schools/constants";
+import { parseSchoolEntityId } from "@/lib/schools/storage";
 import type { City, School } from "@/lib/schools/types";
 
 type LessonPlanFormProps = {
@@ -73,9 +78,15 @@ type LessonPlanFormProps = {
   mzkSchedule: MzkSchedule | null;
   mode?: "local" | "account";
   initialPlans?: AccountPlan[];
+  /** Plans the account may keep: 1 without Plus, 5 with Plus. */
+  maxPlans?: number;
+  /** `?plan=` — open this plan. */
+  urlPlanId?: string | null;
+  plusAccess?: boolean;
   loggedIn?: boolean;
   trialEnded?: boolean;
   cities?: City[];
+  /** All active schools (every city) for the plan's school picker. */
   schools?: School[];
   cityId?: string;
   schoolId?: string;
@@ -117,8 +128,15 @@ async function syncPushAfterPlanSave(
   }
 }
 
-function normalizeLocalPlan(source: ChildLessonPlan): ChildLessonPlan {
-  const normalized: ChildLessonPlan = { place: source.place, days: {} };
+function normalizeLocalPlan(
+  source: ChildLessonPlan,
+  schoolId: string,
+): ChildLessonPlan {
+  const normalized: ChildLessonPlan = {
+    place: source.place,
+    days: {},
+    schoolId,
+  };
   for (const [key, day] of Object.entries(source.days)) {
     if (!day?.start) continue;
     normalized.days[Number(key) as WeekdayKey] = {
@@ -187,16 +205,34 @@ export function LessonPlanForm({
   mzkSchedule,
   mode = "local",
   initialPlans = [],
+  maxPlans = 1,
+  urlPlanId = null,
+  plusAccess = false,
   loggedIn = false,
   trialEnded = false,
+  cities = [],
+  schools = [],
+  cityId = "",
   schoolId = DEFAULT_SCHOOL_ID,
 }: LessonPlanFormProps) {
   const router = useRouter();
   const stored = useLessonPlan();
-  const mzkRoute = useMzkRoutePreference();
+  const deviceMzkRoute = useMzkRoutePreference();
+  /** School picked in the editor for the plan being edited (null = the plan's own). */
+  const [schoolOverride, setSchoolOverride] = useState<string | null>(null);
   const [accountPlans, setAccountPlans] = useState<AccountPlan[]>(initialPlans);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [planName, setPlanName] = useState(() => initialPlans[0]?.name ?? "");
+  const urlPlanIndex = initialPlans.findIndex(
+    (item) => urlPlanId != null && item.id === urlPlanId,
+  );
+  const [selectedIndex, setSelectedIndex] = useState(() =>
+    Math.max(urlPlanIndex, 0),
+  );
+  const [planName, setPlanName] = useState(
+    () => initialPlans[Math.max(urlPlanIndex, 0)]?.name ?? "",
+  );
+  // Account plans are picked in an effect (URL / remembered plan); don't
+  // navigate to a plan's school before that.
+  const [bootstrapped, setBootstrapped] = useState(mode !== "account");
   const [draft, setDraft] = useState<ChildLessonPlan | null>(null);
   const [pending, startTransition] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -219,6 +255,29 @@ export function LessonPlanForm({
       ? fromAccountPlan(accountPlans[selectedIndex]!)
       : null;
   const plan = draft ?? accountBase ?? stored;
+  const selectedExisting =
+    mode === "account" ? (accountPlans[selectedIndex] ?? null) : null;
+
+  // The plan's school: picked in the editor → the edited plan's → the device
+  // plan's (guest) → the page's. The page loads that school's places, so a
+  // different school navigates there first.
+  const targetSchoolId =
+    schoolOverride ??
+    selectedExisting?.schoolId ??
+    (mode === "local" ? parseSchoolEntityId(stored.schoolId) : null) ??
+    schoolId;
+  const targetSchool =
+    schools.find((school) => school.id === targetSchoolId) ?? null;
+  const schoolPending = targetSchool != null && targetSchoolId !== schoolId;
+  // A new school means new stops near it: the plan's MZK route is dropped.
+  const schoolChanged =
+    selectedExisting != null && selectedExisting.schoolId !== targetSchoolId;
+  const mzkRoute = selectedExisting
+    ? accountMzkRouteToPreference(
+        selectedExisting.mzkRoute,
+        selectedExisting.schoolId,
+      )
+    : mzkRouteForSchool(deviceMzkRoute, targetSchoolId);
 
   const isDraftingNewPlan =
     mode === "account" && selectedIndex >= accountPlans.length;
@@ -239,7 +298,9 @@ export function LessonPlanForm({
 
     async function bootstrap() {
       if (initialPlans.length === 0) {
-        const { plan: imported } = toAccountPlan(local, { schoolId });
+        const { plan: imported } = toAccountPlan(local, {
+          schoolId: parseSchoolEntityId(local.schoolId) ?? schoolId,
+        });
         if (!imported) {
           setAccountPlans([]);
           setSelectedIndex(0);
@@ -266,7 +327,10 @@ export function LessonPlanForm({
         return;
       }
 
-      const selectedId = loadSelectedPlanId(initialPlans);
+      const selectedId =
+        urlPlanId && initialPlans.some((item) => item.id === urlPlanId)
+          ? urlPlanId
+          : loadSelectedPlanId(initialPlans);
       const index = indexOfPlanId(initialPlans, selectedId);
       setAccountPlans(initialPlans);
       setSelectedIndex(index);
@@ -280,8 +344,40 @@ export function LessonPlanForm({
       }
     }
 
-    void bootstrap();
-  }, [mode, initialPlans, schoolId]);
+    void bootstrap().finally(() => setBootstrapped(true));
+  }, [mode, initialPlans, schoolId, urlPlanId]);
+
+  // Load the plan's school (its places) when it differs from the page's.
+  const selectedPlanId = selectedExisting?.id ?? null;
+  useEffect(() => {
+    if (!bootstrapped || !schoolPending || !targetSchool) return;
+    const params = new URLSearchParams();
+    // `?plan=` makes the server load the plan's saved school, so leave it out
+    // while another school is being picked for it.
+    if (selectedPlanId && !schoolOverride) params.set("plan", selectedPlanId);
+    params.set("miasto", targetSchool.city.id);
+    params.set("szkola", targetSchool.id);
+    router.replace(`/lekcje?${params.toString()}`, { scroll: false });
+  }, [
+    bootstrapped,
+    schoolPending,
+    targetSchool,
+    selectedPlanId,
+    schoolOverride,
+    router,
+  ]);
+
+  function changeSchool(next: { cityId: string; schoolId: string }) {
+    if (next.schoolId === targetSchoolId) return;
+    setSaveError(null);
+    setPlaceInvalid(false);
+    setSchoolOverride(next.schoolId);
+    // Places belong to a school: pick the place again.
+    setDraft((prev) => ({
+      ...(prev ?? accountBase ?? stored),
+      place: null,
+    }));
+  }
 
   function basePlan(): ChildLessonPlan {
     return draft ?? accountBase ?? stored;
@@ -323,9 +419,11 @@ export function LessonPlanForm({
     const existing = accountPlans[selectedIndex];
     const { plan: asAccount } = toAccountPlan(current, {
       name: planName,
-      schoolId,
+      schoolId: schoolOverride,
       existing,
+      ...(schoolChanged ? { mzkRoute: null } : {}),
     });
+    setSchoolOverride(null);
     const nextPlans = [...accountPlans];
     if (asAccount && nextPlans[selectedIndex]) {
       nextPlans[selectedIndex] = asAccount;
@@ -356,14 +454,28 @@ export function LessonPlanForm({
   }
 
   function handleAddPlan() {
-    if (accountPlans.length >= MAX_ACCOUNT_PLANS || isDraftingNewPlan) return;
+    if (isDraftingNewPlan) return;
+    if (accountPlans.length >= maxPlans) {
+      if (!plusAccess) {
+        toast.message("Więcej planów w Planie Plus", {
+          description: "Bez Planu Plus konto ma jeden plan.",
+          action: {
+            label: "Zobacz",
+            onClick: () => router.push("/profil?plus=1"),
+          },
+        });
+      }
+      return;
+    }
     const current = basePlan();
     const existing = accountPlans[selectedIndex];
     const { plan: asAccount } = toAccountPlan(current, {
       name: planName,
-      schoolId,
+      schoolId: schoolOverride,
       existing,
+      ...(schoolChanged ? { mzkRoute: null } : {}),
     });
+    setSchoolOverride(null);
     const nextPlans = [...accountPlans];
     if (asAccount) {
       if (nextPlans.length === 0) nextPlans.push(asAccount);
@@ -371,9 +483,13 @@ export function LessonPlanForm({
         nextPlans[selectedIndex] = asAccount;
       }
     }
-    if (nextPlans.length >= MAX_ACCOUNT_PLANS) {
+    if (nextPlans.length >= maxPlans) {
       setAccountPlans(nextPlans);
-      toast.message("Możesz zapisać najwyżej 5 planów");
+      toast.message(
+        plusAccess
+          ? `Możesz zapisać najwyżej ${maxPlans} planów`
+          : "Więcej planów w Planie Plus",
+      );
       return;
     }
     previousSelectedIndexRef.current = selectedIndex;
@@ -396,6 +512,7 @@ export function LessonPlanForm({
     setPlanName(next?.name ?? "");
     setDraft(null);
     setSaveError(null);
+    setSchoolOverride(null);
     if (next?.id) {
       saveSelectedPlanId(next.id);
       mirrorPlanToDevice(fromAccountPlan(next));
@@ -454,6 +571,7 @@ export function LessonPlanForm({
     });
     setDraft(null);
     setSaveError(null);
+    setSchoolOverride(null);
     return true;
   }
 
@@ -476,7 +594,7 @@ export function LessonPlanForm({
 
         setPlaceInvalid(false);
         setHoursSectionInvalid(false);
-        const normalized = normalizeLocalPlan(source);
+        const normalized = normalizeLocalPlan(source, targetSchoolId);
 
         if (mode === "local") {
           mirrorPlanToDevice(normalized);
@@ -485,6 +603,7 @@ export function LessonPlanForm({
           });
           setDraft(null);
           setSaveError(null);
+          setSchoolOverride(null);
           const missingEnd = WEEKDAY_OPTIONS.filter(({ key }) => {
             const day = normalized.days[key];
             return Boolean(day?.start && !day.end);
@@ -506,7 +625,12 @@ export function LessonPlanForm({
             : null;
         const { plan: asAccount, droppedDaysWithoutEnd } = toAccountPlan(
           normalized,
-          { name: planName, schoolId, existing },
+          {
+            name: planName,
+            schoolId: targetSchoolId,
+            existing,
+            ...(schoolChanged ? { mzkRoute: null } : {}),
+          },
         );
         if (!asAccount) {
           setHoursSectionInvalid(true);
@@ -624,7 +748,7 @@ export function LessonPlanForm({
     window.print();
   }
 
-  const saveDisabled = pending;
+  const saveDisabled = pending || schoolPending;
   const saveLabel = isDraftingNewPlan ? "Zapisz nowy plan" : "Zapisz plan";
 
   return (
@@ -633,6 +757,9 @@ export function LessonPlanForm({
         {mode === "account" ? (
           <AccountPlansSection
             accountPlans={accountPlans}
+            schools={schools}
+            maxPlans={maxPlans}
+            plusAccess={plusAccess}
             selectedIndex={selectedIndex}
             isDraftingNewPlan={isDraftingNewPlan}
             pending={pending}
@@ -640,6 +767,17 @@ export function LessonPlanForm({
             onAddPlan={handleAddPlan}
             onRequestDelete={() => setDeleteConfirmOpen(true)}
             onCancelDraft={handleCancelDraft}
+          />
+        ) : null}
+
+        {schools.length > 0 ? (
+          <SchoolSection
+            cities={cities}
+            schools={schools}
+            cityId={targetSchool?.city.id ?? cityId}
+            schoolId={targetSchoolId}
+            disabled={pending}
+            onSchoolChange={changeSchool}
           />
         ) : null}
 
@@ -661,7 +799,7 @@ export function LessonPlanForm({
           ) : null}
 
           <PlaceSection
-            places={places}
+            places={schoolPending ? [] : places}
             place={plan.place}
             placeInvalid={placeInvalid}
             onPlaceChange={setPlace}

@@ -45,7 +45,12 @@ export function parseLessonPlan(raw: unknown): ChildLessonPlan {
     if (day) days[weekday] = day;
   }
 
-  return { place, days };
+  const schoolId =
+    typeof record.schoolId === "string" && record.schoolId.trim()
+      ? record.schoolId.trim()
+      : null;
+
+  return schoolId ? { place, days, schoolId } : { place, days };
 }
 
 export function loadLessonPlan(): ChildLessonPlan {

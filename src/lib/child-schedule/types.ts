@@ -10,6 +10,8 @@ export type DayLessonTimes = {
 export type ChildLessonPlan = {
   place: string | null;
   days: Partial<Record<WeekdayKey, DayLessonTimes>>;
+  /** School the plan is for (device plan of a guest; absent in old saves). */
+  schoolId?: string | null;
 };
 
 export const WEEKDAY_OPTIONS: { key: WeekdayKey; label: string }[] = [
