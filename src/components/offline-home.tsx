@@ -6,7 +6,6 @@ import { OfflineSync } from "@/components/offline-sync";
 import { ScheduleBoard } from "@/components/schedule-board";
 import { ScheduleStatusBanner } from "@/components/schedule-status-banner";
 import { ScheduleUnavailable } from "@/components/schedule-unavailable";
-import type { BackendMzkRoute } from "@/lib/auth/backend";
 import type { AccountPlan } from "@/lib/child-schedule/account-plan";
 import type { Schedule } from "@/lib/dowozy/types";
 import { hasOfflineEntitlement } from "@/lib/offline/entitlement";
@@ -47,7 +46,6 @@ type OfflineHomeProps = {
   schoolName: string | null;
   accountDefaults?: { cityId: string | null; schoolId: string | null } | null;
   signedIn?: boolean;
-  accountMzkRoute?: BackendMzkRoute | null;
   visibleSchoolIds?: string[] | null;
   notices?: PublicNotice[];
 };
@@ -83,7 +81,6 @@ export function OfflineHome({
   schoolName,
   accountDefaults = null,
   signedIn = false,
-  accountMzkRoute = null,
   visibleSchoolIds = null,
   notices = EMPTY_NOTICES,
 }: OfflineHomeProps) {
@@ -183,7 +180,6 @@ export function OfflineHome({
         schoolName={schoolName}
         accountDefaults={accountDefaults}
         signedIn={signedIn}
-        accountMzkRoute={accountMzkRoute}
         visibleSchoolIds={visibleSchoolIds}
         emptySchedule={!schedule}
         notices={notices}

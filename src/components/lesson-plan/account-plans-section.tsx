@@ -1,22 +1,26 @@
 "use client";
 
-import { Check, Plus, Trash2 } from "lucide-react";
+import { Bus, Check, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
 import type { RefObject } from "react";
 import { FieldHelpHint } from "@/components/lesson-plan/field-help-hint";
 import { cardClass } from "@/components/lesson-plan/styles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MAX_ACCOUNT_PLANS } from "@/lib/billing/constants";
 import {
   ACCOUNT_PLAN_NAME_MAX,
   accountPlanLabel,
   type AccountPlan,
 } from "@/lib/child-schedule/account-plan";
+import type { School } from "@/lib/schools/types";
 import { cn } from "cn";
 
 export function AccountPlansSection({
   accountPlans,
+  schools,
+  maxPlans,
+  plusAccess,
   selectedIndex,
   isDraftingNewPlan,
   pending,
@@ -26,6 +30,11 @@ export function AccountPlansSection({
   onCancelDraft,
 }: {
   accountPlans: AccountPlan[];
+  /** All schools, to name each plan's school. */
+  schools: School[];
+  /** 1 without Plus, 5 with Plus. */
+  maxPlans: number;
+  plusAccess: boolean;
   selectedIndex: number;
   isDraftingNewPlan: boolean;
   pending: boolean;
@@ -34,6 +43,12 @@ export function AccountPlansSection({
   onRequestDelete: () => void;
   onCancelDraft: () => void;
 }) {
+  const plansSpanSchools =
+    new Set(accountPlans.map((plan) => plan.schoolId)).size > 1;
+  const selectedPlan = accountPlans[selectedIndex] ?? null;
+  function schoolName(schoolId: string): string {
+    return schools.find((school) => school.id === schoolId)?.name ?? "Szkoła";
+  }
   return (
     <>
       <section
@@ -47,7 +62,9 @@ export function AccountPlansSection({
             Plany na koncie
           </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Do {MAX_ACCOUNT_PLANS} planów, synchronizowanych między urządzeniami.
+            {plusAccess
+              ? `Do ${maxPlans} planów, każdy dla swojej szkoły i z własną trasą MZK — synchronizowane między urządzeniami.`
+              : "Jeden plan na koncie: szkoła, godziny i trasa MZK. Więcej planów (np. dla kilku dzieci lub szkół) w Planie Plus."}
           </p>
         </div>
         {accountPlans.length > 0 ? (
@@ -68,6 +85,11 @@ export function AccountPlansSection({
                     )}
                   >
                     {accountPlanLabel(item, index)}
+                    {plansSpanSchools ? (
+                      <span className="ml-1 font-normal text-muted-foreground">
+                        · {schoolName(item.schoolId)}
+                      </span>
+                    ) : null}
                     {selected ? (
                       <span
                         aria-hidden
@@ -79,7 +101,7 @@ export function AccountPlansSection({
                   </button>
                 );
               })}
-              {accountPlans.length < MAX_ACCOUNT_PLANS ? (
+              {accountPlans.length < maxPlans ? (
                 <button
                   type="button"
                   onClick={onAddPlan}
@@ -99,6 +121,14 @@ export function AccountPlansSection({
                   <Plus aria-hidden className="size-3.5" />
                   Dodaj plan
                 </button>
+              ) : !plusAccess ? (
+                <Link
+                  href="/profil?plus=1"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-border/70 bg-background px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-bus/40 hover:text-foreground"
+                >
+                  <Plus aria-hidden className="size-3.5" />
+                  Więcej planów w Planie Plus
+                </Link>
               ) : null}
             </div>
             <Button
@@ -119,9 +149,26 @@ export function AccountPlansSection({
             </Button>
           </div>
         ) : null}
-        {accountPlans.length >= MAX_ACCOUNT_PLANS ? (
+        {plusAccess && accountPlans.length >= maxPlans ? (
           <p className="text-sm text-muted-foreground">
-            Możesz zapisać najwyżej 5 planów
+            Możesz zapisać najwyżej {maxPlans} planów
+          </p>
+        ) : null}
+        {selectedPlan?.id && !isDraftingNewPlan ? (
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+            <Bus aria-hidden className="size-4 shrink-0 text-mzk-deep" />
+            <span>
+              {schoolName(selectedPlan.schoolId)} ·{" "}
+              {selectedPlan.mzkRoute
+                ? "trasa MZK ustawiona"
+                : "bez trasy MZK"}
+            </span>
+            <Link
+              href={`/mzk?plan=${encodeURIComponent(selectedPlan.id)}`}
+              className="font-medium text-foreground underline underline-offset-2"
+            >
+              {selectedPlan.mzkRoute ? "Zmień trasę MZK" : "Ustaw trasę MZK"}
+            </Link>
           </p>
         ) : null}
       </section>

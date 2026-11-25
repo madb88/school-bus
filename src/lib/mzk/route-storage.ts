@@ -1,3 +1,4 @@
+import { DEFAULT_SCHOOL_ID } from "@/lib/schools/constants";
 import {
   EMPTY_MZK_ROUTE,
   MZK_ROUTE_STORAGE_KEY,
@@ -17,13 +18,33 @@ export function parseMzkRoutePreference(raw: unknown): MzkRoutePreference {
       ? record.route.trim()
       : null;
 
-  return {
+  const pref: MzkRoutePreference = {
     boardStopId: isStopId(record.boardStopId) ? record.boardStopId.trim() : null,
     alightStopId: isStopId(record.alightStopId)
       ? record.alightStopId.trim()
       : null,
     route,
   };
+  if (typeof record.schoolId === "string" && record.schoolId.trim()) {
+    pref.schoolId = record.schoolId.trim();
+  }
+  return pref;
+}
+
+/** School a stored route belongs to (legacy saves without one = seed school). */
+export function mzkRouteSchoolId(pref: MzkRoutePreference): string {
+  return pref.schoolId?.trim() || DEFAULT_SCHOOL_ID;
+}
+
+/** The route when it was set for `schoolId`, else an empty route. */
+export function mzkRouteForSchool(
+  pref: MzkRoutePreference,
+  schoolId: string,
+): MzkRoutePreference {
+  if (!hasConfiguredMzkRoute(pref) || mzkRouteSchoolId(pref) !== schoolId) {
+    return { ...EMPTY_MZK_ROUTE };
+  }
+  return pref;
 }
 
 export function loadMzkRoutePreference(): MzkRoutePreference {

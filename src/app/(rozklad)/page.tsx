@@ -8,7 +8,7 @@ import { loadScheduleCorrectionSnapshot } from "@/lib/dowozy/load-schedule";
 import { overrideFreshnessInfo } from "@/lib/dowozy/override-freshness";
 import { loadMzkScheduleMeta } from "@/lib/mzk/load-schedule";
 import { loadSchoolNotices, loadSchools } from "@/lib/schools/load";
-import { resolveServerSchoolContext } from "@/lib/schools/resolve-server";
+import { resolveServerSchoolContextForPlan } from "@/lib/schools/resolve-server";
 import {
   mzkScheduleFreshness,
   schoolScheduleFreshness,
@@ -32,18 +32,19 @@ export default async function Home({
   searchParams: Promise<HomeSearchParams>;
 }) {
   const params = await searchParams;
+  const session = await getAuthSession();
+  const user = session.status === "authenticated" ? session.user : null;
+  // `?plan=<id>` of one of the user's plans picks the plan's school.
   const { selection, cities, schools, school } =
-    await resolveServerSchoolContext(params);
+    await resolveServerSchoolContextForPlan(params, user?.plans ?? []);
   const schoolId = selection.schoolId;
 
-  const [correction, mzkMeta, session, notices, allSchools] = await Promise.all([
+  const [correction, mzkMeta, notices, allSchools] = await Promise.all([
     loadScheduleCorrectionSnapshot(schoolId),
     loadMzkScheduleMeta(schoolId),
-    getAuthSession(),
     loadSchoolNotices(schoolId),
     loadSchools(),
   ]);
-  const user = session.status === "authenticated" ? session.user : null;
   const suspendOfflineSync = session.status === "unavailable";
   const loaded = correction?.resolved ?? null;
   const schedule = loaded?.schedule ?? null;
@@ -57,9 +58,8 @@ export default async function Home({
 
   const plus = user ? await fetchPlus(user.sessionToken) : "unavailable";
   const offlinePlusAccess = user != null && hasPlusAccess(user.role, plus);
-  const plusAccess =
-    offlinePlusAccess || (user != null && user.plans.length > 0);
-  const accountPlans = plusAccess && user ? user.plans : [];
+  // The backend already limits the plans shown without Plus (one plan).
+  const accountPlans = user ? user.plans : [];
   const plusValidUntil =
     plus !== "unavailable" &&
     (plus.state === "active" || plus.state === "trial")
@@ -82,7 +82,6 @@ export default async function Home({
       }
     : null;
   const signedIn = user != null;
-  const accountMzkRoute = user?.mzkRoutes?.[schoolId] ?? null;
   const visibleSchoolIds = user?.settings.visibleSchoolIds ?? null;
 
   return (
@@ -105,7 +104,6 @@ export default async function Home({
           schoolName={school?.name ?? null}
           accountDefaults={accountDefaults}
           signedIn={signedIn}
-          accountMzkRoute={accountMzkRoute}
           visibleSchoolIds={visibleSchoolIds}
           notices={notices}
         />

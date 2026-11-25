@@ -28,9 +28,9 @@ Nie loguj treści planów, tokenów transferu, kluczy push ani sekretów.
 
 | Klucz | Zawartość |
 | --- | --- |
-| `school-bus.child-lesson-plan.v1` | plan lekcji (lokalna kopia wybranego planu) |
-| `school-bus.selected-plan.v1` | UUID wybranego planu konta (`AccountPlan.id`) |
-| `school-bus.mzk-route.v1` | trasa MZK |
+| `school-bus.child-lesson-plan.v1` | plan lekcji (lokalna kopia wybranego planu, z `schoolId`; gość: jedyny plan) |
+| `school-bus.selected-plan.v1` | UUID wybranego planu konta (`AccountPlan.id`) — aktywny plan na `/` i `/mzk` |
+| `school-bus.mzk-route.v1` | trasa MZK planu z `schoolId` (gość: trasa planu lokalnego; konto: kopia offline trasy aktywnego planu, źródło to `AccountPlan.mzkRoute`) |
 | `school-bus.preferred-place.v1` | wybrane miejsce |
 | `school-bus.selected-city.v1` | wybrane miasto (UUID) |
 | `school-bus.selected-school.v1` | wybrana szkoła (UUID) |

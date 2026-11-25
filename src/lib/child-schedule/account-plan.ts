@@ -10,6 +10,14 @@ export type AccountDayTimes = {
   end: string;
 };
 
+/** MZK trip saved on a plan: board near home, alight near the school (stops of the school's city). */
+export type AccountMzkRoute = {
+  boardStopId: string;
+  alightStopId: string;
+  /** Optional line number; omitted = any line on this OD pair. */
+  route?: string;
+};
+
 export type AccountPlan = {
   /** Stable server-minted UUID; omitted for unsaved new plans. */
   id?: string;
@@ -19,12 +27,19 @@ export type AccountPlan = {
   /** Optional display name; omitted when empty (backend + Mongo). */
   name?: string;
   days: Partial<Record<AccountWeekdayKey, AccountDayTimes>>;
+  /** MZK route for this plan; omitted when none. */
+  mzkRoute?: AccountMzkRoute;
 };
 
 export type ToAccountPlanOptions = {
   name?: string | null;
-  /** School for a new/edited plan (defaults to seed school when omitted). */
+  /**
+   * School for a new plan, or the school picked in the editor. When omitted an
+   * edited plan keeps its own school (then the seed school).
+   */
   schoolId?: string | null;
+  /** MZK route: `undefined` keeps the existing plan's route, `null` clears it. */
+  mzkRoute?: AccountMzkRoute | null;
   /** When editing, echo the existing plan's id so push links survive. */
   existing?: AccountPlan | null;
 };
@@ -82,6 +97,22 @@ export function accountPlanLabel(plan: AccountPlan, index: number): string {
   return `Plan ${index + 1}`;
 }
 
+/** Validate an MZK route object (`null` when absent or invalid). */
+export function parseAccountMzkRoute(value: unknown): AccountMzkRoute | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const board =
+    typeof record.boardStopId === "string" ? record.boardStopId.trim() : "";
+  const alight =
+    typeof record.alightStopId === "string" ? record.alightStopId.trim() : "";
+  if (!board || !alight || board === alight) return null;
+  const route: AccountMzkRoute = { boardStopId: board, alightStopId: alight };
+  if (typeof record.route === "string" && record.route.trim()) {
+    route.route = record.route.trim();
+  }
+  return route;
+}
+
 export function parseAccountPlan(value: unknown): AccountPlan | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const record = value as Record<string, unknown>;
@@ -118,6 +149,8 @@ export function parseAccountPlan(value: unknown): AccountPlan | null {
   };
   if (isAccountPlanId(record.id)) plan.id = record.id;
   if (name) plan.name = name;
+  const mzkRoute = parseAccountMzkRoute(record.mzkRoute);
+  if (mzkRoute) plan.mzkRoute = mzkRoute;
   return plan;
 }
 
@@ -154,6 +187,8 @@ export function serializeAccountPlan(plan: AccountPlan): AccountPlan {
   };
   if (isAccountPlanId(plan.id)) out.id = plan.id;
   if (name) out.name = name;
+  const mzkRoute = parseAccountMzkRoute(plan.mzkRoute);
+  if (mzkRoute) out.mzkRoute = mzkRoute;
   return out;
 }
 
@@ -209,6 +244,7 @@ export function toAccountPlan(
   const schoolId =
     parseSchoolEntityId(options.schoolId) ??
     parseSchoolEntityId(options.existing?.schoolId) ??
+    parseSchoolEntityId(plan.schoolId) ??
     DEFAULT_SCHOOL_ID;
   const account: AccountPlan = {
     schoolId,
@@ -217,6 +253,11 @@ export function toAccountPlan(
   };
   if (isAccountPlanId(options.existing?.id)) account.id = options.existing.id;
   if (normalizedName) account.name = normalizedName;
+  const mzkRoute =
+    options.mzkRoute === undefined
+      ? parseAccountMzkRoute(options.existing?.mzkRoute)
+      : parseAccountMzkRoute(options.mzkRoute);
+  if (mzkRoute) account.mzkRoute = mzkRoute;
 
   return {
     plan: account,
@@ -231,5 +272,5 @@ export function fromAccountPlan(plan: AccountPlan): ChildLessonPlan {
     if (!day) continue;
     days[Number(key) as WeekdayKey] = { start: day.start, end: day.end };
   }
-  return { place: plan.place, days };
+  return { place: plan.place, days, schoolId: plan.schoolId };
 }

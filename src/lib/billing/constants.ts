@@ -6,6 +6,9 @@ export const TRIAL_WEEKS = 2;
 
 export const MAX_ACCOUNT_PLANS = 5;
 
+/** Plans an account without Plus keeps and sees (backend `MAX_FREE_PLANS`). */
+export const MAX_FREE_ACCOUNT_PLANS = 1;
+
 export const COMPLAINT_USER_MAX = 3;
 export const COMPLAINT_WINDOW = "15 m";
 export const COMPLAINT_WINDOW_MS = 15 * 60 * 1000;

@@ -1,3 +1,4 @@
+import type { AccountPlan } from "@/lib/child-schedule/account-plan";
 import { DEFAULT_CITY_ID, DEFAULT_SCHOOL_ID } from "./constants";
 import { loadCities, loadSchools } from "./load";
 import { parseSchoolFilterParams } from "./resolve-selection";
@@ -42,4 +43,41 @@ export async function resolveServerSchoolContext(
     schools,
     school,
   };
+}
+
+type SearchSource =
+  | URLSearchParams
+  | Record<string, string | string[] | undefined>
+  | undefined;
+
+function readPlanParam(source: SearchSource): string | null {
+  if (!source) return null;
+  const raw =
+    source instanceof URLSearchParams ? source.get("plan") : source.plan;
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return typeof value === "string" ? value.trim().toLowerCase() : null;
+}
+
+/**
+ * Like `resolveServerSchoolContext`, but `?plan=<id>` of one of `plans` wins:
+ * the plan's school (and its city) is loaded instead of `szkola`/`miasto`.
+ */
+export async function resolveServerSchoolContextForPlan(
+  source: SearchSource,
+  plans: AccountPlan[],
+): Promise<Awaited<ReturnType<typeof resolveServerSchoolContext>>> {
+  const planId = readPlanParam(source);
+  const plan = planId ? plans.find((item) => item.id === planId) : undefined;
+  if (plan) {
+    const school = (await loadSchools()).find(
+      (item) => item.id === plan.schoolId,
+    );
+    if (school) {
+      return resolveServerSchoolContext({
+        miasto: school.city.id,
+        szkola: school.id,
+      });
+    }
+  }
+  return resolveServerSchoolContext(source);
 }

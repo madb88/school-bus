@@ -114,8 +114,77 @@ describe("toAccountPlan", () => {
   });
 });
 
+describe("toAccountPlan school and MZK route", () => {
+  const OTHER_SCHOOL = "11111111-2222-4333-8444-555555555555";
+  const ROUTE = { boardStopId: "350", alightStopId: "299", route: "30" };
+  const existing: AccountPlan = {
+    id: "550e8400-e29b-41d4-a716-446655440000",
+    schoolId: OTHER_SCHOOL,
+    place: "Zatonie",
+    days: { "1": { start: "08:00", end: "14:00" } },
+    mzkRoute: ROUTE,
+  };
+  const local: ChildLessonPlan = {
+    place: "Zatonie",
+    days: { 1: { start: "08:00", end: "14:00" } },
+  };
+
+  it("keeps the edited plan's school and route when none is given", () => {
+    const { plan } = toAccountPlan(local, { existing });
+    expect(plan?.schoolId).toBe(OTHER_SCHOOL);
+    expect(plan?.mzkRoute).toEqual(ROUTE);
+  });
+
+  it("uses the picked school and clears the route with null", () => {
+    const { plan } = toAccountPlan(local, {
+      existing,
+      schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
+      mzkRoute: null,
+    });
+    expect(plan?.schoolId).toBe("2d6cdca6-4dc0-4cfc-b5a0-8286ac813680");
+    expect(plan).not.toHaveProperty("mzkRoute");
+  });
+
+  it("takes a device plan's own school", () => {
+    const { plan } = toAccountPlan({ ...local, schoolId: OTHER_SCHOOL });
+    expect(plan?.schoolId).toBe(OTHER_SCHOOL);
+  });
+});
+
+describe("parseAccountPlan mzkRoute", () => {
+  const base = {
+    schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
+    place: "Zatonie",
+    days: { "1": { start: "08:00", end: "14:00" } },
+  };
+
+  it("keeps a valid route and drops an invalid one", () => {
+    expect(
+      parseAccountPlan({
+        ...base,
+        mzkRoute: { boardStopId: " 350 ", alightStopId: "299", route: "" },
+      })?.mzkRoute,
+    ).toEqual({ boardStopId: "350", alightStopId: "299" });
+    expect(
+      parseAccountPlan({
+        ...base,
+        mzkRoute: { boardStopId: "350", alightStopId: "350" },
+      }),
+    ).not.toHaveProperty("mzkRoute");
+  });
+
+  it("serializes the route", () => {
+    expect(
+      serializeAccountPlan({
+        ...base,
+        mzkRoute: { boardStopId: "350", alightStopId: "299", route: "30" },
+      }).mzkRoute,
+    ).toEqual({ boardStopId: "350", alightStopId: "299", route: "30" });
+  });
+});
+
 describe("fromAccountPlan", () => {
-  it("uses numeric weekday keys and ignores name", () => {
+  it("uses numeric weekday keys, keeps the school and ignores name", () => {
     const account: AccountPlan = {
       schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
       place: "Zatonie",
@@ -125,6 +194,7 @@ describe("fromAccountPlan", () => {
     expect(fromAccountPlan(account)).toEqual({
       place: "Zatonie",
       days: { 1: { start: "08:00", end: "14:00" } },
+      schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
     });
   });
 });
@@ -147,6 +217,7 @@ describe("account plan round trip", () => {
         1: { start: "08:05", end: "13:00" },
         5: { start: "09:00", end: "14:30" },
       },
+      schoolId: "2d6cdca6-4dc0-4cfc-b5a0-8286ac813680",
     });
   });
 });

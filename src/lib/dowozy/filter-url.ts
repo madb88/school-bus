@@ -1,3 +1,8 @@
+import {
+  LOCAL_PLAN_KEY,
+  type PlanUrlChoice,
+} from "@/lib/child-schedule/active-plan";
+import { isAccountPlanId } from "@/lib/child-schedule/account-plan";
 import { parseSchoolEntityId } from "@/lib/schools/storage";
 import type {
   ScheduleDateFilter,
@@ -32,6 +37,8 @@ export type ParsedFilterParams = {
   planMatch: PlanMatchFilter | undefined;
   /** @deprecated Use planMatch. true ↔ all, false ↔ off. */
   matchLessonPlan: boolean | undefined;
+  /** `plan=<uuid|local>`: the active plan (picks the school and MZK route too). */
+  planId: string | undefined;
   sourceMode: ScheduleSourceMode | undefined;
   cityId: string | undefined;
   schoolId: string | undefined;
@@ -131,7 +138,12 @@ export function parseFilterParams(
   const dopasuj = readParam(source, "dopasuj");
   const planRaw = readParam(source, "plan");
   let planMatch: PlanMatchFilter | undefined;
-  if (planRaw !== null) {
+  let planId: string | undefined;
+  const planTrimmed = planRaw?.trim() ?? "";
+  if (isAccountPlanId(planTrimmed) || planTrimmed === LOCAL_PLAN_KEY) {
+    planId = planTrimmed.toLowerCase();
+    planMatch = "all";
+  } else if (planRaw !== null) {
     const normalized = planRaw.trim().toLowerCase();
     if (!normalized || normalized === "all" || normalized === "wszystkie") {
       planMatch = "all";
@@ -229,11 +241,22 @@ export function parseFilterParams(
     direction,
     planMatch,
     matchLessonPlan,
+    planId,
     sourceMode,
     cityId,
     schoolId,
     hasExplicit,
   };
+}
+
+/** The URL's plan choice for `resolveActivePlanKey`. */
+export function planUrlChoice(parsed: ParsedFilterParams): PlanUrlChoice {
+  if (parsed.planId) return { kind: "plan", key: parsed.planId };
+  if (parsed.planMatch === "off") return { kind: "off" };
+  if (typeof parsed.planMatch === "number") {
+    return { kind: "index", index: parsed.planMatch };
+  }
+  return { kind: "default" };
 }
 
 /** Build query string without leading `?`. Omits defaults (today / direction all). */
@@ -247,6 +270,8 @@ export function serializeFilterParams(filters: {
   sourceMode?: ScheduleSourceMode;
   cityId?: string | null;
   schoolId?: string | null;
+  /** Active plan (`plan=<id>`); wins over `planMatch`. */
+  planId?: string | null;
   /** Persist dopasuj=0 when match is off (needed when plan exists and default is on). */
   persistMatchOff?: boolean;
   /** Persist zrodlo=szkolny when school-only is chosen but MZK route exists (default would be school-mzk). */
@@ -262,7 +287,9 @@ export function serializeFilterParams(filters: {
         ? "all"
         : "off");
 
-  if (planMatch === "off") {
+  if (filters.planId) {
+    params.set("plan", filters.planId);
+  } else if (planMatch === "off") {
     if (filters.persistMatchOff) {
       params.set("dopasuj", "0");
     }
@@ -316,6 +343,8 @@ export function filtersHref(filters: {
   sourceMode?: ScheduleSourceMode;
   cityId?: string | null;
   schoolId?: string | null;
+  /** Open `/` with this plan active (its school, hours and MZK route). */
+  planId?: string | null;
 }): string {
   const places =
     filters.places !== undefined
@@ -336,6 +365,7 @@ export function filtersHref(filters: {
     dateFilter: filters.dateFilter,
     direction: filters.direction,
     planMatch: explicitPlanMatch ?? "off",
+    planId: filters.planId,
     sourceMode: filters.sourceMode,
     cityId: filters.cityId,
     schoolId: filters.schoolId,

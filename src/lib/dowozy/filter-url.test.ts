@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   filtersHref,
   parseFilterParams,
+  planUrlChoice,
   serializeFilterParams,
 } from "./filter-url";
 
@@ -162,5 +163,42 @@ describe("filtersHref", () => {
         matchLessonPlan: true,
       }),
     ).toBe("/?dopasuj=1&miejsce=Zatonie");
+  });
+});
+
+describe("plan id param", () => {
+  const PLAN = "550e8400-e29b-41d4-a716-446655440000";
+
+  it("parses a plan UUID or the device plan", () => {
+    expect(parseFilterParams({ plan: PLAN }).planId).toBe(PLAN);
+    expect(parseFilterParams({ plan: "local" }).planId).toBe("local");
+    expect(parseFilterParams({ plan: "2" }).planId).toBeUndefined();
+  });
+
+  it("maps the URL to a plan choice", () => {
+    expect(planUrlChoice(parseFilterParams({ plan: PLAN }))).toEqual({
+      kind: "plan",
+      key: PLAN,
+    });
+    expect(planUrlChoice(parseFilterParams({ dopasuj: "0" }))).toEqual({
+      kind: "off",
+    });
+    expect(planUrlChoice(parseFilterParams({ plan: "1" }))).toEqual({
+      kind: "index",
+      index: 1,
+    });
+    expect(planUrlChoice(parseFilterParams({}))).toEqual({ kind: "default" });
+  });
+
+  it("serializes the plan id instead of the match flags", () => {
+    expect(
+      serializeFilterParams({
+        places: null,
+        dateFilter: "today",
+        direction: "all",
+        planMatch: "all",
+        planId: PLAN,
+      }),
+    ).toBe(`plan=${PLAN}`);
   });
 });
