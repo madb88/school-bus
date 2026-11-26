@@ -579,14 +579,13 @@ export function ScheduleFilters({
       largeControls && "[&_select]:h-11 [&_select]:text-base",
     );
 
+    const allMzkCount =
+      hiddenMzkCount > 0 ? ` (+${hiddenMzkCount})` : "";
     const mzkScopeOptions = [
       { value: "plan" as const, label: "Do planu" },
       {
         value: "all" as const,
-        label:
-          hiddenMzkCount > 0
-            ? `Wszystkie MZK (+${hiddenMzkCount})`
-            : "Wszystkie MZK",
+        label: `${stacked ? "Wszystkie" : "Wszystkie MZK"}${allMzkCount}`,
       },
     ];
     const mzkPlanToggle = showMzkPlanToggle ? (
@@ -606,7 +605,7 @@ export function ScheduleFilters({
               variant="outline"
               aria-pressed={active}
               className={cn(
-                stacked && "px-2.5",
+                stacked && "px-2 text-sm max-[21rem]:text-xs",
                 largeControls && "h-11",
                 active && filterToggleActiveClass,
               )}
