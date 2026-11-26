@@ -579,22 +579,46 @@ export function ScheduleFilters({
       largeControls && "[&_select]:h-11 [&_select]:text-base",
     );
 
+    const mzkScopeOptions = [
+      { value: "plan" as const, label: "Do planu" },
+      {
+        value: "all" as const,
+        label:
+          hiddenMzkCount > 0
+            ? `Wszystkie MZK (+${hiddenMzkCount})`
+            : "Wszystkie MZK",
+      },
+    ];
     const mzkPlanToggle = showMzkPlanToggle ? (
-      <Button
-        type="button"
-        variant="outline"
-        aria-pressed={showAllMzkConnections}
-        className={cn(
-          stacked && "w-full",
-          largeControls && "h-11",
-          showAllMzkConnections && filterToggleActiveClass,
-        )}
-        onClick={onToggleShowAllMzk}
+      <ButtonGroup
+        aria-label="Zakres kursów MZK"
+        className={cn(stacked && "max-w-full shrink-0")}
       >
-        {showAllMzkConnections
-          ? "Tylko do planu"
-          : `Wszystkie MZK${hiddenMzkCount > 0 ? ` (+${hiddenMzkCount})` : ""}`}
-      </Button>
+        {mzkScopeOptions.map((option) => {
+          const active =
+            option.value === "all"
+              ? showAllMzkConnections
+              : !showAllMzkConnections;
+          return (
+            <Button
+              key={option.value}
+              type="button"
+              variant="outline"
+              aria-pressed={active}
+              className={cn(
+                stacked && "px-2.5",
+                largeControls && "h-11",
+                active && filterToggleActiveClass,
+              )}
+              onClick={() => {
+                if (!active) onToggleShowAllMzk();
+              }}
+            >
+              {option.label}
+            </Button>
+          );
+        })}
+      </ButtonGroup>
     ) : null;
 
     if (stacked) {
@@ -628,34 +652,36 @@ export function ScheduleFilters({
             <Label htmlFor={planId} className="text-xs text-muted-foreground">
               Plan lekcji
             </Label>
-            {planReady ? (
-              <NativeSelect
-                id={planId}
-                size={largeControls ? "default" : "sm"}
-                className={stackedSelectClass}
-                value={planSelectValue}
-                onChange={(event) => {
-                  onPlanSelectValue(event.target.value);
-                }}
-              >
-                {planItems.map((item) => (
-                  <NativeSelectOption key={item.value} value={item.value}>
-                    {item.label}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-            ) : (
-              <Link
-                href="/lekcje"
-                className={cn(
-                  "inline-flex w-full items-center justify-center rounded-lg border border-border bg-card px-2.5 text-sm font-medium hover:bg-muted",
-                  largeControls ? "h-11" : "h-8",
-                )}
-              >
-                Dodaj plan
-              </Link>
-            )}
-            {mzkPlanToggle}
+            <div className="flex w-full min-w-0 items-center gap-1.5">
+              {planReady ? (
+                <NativeSelect
+                  id={planId}
+                  size={largeControls ? "default" : "sm"}
+                  className={cn(stackedSelectClass, "min-w-0 flex-1")}
+                  value={planSelectValue}
+                  onChange={(event) => {
+                    onPlanSelectValue(event.target.value);
+                  }}
+                >
+                  {planItems.map((item) => (
+                    <NativeSelectOption key={item.value} value={item.value}>
+                      {item.label}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              ) : (
+                <Link
+                  href="/lekcje"
+                  className={cn(
+                    "inline-flex min-w-0 flex-1 items-center justify-center rounded-lg border border-border bg-card px-2.5 text-sm font-medium hover:bg-muted",
+                    largeControls ? "h-11" : "h-8",
+                  )}
+                >
+                  Dodaj plan
+                </Link>
+              )}
+              {mzkPlanToggle}
+            </div>
           </div>
         </div>
       );
@@ -690,7 +716,7 @@ export function ScheduleFilters({
           </Select>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-nowrap items-center gap-1.5">
           <Label id={planLabelId} className="text-xs text-muted-foreground">
             Plan lekcji
           </Label>
